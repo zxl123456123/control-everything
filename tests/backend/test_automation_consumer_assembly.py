@@ -33,12 +33,16 @@ class ConsumerAssemblyTests(AutomationQueueFixture):
             threading.Event().wait(.02)
         else:
             self.fail('Planning did not reach durable waiting')
-        self.assertEqual(len(self.host.calls), 2)
+        self.assertEqual(len(self.host.calls), 3)
+        self.assertEqual(flow['status'], 'waiting_external')
+        with self.profile.store.connection() as connection:
+            attention = connection.execute('SELECT attention_json FROM automation_flows').fetchone()[0]
+        self.assertIn('implementation_result_unverified', attention)
         previous = self.server.automation_consumer_service
         self.server.attach_workbench_runtime(self.runtime)
         self.assertFalse(previous.thread.is_alive())
         self.server.automation_consumer_service.close()
-        self.assertEqual(len(self.host.calls), 2)
+        self.assertEqual(len(self.host.calls), 3)
 
     def test_failed_old_close_preserves_adapter_and_does_not_replace(self):
         old = Mock()

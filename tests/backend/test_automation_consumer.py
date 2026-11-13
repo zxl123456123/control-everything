@@ -11,7 +11,7 @@ class PlanningHost(FakeHost):
     def __init__(self):
         super().__init__()
         self.calls = []
-        self.kind, self.verdict, self.model = 'small', 'approve', 'gpt-6-astra'
+        self.kind, self.verdict, self.model = 'small', 'approve', 'requested'
         self.questions = []
 
     def create(self, params, *, cancel_event=None):
@@ -27,8 +27,10 @@ class PlanningHost(FakeHost):
         reply['binding'] = copy.deepcopy(binding)
         reply['status'].update(providerSession=binding['providerSession'], state='done', turnEndedAt=120,
                                turnEndDisposition='identified', lastAssistantMessage=json.dumps(value))
+        if self.calls[-1]['model'] == 'gpt-6.1-sol':
+            reply['status']['lastAssistantMessage'] = 'Implemented; model claims tests passed.'
         if self.model is not None:
-            reply['status']['model'] = self.model
+            reply['status']['model'] = self.calls[-1]['model'] if self.model == 'requested' else self.model
         return reply
 
 
@@ -47,21 +49,21 @@ class ConsumerTests(AutomationQueueFixture):
         with self.profile.store.connection() as connection:
             return self.queue._view(connection, connection.execute('SELECT id FROM automation_flows').fetchone()[0])
 
-    def test_small_stops_before_implementation_and_restart_does_not_call(self):
+    def test_small_implementation_is_unverified_and_restart_does_not_call(self):
         result = self.pump()
         self.assertEqual(result['flow']['status'], 'waiting_external')
-        self.assertEqual(result['flow']['attention']['reason'], 'implementation_not_connected')
-        self.assertEqual(len(self.host.calls), 2)
-        self.assertTrue(all(p['model'] == 'gpt-6-astra' for p in self.host.calls))
+        self.assertEqual(result['flow']['attention']['reason'], 'implementation_result_unverified')
+        self.assertEqual(len(self.host.calls), 3)
+        self.assertEqual([p['model'] for p in self.host.calls], ['gpt-6-astra', 'gpt-6-astra', 'gpt-6.1-sol'])
         self.consumer = self.consumer_type(self.queue, self.host)
         self.pump()
-        self.assertEqual(len(self.host.calls), 2)
+        self.assertEqual(len(self.host.calls), 3)
         with self.profile.store.connection() as connection:
             steps = [dict(row) for row in connection.execute('SELECT * FROM automation_steps ORDER BY ordinal')]
-        self.assertEqual([s['kind'] for s in steps], ['prepare', 'plan', 'plan_review'])
-        review = json.loads(steps[-1]['request_json'])
-        self.assertEqual(review['review_of']['step_id'], steps[-2]['id'])
-        self.assertNotEqual(json.loads(steps[-1]['binding_json'])['providerSession'], json.loads(steps[-2]['binding_json'])['providerSession'])
+        self.assertEqual([s['kind'] for s in steps], ['prepare', 'plan', 'plan_review', 'implement'])
+        review = json.loads(steps[2]['request_json'])
+        self.assertEqual(review['review_of']['step_id'], steps[1]['id'])
+        self.assertNotEqual(json.loads(steps[2]['binding_json'])['providerSession'], json.loads(steps[1]['binding_json'])['providerSession'])
 
     def test_feature_waits_for_user(self):
         self.host.kind = 'feature'
@@ -115,7 +117,7 @@ class ConsumerTests(AutomationQueueFixture):
             unsupported = dict(connection.execute('SELECT * FROM automation_flows WHERE task_id=?', (self.item['id'],)).fetchone())
             self.assertEqual(json.loads(unsupported['attention_json'])['reason'], 'agent_not_supported')
             self.assertEqual(connection.execute('SELECT COUNT(*) FROM automation_steps WHERE flow_id=?', (unsupported['id'],)).fetchone()[0], 0)
-        self.assertEqual(len(self.host.calls), 2)
+        self.assertEqual(len(self.host.calls), 3)
 
     def test_stale_owner_and_revision_cannot_write_wait(self):
         from control_everything.input_validation import ProfileError
@@ -180,7 +182,7 @@ class ConsumerTests(AutomationQueueFixture):
     def test_completed_steps_resume_after_owner_replacement(self):
         now = [1000.0]
         self.queue.clock = lambda: now[0]
-        for _ in range(6):
+        for _ in range(10):
             self.consumer.run_once()
         calls = len(self.host.calls)
         now[0] += 61
@@ -216,7 +218,7 @@ class ConsumerTests(AutomationQueueFixture):
 
     def test_prompts_include_classification_and_review_contract(self):
         self.pump()
-        for call in self.host.calls:
+        for call in [call for call in self.host.calls if call.get('readOnly') is True]:
             for rule in ('not new features', 'public interfaces', 'classification reasons',
                          'requirements coverage', 'implementation evidence', 'overengineering',
                          'risks', 'acceptance methods', 'two automatic revision rounds',
@@ -315,3 +317,103 @@ class ConsumerTests(AutomationQueueFixture):
         result = self.pump()
         self.assertEqual(result['flow']['attention']['reason'], 'read_only_command_override_unsupported')
         self.assertEqual(len(self.host.calls), 1)
+
+    def review_boundary(self):
+        for _ in range(7):
+            self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, connection.execute('SELECT id FROM automation_flows').fetchone()[0])
+        self.assertEqual((view['step']['kind'], view['step']['status']), ('plan_review', 'completed'))
+        return view
+
+    def test_small_approval_reserves_one_sol_implementation_with_frozen_references(self):
+        from control_everything.workspace.native_progress import digest
+        view = self.review_boundary()
+        step = self.consumer._advance(self.consumer.lease, view, view['step'])
+        self.assertEqual(step['kind'], 'implement')
+        self.assertEqual(step['writes_project'], 1)
+        request = step['request']
+        self.assertEqual(request['params']['model'], 'gpt-6.1-sol')
+        self.assertIsNot(request['params'].get('readOnly'), True)
+        review = view['step']
+        plan = self.queue.get_step(review['request']['review_of']['step_id'])
+        for name in ('runtimeId', 'environmentId', 'repoId', 'worktreeId', 'cwd'):
+            self.assertEqual(request['params'][name], review['request']['params'][name])
+        self.assertEqual(request['plan_step_id'], plan['id'])
+        self.assertEqual(request['review_step_id'], review['id'])
+        self.assertEqual(request['plan_hash'], digest(plan['result']['text']))
+        self.assertEqual(request['review_hash'], digest(review['result']['text']))
+        self.assertEqual(request['context'], view['flow']['context'])
+        replay = self.consumer._advance(self.consumer.lease, view, review)
+        self.assertEqual(replay['id'], step['id'])
+        self.assertEqual(replay['operation_id'], step['operation_id'])
+
+    def test_write_slot_defers_same_review_without_another_flow(self):
+        view = self.review_boundary()
+        other = self.profile.store.save_item({'title': 'Other task', 'project_id': self.project['id'],
+            'provider_id': None, 'state': 'todo', 'session_key': None})
+        event = self.service.enable_task_automation(other['id'], {**self.body, 'client_token': 'write-slot'})
+        occupied = self.queue.claim(self.consumer.lease, event['id'])
+        self.assertIsNone(self.consumer._advance(self.consumer.lease, view, view['step']))
+        self.consumer.launch.prepare(self.consumer.lease, occupied['step'])
+        self.assertEqual(self.consumer._advance(self.consumer.lease, view, view['step'])['kind'], 'implement')
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute('SELECT COUNT(*) FROM automation_flows').fetchone()[0], 2)
+
+    def test_cancel_before_implementation_reservation_keeps_review(self):
+        import threading
+        view = self.review_boundary()
+        stop = threading.Event()
+        stop.set()
+        self.assertIsNone(self.consumer._advance(self.consumer.lease, view, view['step'], cancel_event=stop))
+        self.assertEqual(self.queue.get_step(view['step']['id'])['status'], 'completed')
+
+    def test_wrong_actual_implementation_model_waits_without_success(self):
+        self.review_boundary()
+        self.consumer.run_once()
+        self.host.model = 'gpt-6-astra'
+        result = self.pump()
+        self.assertEqual(result['step']['kind'], 'implement')
+        self.assertEqual(result['flow']['attention']['reason'], 'model_mismatch')
+        self.assertEqual(result['flow']['attention']['expected_model'], 'gpt-6.1-sol')
+
+    def test_old_implementation_not_connected_wait_does_not_wake(self):
+        view = self.review_boundary()
+        self.queue.wait(self.consumer.lease, view['step'], 'waiting_external', 'implementation',
+                        {'reason': 'implementation_not_connected'})
+        self.consumer = self.consumer_type(self.queue, self.host)
+        self.pump()
+        self.assertEqual(len(self.host.calls), 2)
+
+    def test_unknown_implementation_replays_original_request_and_keeps_write_slot(self):
+        self.review_boundary()
+        self.consumer.run_once()
+        calls, created = [], []
+        create = self.host.create
+        def lost(params, *, cancel_event=None):
+            calls.append(copy.deepcopy(params))
+            if not created:
+                created.append(create(params, cancel_event=cancel_event))
+                raise TimeoutError('lost implementation create reply')
+            return created[0]
+        self.host.create = lost
+        step = self.consumer.run_once()
+        self.assertEqual((step['kind'], step['status'], step['writes_project']), ('implement', 'unknown', 1))
+        result = self.pump()
+        self.assertEqual(calls[0], calls[1])
+        self.assertEqual(len(self.host.calls), 3)
+        self.assertEqual(result['flow']['attention']['reason'], 'implementation_result_unverified')
+        self.assertEqual(result['flow']['attention']['implement_step_id'], step['id'])
+
+    def test_changed_requirement_after_review_does_not_dispatch_implementation(self):
+        self.review_boundary()
+        with self.profile.store.connection() as connection:
+            connection.execute('UPDATE task_items SET revision=revision+1 WHERE id=?', (self.item['id'],))
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'requirement_changed')
+        self.assertEqual(len(self.host.calls), 2)
+
+    def test_discuss_does_not_dispatch_implementation(self):
+        self.host.verdict = 'discuss'
+        self.assertEqual(self.pump()['flow']['status'], 'waiting_user')
+        self.assertEqual(len(self.host.calls), 2)
