@@ -126,6 +126,7 @@ export type RuntimeEnsureAgentSessionResult = {
 }
 
 export type RuntimeCreateAgentSessionRequest = {
+  readOnly?: boolean
   clientOperationId: string
   terminalKittyKeyboardProtocol?: boolean
   worktree: string

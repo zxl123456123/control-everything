@@ -21,6 +21,8 @@ vi.mock('electron', () => ({
 // The shell the host names for a local line; bash takes no multi-line line, zsh does.
 function runtimeWithAgentLaunch(
   options: {
+    agentDefaultArgs?: Record<string, string>
+    agentCmdOverrides?: Record<string, string>
     terminalDefaultShell?: string
     connectionId?: string
     agentDefaultEnv?: Record<string, Record<string, string>>
@@ -38,6 +40,8 @@ function runtimeWithAgentLaunch(
   internal.store = {
     getSettings: () => ({
       terminalDefaultShell: options.terminalDefaultShell ?? '/bin/bash',
+      agentDefaultArgs: options.agentDefaultArgs,
+      agentCmdOverrides: options.agentCmdOverrides,
       agentDefaultEnv: options.agentDefaultEnv
     })
   }
@@ -218,6 +222,32 @@ describe('a terminal create that is handed a launch prompt', () => {
         startupPrompt: 'summarize the diff'
       })
     ).rejects.toThrow(/does not take a startup prompt/)
+    expect(spawn).not.toHaveBeenCalled()
+  })
+})
+
+describe('restricted Codex startup snapshot', () => {
+  it.each(['', '--approve-for-me', '--dangerously-bypass-approvals-and-sandbox'])('replaces only supported permission preset %s', async args => {
+    const { runtime, spawn } = runtimeWithAgentLaunch({ agentDefaultArgs: { codex: args } })
+    await runtime.createTerminal('id:wt-1', { startupAgent: 'codex', readOnly: true,
+      launchPreferences: { model: 'gpt-6-astra' } })
+    const command = spawnedCommand(spawn)
+    expect(command).toContain('read-only')
+    expect(command).toContain('never')
+    expect(command).toContain('gpt-6-astra')
+    expect(command).not.toContain('dangerously')
+    expect(command).not.toContain('approve-for-me')
+  })
+  it.each(['--profile account', '-c model_provider=other', '--approve-for-me --unknown', '-m model', '-c model_reasoning_effort=high'])('refuses unsupported defaults without spawning %s', async args => {
+    const { runtime, spawn } = runtimeWithAgentLaunch({ agentDefaultArgs: { codex: args } })
+    await expect(runtime.createTerminal('id:wt-1', { startupAgent: 'codex', readOnly: true }))
+      .rejects.toThrow('read_only_launch_args_unsupported')
+    expect(spawn).not.toHaveBeenCalled()
+  })
+  it('refuses command override from the actual startup snapshot', async () => {
+    const { runtime, spawn } = runtimeWithAgentLaunch({ agentCmdOverrides: { codex: 'wrapper codex' } })
+    await expect(runtime.createTerminal('id:wt-1', { startupAgent: 'codex', readOnly: true }))
+      .rejects.toThrow('read_only_command_override_unsupported')
     expect(spawn).not.toHaveBeenCalled()
   })
 })

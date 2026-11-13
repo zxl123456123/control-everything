@@ -80,7 +80,8 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
           request.placement?.tabId ?? null,
           request.placement?.leafId ?? null,
           request.viewMode ?? null,
-          ...(request.terminalKittyKeyboardProtocol === true ? ['kitty-keyboard'] : [])
+          ...(request.terminalKittyKeyboardProtocol === true ? ['kitty-keyboard'] : []),
+          ...(request.readOnly === true ? ['codex-read-only'] : [])
         ])
       )
       .digest('base64url')
@@ -142,7 +143,8 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
             request.placement?.tabId ?? null,
             request.placement?.leafId ?? null,
             request.viewMode ?? null,
-            ...(request.terminalKittyKeyboardProtocol === true ? ['kitty-keyboard'] : [])
+            ...(request.terminalKittyKeyboardProtocol === true ? ['kitty-keyboard'] : []),
+            ...(request.readOnly === true ? ['codex-read-only'] : [])
           ])
         )
         .digest('base64url')
@@ -175,6 +177,7 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
           // A fresh agent the host planner builds; the request has no surface field, so its launch
           // counts as `unknown`.
           startupAgent: request.agent,
+          ...(request.readOnly === true ? { readOnly: true } : {}),
           ...(request.prompt ? { startupPrompt: request.prompt } : {}),
           startupPromptDelivery: request.promptDelivery,
           // TEMPORARY: see `startupPromptCarry`.

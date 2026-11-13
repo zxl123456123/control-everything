@@ -327303,6 +327303,42 @@
   ],
   "adapted_files": [
     {
+      "path": "src/main/runtime/agent-terminal-startup-prompt.test.ts",
+      "upstream_sha256": "1c24a53760c5dbcafa3aaa137d7d1b9b66a123ebf2a31442c6932ae975fe0ebe",
+      "current_sha256": "2b4d55bb2563018e8fba5b17d8a27f3783fcd3fef9c2da56fe4e669878ce4622",
+      "reason": "验证规划只读启动仅接受完整权限预置、拒绝身份参数和命令覆盖，并保留显式模型。"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-create-agent-session.ts",
+      "upstream_sha256": "d63f1d508e1c3deb693b9f02621aa4936ddd041e952da5cba07bf0235701489d",
+      "current_sha256": "79c9b369a3e6248e36f82b80168e7b8cd1f5cc5c3731d2d1619c9055762811bb",
+      "reason": "透传受限规划标记并在两层操作指纹中绑定只读身份，缺失或false保持旧指纹。"
+    },
+    {
+      "path": "src/main/runtime/runtime-agent-terminal-startup.ts",
+      "upstream_sha256": "5ea4bf612effc513da186caa001efbf6ecc17ec2fc0c6e9b772e33095c2f2ab9",
+      "current_sha256": "3d3ab4551aa6913b3c1f4516ae602d7f43537c74e520d0d5683fe1072b6b44fa",
+      "reason": "实际启动使用同一settings快照核受限参数和命令覆盖，再构造固定只读权限。"
+    },
+    {
+      "path": "src/main/runtime/runtime-terminal-contracts.ts",
+      "upstream_sha256": "0e159a7716ca787e5248e61139d36a9d7c2c5cdccad15db1aefb3f3b1a3789bd",
+      "current_sha256": "562506d916892b65ecb0aa17e63a2434cf321de584384a74d43a17a691165267",
+      "reason": "声明到实际启动的只读约束标记，不开放任意权限参数。"
+    },
+    {
+      "path": "src/shared/agent-session-host-authority.ts",
+      "upstream_sha256": "de102363a26bbf438442d8bfb72ea1a5375e51efb6d18a604d3eed10aea7448f",
+      "current_sha256": "b87bb00d2f684e094d775e4948d326de7cc54f281e57c31cb3246e159c8612a1",
+      "reason": "创建请求携带可选只读标记，既有调用默认行为保持。"
+    },
+    {
+      "path": "src/shared/rpc-contract/agent-session-params.ts",
+      "upstream_sha256": "a44c5f984024c7b694b50f0fd2c11b76a5ca19ce915216fa001168e2223cf9a3",
+      "current_sha256": "5128722c8bb7e67393b61403f21859227c0d69bedc8ffdbe94e1d841dcdfdb43",
+      "reason": "只读创建仅允许Codex及严格布尔值，拒绝同时指定任意agentArgs。"
+    },
+    {
       "path": "src/main/daemon/daemon-request-router.ts",
       "upstream_sha256": "c745b220bc1474c93bcae948ae90e1ab6f5fb2c8ba30844076883577f871cccb",
       "current_sha256": "515fab10ff5195c634e1f01aa60a6d47f513960df6369a09a9ac8dd7e18ebeea",
@@ -330533,8 +330569,8 @@
     {
       "path": "src/main/runtime/orca-runtime-agent-session-operation.test.ts",
       "upstream_sha256": "bd4c5440366a8c184c0894ed6ddf23c674dd2388585cb57bf5361a62ab2202a5",
-      "current_sha256": "52f4c9464fc4ac3fbd3e41007289b3c8cb06e3b6d192eba4f695bfbda2ce698f",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "3230b67200f41880fc11b1150a44427e42506e9de7e652affec5755380f72c8d",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；验证只读标记的请求与执行指纹、重放及严格创建合同。"
     },
     {
       "path": "src/main/startup/serve-cli-registration.ts",
