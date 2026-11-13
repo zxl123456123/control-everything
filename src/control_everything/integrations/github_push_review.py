@@ -8,6 +8,27 @@ from .github_progress import NoRedirect
 from .progress_report import _text
 
 
+def _numbered_patch(patch, limit):
+    """Keep complete diff lines and record only visible added new-side locations."""
+    lines, added, size, new_line, changed = [], [], 0, None, False
+    for line in patch.split('\n'):
+        header = re.match(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@', line)
+        if header:
+            new_line = int(header[1])
+        numbered = f'{new_line} {line}' if new_line is not None and line.startswith(('+', ' ')) else line
+        cost = len(numbered) + bool(lines)
+        if size + cost > limit:
+            return '\n'.join(lines) if changed else '', added, True
+        lines.append(numbered)
+        size += cost
+        changed |= new_line is not None and line.startswith(('+', '-'))
+        if new_line is not None and line.startswith(('+', ' ')):
+            if line.startswith('+'):
+                added.append(new_line)
+            new_line += 1
+    return '\n'.join(lines) if changed else '', added, False
+
+
 def review_push(repository, before, after, get, model):
     head_only = before == '0' * len(before)
     data = get('commits/' + after if head_only else f'compare/{before}...{after}')
@@ -17,22 +38,29 @@ def review_push(repository, before, after, get, model):
     elif (not data.get('commits') or data['commits'][-1].get('sha') != after
           or data.get('merge_base_commit', {}).get('sha') != before):
         raise ValueError('review_comparison_not_exact')
-    files, budget, partial = [], 8000, False
+    files, locations, budget, partial, deletion_only = [], {}, 8000, False, False
     for item in sorted(data['files'], key=lambda f: f['filename'].startswith(('tests/', 'docs/'))):
         patch = item.get('patch')
         if not patch or len(files) >= 20 or budget <= 0:
             partial = True
             continue
-        text = patch[:min(2000, budget)]
-        partial |= len(text) != len(patch)
+        text, added, truncated = _numbered_patch(patch, min(2000, budget))
+        partial |= truncated
+        if not text:
+            partial = True
+            continue
+        deletion_only |= not any(line.startswith('+') for line in patch.split('\n'))
         budget -= len(text)
+        locations[item['filename']] = added
         files.append({'path': item['filename'], 'status': item.get('status'), 'patch': text})
     partial |= len(data['files']) >= 300
     if not files:
         raise ValueError('review_no_text_diff')
     commits = [data] if head_only else data['commits']
     titles = [item.get('commit', {}).get('message', '').split('\n', 1)[0][:200] for item in commits[-5:]]
-    result = model({'repository': repository, 'before': before, 'after': after, 'commit_titles': titles, 'files': files})
+    result = model({'repository': repository, 'before': before, 'after': after, 'commit_titles': titles, 'files': files,
+                    'coverage': {'head_only': head_only, 'partial': partial,
+                                 'changed_files': len(data['files']), 'analyzed_files': len(files)}})
     summary, findings = result['summary'], result['findings']
     if not isinstance(summary, str) or not summary.strip() or len(summary) > 800 or not isinstance(findings, list) or len(findings) > 3:
         raise ValueError('review_output_invalid')
@@ -40,15 +68,15 @@ def review_push(repository, before, after, get, model):
     for finding in findings:
         file = next((f for f in files if f['path'] == finding['path']), None)
         line, issue = finding['line'], finding['issue']
-        # Only locations in the supplied new-side diff hunks may be cited.
-        ranges = re.findall(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@', file['patch'], re.M) if file else []
-        if (type(line) is not int or not any(int(start) <= line < int(start) + int(count or 1) for start, count in ranges)
+        # Hunk ranges also include context and omitted lines; cite only displayed additions.
+        if (type(line) is not int or file is None or line not in locations[file['path']]
                 or not isinstance(issue, str) or not issue.strip() or len(issue) > 300):
             raise ValueError('review_finding_location_invalid')
         lines.extend(['AI 简评：' + _text(issue), f'https://github.com/{repository}/blob/{after}/{quote(file["path"], safe="/")}#L{line}'])
-    if head_only or partial:
+    if head_only or partial or deletion_only:
         lines.append('分析范围：' + ('新建分支，仅分析分支头提交。' if head_only else '')
-                     + ('部分文本差异；大文件、二进制或超限内容未覆盖。' if partial else ''))
+                     + ('部分文本差异；大文件、二进制或超限内容未覆盖。' if partial else '')
+                     + ('纯删除变更仅作总结，简评不覆盖删除引入的问题。' if deletion_only else ''))
     return '\n'.join(lines)
 
 
@@ -87,6 +115,9 @@ def make_reviewer(config):
                 '只有能由diff直接推出的作用才写，预期作用写成目的，不能声称已验证效果；只有内部维护就直说，无法判断用途就说明改动本身，不编业务价值。'
                 '有影响理解的实际代价或功能缺口才补一句；不输出空泛评价、固定免责声明，不复述外部已给出的分析覆盖范围。'
                 '不能把计划当实现、不能声称已跑测试、完成任务验收或发布上线。'
+                '输入coverage说明实际覆盖情况，不得把未覆盖部分推断为已实现；按可见改动说明推进，不按标题宣称任务完成。'
+                'patch中新增与上下文行前的数字是新增侧真实行号，数字后的+为新增、空格为上下文，-开头为删除；只允许引用数字后为+的新增行号。'
+                '只报告本次改动引入的缺陷，说明可见代码证据、具体触发条件与结果；不能把因预算结束的片段当成完整实现或语法错误。'
                 '只有diff中加减行属于本次改动，空格上下文不算新增。不得假设未展示的辅助函数如何实现；依赖未知实现才能成立的问题不要报告。'
                 '仅报告有diff直接证据的具体缺陷，不写泛泛建议，不硬凑问题。无缺陷则findings为空。'
                 '输出JSON：{"summary":"一段中文，不超过250字","findings":[{"path":"实际文件路径","line":新增侧行号,"issue":"用清楚中文说明什么情况下会出什么问题，以及影响"}]}。最多3个问题。'},
