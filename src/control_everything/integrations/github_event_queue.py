@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import re
+import sys
 import time
 import uuid
 
@@ -109,7 +110,8 @@ def drain(config, send, *, clock=time.time, review=None):
                     body = prefix + analysis + '\n查看：' + body.rsplit('查看：', 1)[-1]
                     database.execute('UPDATE outbox SET body=? WHERE uuid=?', (body, delivery_uuid))
                     database.commit()
-                except (OSError, ValueError, KeyError, TypeError):
+                except (OSError, ValueError, KeyError, TypeError) as error:
+                    print('push_review_unavailable:' + type(error).__name__, file=sys.stderr, flush=True)
                     body = fallback
             return send(body, delivery_uuid, deadline=deadline)
         return _deliver(database, prepared_send, clock)

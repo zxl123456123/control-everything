@@ -17,13 +17,13 @@ def review_push(repository, before, after, get, model):
     elif (not data.get('commits') or data['commits'][-1].get('sha') != after
           or data.get('merge_base_commit', {}).get('sha') != before):
         raise ValueError('review_comparison_not_exact')
-    files, budget, partial = [], 32000, head_only
-    for item in data['files']:
+    files, budget, partial = [], 8000, False
+    for item in sorted(data['files'], key=lambda f: f['filename'].startswith(('tests/', 'docs/'))):
         patch = item.get('patch')
         if not patch or len(files) >= 20 or budget <= 0:
             partial = True
             continue
-        text = patch[:min(6000, budget)]
+        text = patch[:min(2000, budget)]
         partial |= len(text) != len(patch)
         budget -= len(text)
         files.append({'path': item['filename'], 'status': item.get('status'), 'patch': text})
@@ -44,8 +44,9 @@ def review_push(repository, before, after, get, model):
                 or not isinstance(issue, str) or not issue.strip() or len(issue) > 300):
             raise ValueError('review_finding_location_invalid')
         lines.extend(['AI 简评：' + _text(issue), f'https://github.com/{repository}/blob/{after}/{quote(file["path"], safe="/")}#L{line}'])
-    if partial:
-        lines.append('分析范围：' + ('新建分支，仅分析分支头提交。' if head_only else '部分文本差异；大文件、二进制或超限内容未覆盖。'))
+    if head_only or partial:
+        lines.append('分析范围：' + ('新建分支，仅分析分支头提交。' if head_only else '')
+                     + ('部分文本差异；大文件、二进制或超限内容未覆盖。' if partial else ''))
     return '\n'.join(lines)
 
 
