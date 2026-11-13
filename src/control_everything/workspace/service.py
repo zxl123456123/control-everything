@@ -20,6 +20,7 @@ from control_everything.workspace import project_dirs
 from control_everything.workspace import dispatch
 from control_everything.workspace import task_sessions
 from control_everything.workspace import task_messages
+from control_everything.workspace import automation_events
 from control_everything.workspace.validation import (
     finite_number, windows_path, inside_project, observation_owner, path_key, project_id_valid, validate_codex_project,
 )
@@ -552,6 +553,9 @@ class WorkspaceService:
 
     def get_task_brief(self, task_id):
         return dispatch.get_brief(self.profile, task_id)
+
+    def enable_task_automation(self, task_id, body):
+        return automation_events.enable_local(self.store, task_id, body)
 
     def save_task_brief(self, task_id, body):
         return dispatch.save_brief(self.profile, task_id, body)
