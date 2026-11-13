@@ -10,11 +10,12 @@ from control_everything.workspace.native_progress import digest, fail, packed
 
 
 class AutomationConsumer:
-    def __init__(self, queue, adapter):
+    def __init__(self, queue, adapter, *, verification=None):
         self.queue, self.adapter = queue, adapter
         self.launch = AutomationLaunch(queue, adapter)
         self.cursor = None
         self.lease = None
+        self.verification = verification
 
     def run_once(self, *, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set() or not self.adapter.available:
@@ -40,6 +41,14 @@ class AutomationConsumer:
             problem = self.queue.check_current(lease, step)
             if problem:
                 return self._wait(lease, step, {'reason': problem})
+            if step['kind'] == 'verify':
+                try:
+                    return self._verify(lease, view, step, cancel_event=cancel_event)
+                except ProfileError as error:
+                    reason = str(error)
+                    if reason not in ('automation_requirement_changed', 'project_unavailable', 'project_directory_changed'):
+                        raise
+                    return self._wait(lease, step, {'reason': 'requirement_changed' if reason == 'automation_requirement_changed' else reason})
             if step['kind'] in ('plan', 'plan_review'):
                 if step['status'] == 'failed' and step['result'].get('reason') in READ_ONLY_REFUSALS:
                     return self._wait(lease, step, {'reason': step['result']['reason']})
@@ -82,6 +91,32 @@ class AutomationConsumer:
         return self.queue.wait(lease, step, status, phase or step['kind'],
             {'step_id': step['id'], **attention})
 
+    def _verify(self, lease, view, step, *, cancel_event=None):
+        if step['status'] == 'reserved':
+            if self.verification is None:
+                return self._wait(lease, step, {'reason': 'verification_callback_unavailable'})
+            if cancel_event is not None and cancel_event.is_set():
+                return step
+            self.queue.renew(lease)
+            step = self.queue.record(lease, step, 'dispatching')
+            try:
+                result = self.verification(step, view['flow'])
+                receipt = result['receipt']
+                status = ('completed' if receipt['status'] == 'passed' and receipt['exit_code'] == 0
+                          and receipt['source_changed'] is False else
+                          'failed' if receipt['status'] == 'failed' or receipt['source_changed']
+                          or type(receipt['exit_code']) is int and receipt['exit_code'] != 0 else 'unknown')
+            except Exception as error:
+                result, status = {'reason': 'verification_incomplete', 'error_type': type(error).__name__}, 'unknown'
+            return self.queue.record(lease, step, status, result=result)
+        if step['status'] == 'dispatching':
+            step = self.queue.record(lease, step, 'unknown')
+        reason = ('code_review_or_acceptance_not_connected' if step['status'] == 'completed' else
+                  'verification_failed' if step['status'] == 'failed' else 'verification_unknown')
+        return self._wait(lease, step, {'reason': reason, 'verify_step_id': step['id'],
+            'implement_step_id': step['request']['implement_step_id'],
+            'output_dir': step['result'].get('output_dir')})
+
     def _reserve(self, lease, step, context, scope, kind, attempt, extra=None, *, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set():
             return None
@@ -112,8 +147,17 @@ class AutomationConsumer:
         if step['kind'] == 'implement':
             references = {key: step['request'][key] for key in
                           ('plan_step_id', 'review_step_id', 'plan_hash', 'review_hash', 'versions')}
-            return self._wait(lease, step, {**references, 'implement_step_id': step['id'],
-                'reason': 'implementation_result_unverified'}, phase='implementation')
+            spec = context['input']['request'].get('verification')
+            if spec is None:
+                return self._wait(lease, step, {**references, 'implement_step_id': step['id'],
+                    'reason': 'verification_not_configured'}, phase='implementation')
+            if cancel_event is not None and cancel_event.is_set():
+                return None
+            scope = {key: step['request']['params'][key] for key in
+                     ('runtimeId', 'environmentId', 'repoId', 'worktreeId', 'cwd')}
+            return self.queue.reserve_next(lease, step, 'verify', {**references, 'scope': scope,
+                'verification': spec, 'implement_step_id': step['id'],
+                'implement_hash': digest(step['result']['text'])}, writes_project=True)
         if step['kind'] == 'prepare':
             return self._reserve(lease, step, context, step['result']['scope'], 'plan', 0, cancel_event=cancel_event)
         scope = {key: step['request']['params'][key] for key in

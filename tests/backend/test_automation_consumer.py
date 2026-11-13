@@ -52,7 +52,7 @@ class ConsumerTests(AutomationQueueFixture):
     def test_small_implementation_is_unverified_and_restart_does_not_call(self):
         result = self.pump()
         self.assertEqual(result['flow']['status'], 'waiting_external')
-        self.assertEqual(result['flow']['attention']['reason'], 'implementation_result_unverified')
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_not_configured')
         self.assertEqual(len(self.host.calls), 3)
         self.assertEqual([p['model'] for p in self.host.calls], ['gpt-6-astra', 'gpt-6-astra', 'gpt-6.1-sol'])
         self.consumer = self.consumer_type(self.queue, self.host)
@@ -402,7 +402,7 @@ class ConsumerTests(AutomationQueueFixture):
         result = self.pump()
         self.assertEqual(calls[0], calls[1])
         self.assertEqual(len(self.host.calls), 3)
-        self.assertEqual(result['flow']['attention']['reason'], 'implementation_result_unverified')
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_not_configured')
         self.assertEqual(result['flow']['attention']['implement_step_id'], step['id'])
 
     def test_changed_requirement_after_review_does_not_dispatch_implementation(self):
@@ -417,3 +417,162 @@ class ConsumerTests(AutomationQueueFixture):
         self.host.verdict = 'discuss'
         self.assertEqual(self.pump()['flow']['status'], 'waiting_user')
         self.assertEqual(len(self.host.calls), 2)
+
+    def configure_verification(self, program="print('verified')", timeout=3):
+        import sys
+        repo = self.root / 'repo'
+        repo.mkdir(exist_ok=True)
+        (repo / 'input.txt').write_bytes(b'tested version one')
+        spec = {'argv': [sys.executable, '-B', '-c', program], 'source_files': ['input.txt'], 'timeout': timeout}
+        with self.profile.store.connection() as connection:
+            connection.execute('DELETE FROM automation_events WHERE id=?', (self.event['id'],))
+        self.event = self.service.enable_task_automation(self.item['id'], {**self.body, 'verification': spec})
+        self.verification_calls = []
+        def verify(step, flow):
+            from control_everything.execution.verification import run_verification
+            output = self.profile.data_dir / 'automation-verification' / flow['id'] / step['id']
+            self.verification_calls.append(step['id'])
+            receipt = run_verification(**step['request']['verification'], cwd=step['request']['scope']['cwd'],
+                output_dir=output, task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'])
+            return {'receipt': receipt, 'output_dir': str(output)}
+        self.consumer = self.consumer_type(self.queue, self.host, verification=verify)
+        return verify
+
+    def test_verification_real_command_passes_and_binary_logs_are_persisted(self):
+        self.configure_verification("import sys; sys.stdout.buffer.write(b'x'*90000); sys.stderr.buffer.write(b'y'*70000)")
+        result = self.pump()
+        self.assertEqual(result['step']['kind'], 'verify')
+        self.assertEqual(result['step']['status'], 'completed')
+        self.assertEqual(result['flow']['attention']['reason'], 'code_review_or_acceptance_not_connected')
+        receipt = result['step']['result']['receipt']
+        self.assertEqual(receipt['exit_code'], 0)
+        from pathlib import Path
+        output = Path(result['step']['result']['output_dir'])
+        self.assertEqual((output / 'stdout.log').read_bytes(), b'x' * 90000)
+        self.assertEqual((output / 'stderr.log').read_bytes(), b'y' * 70000)
+        self.assertEqual(self.verification_calls, [result['step']['id']])
+        self.pump()
+        self.assertEqual(len(self.verification_calls), 1)
+
+    def test_verification_real_nonzero_overrides_model_passed_claim(self):
+        self.configure_verification("import sys; print('FAILED'); sys.exit(7)")
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_failed')
+        self.assertEqual(result['step']['result']['receipt']['exit_code'], 7)
+        self.assertEqual(result['step']['status'], 'failed')
+
+    def test_verification_source_identity_is_actual_tested_gap_version(self):
+        import hashlib
+        self.configure_verification()
+        for _ in range(10):
+            self.consumer.run_once()
+        (self.root / 'repo/input.txt').write_bytes(b'version changed after implementation')
+        result = self.pump()
+        identity = result['step']['result']['receipt']['source_before']['input.txt']
+        self.assertEqual(identity['sha256'], hashlib.sha256(b'version changed after implementation').hexdigest())
+        self.assertFalse(result['step']['result']['receipt']['source_changed'])
+
+    def test_unknown_verification_is_not_reexecuted_after_restart(self):
+        verify = self.configure_verification()
+        for _ in range(11):
+            self.consumer.run_once()
+        view = self.queue.claim(self.consumer.lease, self.event['id'])
+        step = self.queue.record(self.consumer.lease, view['step'], 'dispatching')
+        self.consumer = self.consumer_type(self.queue, self.host, verification=verify)
+        result = self.pump()
+        self.assertEqual(result['step']['id'], step['id'])
+        self.assertEqual(result['step']['status'], 'unknown')
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_unknown')
+        self.assertEqual(self.verification_calls, [])
+
+    def test_verify_dispatch_rechecks_task_version(self):
+        self.configure_verification()
+        for _ in range(11):
+            self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            connection.execute('UPDATE task_items SET revision=revision+1 WHERE id=?', (self.item['id'],))
+        self.assertEqual(self.pump()['flow']['attention']['reason'], 'requirement_changed')
+        self.assertEqual(self.verification_calls, [])
+
+    def test_verify_renew_gap_change_waits_without_executing(self):
+        self.configure_verification()
+        for _ in range(11):
+            self.consumer.run_once()
+        renew = self.queue.renew
+        def revoke(lease):
+            self.change_project(archived=True)
+            return renew(lease)
+        self.queue.renew = revoke
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'project_unavailable')
+        self.assertEqual(result['step']['status'], 'reserved')
+        self.assertEqual(self.verification_calls, [])
+
+    def test_verify_dispatch_rechecks_directory_binding(self):
+        self.configure_verification()
+        for _ in range(11):
+            self.consumer.run_once()
+        self.change_project()
+        self.assertEqual(self.pump()['flow']['attention']['reason'], 'project_directory_changed')
+        self.assertEqual(self.verification_calls, [])
+
+    def test_actual_verification_timeout_remains_unknown_and_is_not_retried(self):
+        self.configure_verification("import time; print('before timeout',flush=True); time.sleep(2)", timeout=.15)
+        result = self.pump()
+        self.assertEqual(result['step']['status'], 'unknown')
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_unknown')
+        self.assertIsNone(result['step']['result']['receipt']['exit_code'])
+        self.assertEqual(len(self.verification_calls), 1)
+        self.assertEqual(result['step']['writes_project'], 1)
+
+    def test_missing_verification_callback_waits_without_execution(self):
+        self.configure_verification()
+        self.consumer.verification = None
+        self.assertEqual(self.pump()['flow']['attention']['reason'], 'verification_callback_unavailable')
+        self.assertEqual(self.verification_calls, [])
+
+    def test_disk_receipt_recheck_rejects_wrong_identity_and_changed_log(self):
+        from pathlib import Path
+        from control_everything.execution.verification import read_verification_receipt
+        self.configure_verification()
+        result = self.pump()
+        receipt = result['step']['result']['receipt']
+        identity = {key: receipt[key] for key in ('argv', 'cwd', 'task_id', 'flow_id', 'step_id')}
+        output = Path(result['step']['result']['output_dir'])
+        self.assertEqual(read_verification_receipt(output_dir=output, **identity), receipt)
+        with self.assertRaises(ValueError):
+            read_verification_receipt(output_dir=output, **{**identity, 'task_id': 'other'})
+        (output / 'stdout.log').write_bytes(b'changed evidence')
+        with self.assertRaises(ValueError):
+            read_verification_receipt(output_dir=output, **identity)
+
+    def test_close_reports_timeout_while_sync_verifier_is_still_active(self):
+        import threading
+        from control_everything.workspace.automation_consumer import AutomationConsumerService
+        verify = self.configure_verification()
+        for _ in range(11):
+            self.consumer.run_once()
+        entered, unblock = threading.Event(), threading.Event()
+        def blocked(step, flow):
+            entered.set()
+            unblock.wait(6)
+            return verify(step, flow)
+        self.consumer.verification = blocked
+        service = AutomationConsumerService(self.consumer)
+        service.start()
+        try:
+            self.assertTrue(entered.wait(1))
+            with self.assertRaisesRegex(RuntimeError, 'automation_consumer_close_timeout'):
+                service.close()
+            self.assertTrue(service.thread.is_alive())
+            self.assertIsNone(AutomationQueue(self.profile.store).acquire())
+        finally:
+            unblock.set()
+            service.close()
+        self.assertFalse(service.thread.is_alive())
+
+    def test_verification_modifying_declared_input_is_failed(self):
+        self.configure_verification("from pathlib import Path; Path('input.txt').write_text('changed')")
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_failed')
+        self.assertTrue(result['step']['result']['receipt']['source_changed'])

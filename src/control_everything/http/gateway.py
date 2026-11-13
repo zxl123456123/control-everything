@@ -1286,12 +1286,21 @@ class PanelServer(ThreadingHTTPServer):
             from control_everything.workspace.native_progress_observer import NativeProgressObserver
             from control_everything.workspace.automation_flow import AutomationQueue
             from control_everything.workspace.automation_consumer import AutomationConsumer, AutomationConsumerService
+            from control_everything.execution.verification import run_verification, read_verification_receipt
             adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
             self.workspace.native_progress.adapter = adapter
             if runtime is not None:
+                profile = self.profile
+                def verify(step, flow):
+                    output = profile.data_dir / 'automation-verification' / flow['id'] / step['id']
+                    scope, spec = step['request']['scope'], step['request']['verification']
+                    identity = {'argv': spec['argv'], 'cwd': scope['cwd'], 'task_id': flow['task_id'],
+                                'flow_id': flow['id'], 'step_id': step['id'], 'output_dir': output}
+                    run_verification(**identity, source_files=spec['source_files'], timeout=spec['timeout'])
+                    return {'receipt': read_verification_receipt(**identity), 'output_dir': str(output)}
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
                 self.automation_consumer_service = AutomationConsumerService(
-                    AutomationConsumer(AutomationQueue(self.workspace.store), adapter))
+                    AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify))
                 try:
                     self.native_progress_observer.start()
                     self.automation_consumer_service.start()

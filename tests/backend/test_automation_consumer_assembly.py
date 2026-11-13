@@ -37,7 +37,7 @@ class ConsumerAssemblyTests(AutomationQueueFixture):
         self.assertEqual(flow['status'], 'waiting_external')
         with self.profile.store.connection() as connection:
             attention = connection.execute('SELECT attention_json FROM automation_flows').fetchone()[0]
-        self.assertIn('implementation_result_unverified', attention)
+        self.assertIn('verification_not_configured', attention)
         previous = self.server.automation_consumer_service
         self.server.attach_workbench_runtime(self.runtime)
         self.assertFalse(previous.thread.is_alive())
@@ -123,3 +123,34 @@ class ConsumerAssemblyTests(AutomationQueueFixture):
                 self.assertIsNone(self.server.native_progress_observer)
             finally:
                 factory.return_value.close.side_effect = None
+
+    def test_gateway_injects_real_verifier_and_owns_evidence_path(self):
+        import sys
+        import json
+        repo = self.root / 'repo'
+        repo.mkdir()
+        (repo / 'input.txt').write_text('fixed input', encoding='utf-8')
+        with self.profile.store.connection() as connection:
+            connection.execute('DELETE FROM automation_events WHERE id=?', (self.event['id'],))
+        self.service.enable_task_automation(self.item['id'], {**self.body, 'verification': {
+            'argv': [sys.executable, '-B', '-c', "print('real gateway verification')"],
+            'source_files': ['input.txt'], 'timeout': 3}})
+        self.server.attach_workbench_runtime(self.runtime)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            with self.profile.store.connection() as connection:
+                row = connection.execute("SELECT * FROM automation_steps WHERE kind='verify'").fetchone()
+                flow = connection.execute('SELECT status FROM automation_flows').fetchone()
+            if row and flow['status'] == 'waiting_external':
+                break
+            self.server.automation_consumer_service.wake()
+            threading.Event().wait(.02)
+        else:
+            self.fail('Gateway verification did not reach waiting')
+        result = json.loads(row['result_json'])
+        output = self.profile.data_dir / 'automation-verification' / row['flow_id'] / row['id']
+        self.assertEqual(result['output_dir'], str(output))
+        self.assertEqual(result['receipt']['task_id'], self.item['id'])
+        self.assertEqual(result['receipt']['step_id'], row['id'])
+        self.assertEqual((output / 'stdout.log').read_bytes().strip(), b'real gateway verification')
+        self.assertEqual(row['status'], 'completed')
