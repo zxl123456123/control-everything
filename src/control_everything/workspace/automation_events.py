@@ -1,6 +1,9 @@
 """Durable intake for explicit local-owner automation requests; never starts an agent."""
 
 import json
+import math
+import os
+from pathlib import Path
 import re
 from uuid import uuid4
 
@@ -18,7 +21,19 @@ def event_view(row):
 
 def enable_local(store, task_id, body):
     """The HTTP caller must establish local control; source/actor are never body fields."""
-    body_fields(body, ('expected_revision', 'brief_revision', 'client_token', 'agent', 'worktree_id'))
+    body_fields(body, ('expected_revision', 'brief_revision', 'client_token', 'agent', 'worktree_id'), ('verification',))
+    if 'verification' in body:
+        spec = body['verification']
+        if type(spec) is not dict or set(spec) != {'argv', 'source_files', 'timeout'}:
+            raise ProfileError('invalid_progress_request', 'verification')
+        argv, sources, timeout = spec['argv'], spec['source_files'], spec['timeout']
+        if (type(argv) is not list or not argv or any(type(arg) is not str or not arg.strip() or '\0' in arg for arg in argv)
+                or not Path(argv[0]).is_absolute() or type(sources) is not list or not sources
+                or any(type(name) is not str or not name.strip() or '\0' in name or Path(name).anchor
+                       or not Path(name).parts or '..' in Path(name).parts for name in sources)
+                or len({os.path.normcase(str(Path(name))) for name in sources}) != len(sources)
+                or type(timeout) not in (int, float) or not 0 < timeout <= 20 or not math.isfinite(timeout)):
+            raise ProfileError('invalid_progress_request', 'verification')
     if type(body['agent']) is not str or not re.fullmatch(r'[a-z][a-z0-9-]{0,31}', body['agent']):
         raise ProfileError('invalid_progress_request', 'agent')
     task_messages._text(body['worktree_id'], 'worktree_id', 256, required=True)

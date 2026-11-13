@@ -51,6 +51,8 @@ class ProjectProgressAPITests(unittest.TestCase):
         for invalid in ('Origin', 'Host', 'X-Session-CSRF', 'X-CE-Proxy-Token', 'address'):
             with self.subTest(invalid=invalid):
                 h = self.handler()
+                h.read_json_body.return_value = {'verification': {
+                    'argv': ['C:/trusted/python.exe', 'test.py'], 'source_files': ['test.py'], 'timeout': 10}}
                 h.server.workspace.enable_task_automation = Mock()
                 if invalid == 'address':
                     h.client_address = ('192.0.2.1', 100)
@@ -131,18 +133,23 @@ class ProjectProgressQuickCreateTests(unittest.TestCase):
         self.assertEqual(started['native_run']['brief_snapshot']['brief']['request_text'], 'Existing full requirement')
 
     def test_explicit_automation_intake_commits_before_ack_even_when_executor_is_offline(self):
+        import sys
         project = self.profile.store.save_project(project_body(self.root / 'repo'))
         _, created = self.request('/api/workspace/items', 'POST', {'title': 'Run this task', 'project_id': project['id']})
         item = created['item']
         self.workspace.native_progress.adapter.available = False
         body = {'expected_revision': item['revision'], 'brief_revision': 0, 'client_token': 'automation-one',
-                'agent': 'codex', 'worktree_id': 'worktree'}
+                'agent': 'codex', 'worktree_id': 'worktree', 'verification': {
+                    'argv': [sys.executable, '-B', 'test.py'], 'source_files': ['test.py'], 'timeout': 20}}
         path = f"/api/workspace/tasks/{item['id']}/automation-enable"
         with patch.object(PanelHandler, 'client_address', ('127.0.0.1', 12345), create=True):
             status, receipt = self.request(path, 'POST', body)
             self.assertEqual(status, 202, receipt)
             repeated_status, repeated = self.request(path, 'POST', body)
             self.assertEqual((repeated_status, repeated['id']), (202, receipt['id']))
+            self.assertEqual(receipt['payload']['request']['verification'], body['verification'])
+            changed_status, _ = self.request(path, 'POST', {**body, 'verification': {**body['verification'], 'timeout': 19}})
+            self.assertEqual(changed_status, 409)
             rejected_status, _ = self.request(path, 'POST', {**body, 'command': 'external command'})
             self.assertEqual(rejected_status, 422)
         with self.profile.store.connection() as connection:

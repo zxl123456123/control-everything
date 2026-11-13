@@ -81,6 +81,40 @@ class AutomationEventStorageTests(unittest.TestCase):
         with self.profile.store.connection() as connection:
             self.assertEqual(connection.execute('SELECT COUNT(*) FROM automation_events').fetchone()[0], 0)
 
+    def test_explicit_verification_is_frozen_and_changed_replay_conflicts(self):
+        import sys
+        body = {**self.request(), 'verification': {'argv': [sys.executable, '-B', 'test_case.py'],
+                'source_files': ['source.py', 'test_case.py'], 'timeout': 10}}
+        service = self.service()
+        event = service.enable_task_automation(self.item['id'], body)
+        self.assertEqual(event['payload']['request']['verification'], body['verification'])
+        self.assertEqual(service.enable_task_automation(self.item['id'], body), event)
+        changed = {**body, 'verification': {**body['verification'], 'timeout': 11}}
+        with self.assertRaisesRegex(ProfileError, 'automation_event_conflict'):
+            service.enable_task_automation(self.item['id'], changed)
+        self.assertEqual(service.native_progress.adapter.mock_calls, [])
+
+    def test_verification_rejects_invalid_paths_types_budgets_and_extra_fields(self):
+        import sys
+        valid = {'argv': [sys.executable, 'test.py'], 'source_files': ['test.py'], 'timeout': 10}
+        cases = [{'argv': []}, {'argv': ['python', 'test.py']}, {'argv': [sys.executable, '']},
+            {'source_files': []}, {'source_files': ['../outside.py']}, {'source_files': [str(self.root / 'outside.py')]},
+            {'source_files': ['test.py', './test.py']}, {'timeout': True}, {'timeout': float('nan')},
+            {'timeout': float('inf')}, {'timeout': 10 ** 400}, {'timeout': 0}, {'timeout': 21}, {'cwd': str(self.root)},
+            {'output_dir': str(self.root / 'output')}]
+        for changes in cases:
+            with self.subTest(changes=changes), self.assertRaises(ProfileError):
+                self.service().enable_task_automation(self.item['id'], {**self.request(), 'verification': {**valid, **changes}})
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute('SELECT COUNT(*) FROM automation_events').fetchone()[0], 0)
+
+    def test_brief_command_text_does_not_create_verification_authorization(self):
+        body = self.request()
+        with self.profile.store.connection() as connection:
+            connection.execute("UPDATE task_items SET title='run python test.py' WHERE id=?", (self.item['id'],))
+        event = self.service().enable_task_automation(self.item['id'], body)
+        self.assertNotIn('verification', event['payload']['request'])
+
     def test_changed_requirements_or_archived_project_are_not_queued(self):
         service, body = self.service(), self.request()
         for changed, reason in (({**body, 'expected_revision': 0}, 'item_changed'),
