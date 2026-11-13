@@ -108,7 +108,7 @@ class MigrationTests(unittest.TestCase):
     def test_v2_database_migrates_every_table_and_keeps_data(self):
         legacy_database(self.path, 2)
         store = RemoteHubStore(self.path, clock=lambda: 1000)
-        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 3}])
+        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 4}])
         identities = {(r["issuer"], r["sub"]): r["account_id"] for r in rows(self.path, "SELECT * FROM identities")}
         self.assertEqual(set(identities), {(ISSUER, "account-a"), (ISSUER, "account-b"), (ISSUER, "gone-user")})
         self.assertEqual(len(set(identities.values())), 3)
@@ -141,7 +141,7 @@ class MigrationTests(unittest.TestCase):
     def test_v1_database_migrates_through_v2_in_one_step(self):
         legacy_database(self.path, 1)
         store = RemoteHubStore(self.path, clock=lambda: 1000)
-        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 3}])
+        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 4}])
         device = store.own_device(Identity(ISSUER, "account-a", "", 0))
         self.assertEqual((device["name"], device["os_name"], device["created_at"]), ("My PC", None, None))
         self.assertEqual(rows(self.path, "SELECT COUNT(*) AS n FROM members")[0]["n"], 2)
@@ -194,7 +194,7 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(len(rows(self.path, "SELECT issuer FROM members")), 2)
         self.assertTrue(self.backup.is_file())
         RemoteHubStore(self.path)
-        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 3}])
+        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 4}])
 
     def test_row_count_mismatch_aborts_instead_of_losing_rows(self):
         legacy_database(self.path, 2)
@@ -220,7 +220,7 @@ class MigrationTests(unittest.TestCase):
 
     def test_fresh_database_is_latest_and_has_no_backup(self):
         RemoteHubStore(self.path)
-        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 3}])
+        self.assertEqual(rows(self.path, "SELECT version FROM schema_version"), [{"version": 4}])
         self.assertFalse(self.backup.exists())
         RemoteHubStore(self.path)
         self.assertFalse(self.backup.exists())

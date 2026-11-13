@@ -110,8 +110,8 @@ class RemoteHubStoreTests(unittest.TestCase):
             path = Path(directory) / "hub.db"
             store = RemoteHubStore(path)
             with store.transaction() as db:
-                self.assertEqual(db.execute("SELECT version FROM schema_version").fetchone()[0], 3)
-                db.execute("UPDATE schema_version SET version=4")
+                self.assertEqual(db.execute("SELECT version FROM schema_version").fetchone()[0], 4)
+                db.execute("UPDATE schema_version SET version=5")
             with self.assertRaises(ValueError):
                 RemoteHubStore(path)
             self.assertFalse(Path(str(path) + ".pre-account-id").exists())
