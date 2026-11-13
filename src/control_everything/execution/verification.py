@@ -78,7 +78,7 @@ def run_verification(*, argv, cwd, output_dir, task_id, flow_id, step_id, source
     return receipt
 
 
-def read_verification_receipt(*, output_dir, argv, cwd, task_id, flow_id, step_id):
+def read_verification_receipt(*, output_dir, argv, cwd, task_id, flow_id, step_id, source_files=None):
     """Recheck the published identity and complete logs before consuming a result."""
     output = Path(output_dir)
     receipt = json.loads((output / 'receipt.json').read_text(encoding='utf-8'))
@@ -91,4 +91,17 @@ def read_verification_receipt(*, output_dir, argv, cwd, task_id, flow_id, step_i
         name = key + '.log'
         if receipt[key] != {'path': name, **_file_identity(output / name)}:
             raise ValueError('verification_log_changed')
+    if source_files is not None:
+        root, current = Path(cwd).resolve(), {}
+        for value in source_files:
+            relative = Path(value)
+            path = (root / relative).resolve()
+            if relative.is_absolute() or not path.is_relative_to(root):
+                raise ValueError('verification_input_outside_cwd')
+            name = path.relative_to(root).as_posix()
+            if name in current:
+                raise ValueError('verification_duplicate_input')
+            current[name] = _file_identity(path)
+        if (set(current) != set(receipt['source_before']) or current != receipt['source_after']):
+            raise ValueError('verification_source_changed')
     return receipt

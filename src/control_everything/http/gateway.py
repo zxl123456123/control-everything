@@ -1298,9 +1298,15 @@ class PanelServer(ThreadingHTTPServer):
                                 'flow_id': flow['id'], 'step_id': step['id'], 'output_dir': output}
                     run_verification(**identity, source_files=spec['source_files'], timeout=spec['timeout'])
                     return {'receipt': read_verification_receipt(**identity), 'output_dir': str(output)}
+                def check_verification(step, flow):
+                    output = profile.data_dir / 'automation-verification' / flow['id'] / step['id']
+                    scope, spec = step['request']['scope'], step['request']['verification']
+                    receipt = read_verification_receipt(output_dir=output, argv=spec['argv'], cwd=scope['cwd'],
+                        task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'], source_files=spec['source_files'])
+                    return {'receipt': receipt, 'output_dir': str(output)}
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
                 self.automation_consumer_service = AutomationConsumerService(
-                    AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify))
+                    AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification))
                 try:
                     self.native_progress_observer.start()
                     self.automation_consumer_service.start()

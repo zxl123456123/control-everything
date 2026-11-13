@@ -141,7 +141,7 @@ class ConsumerAssemblyTests(AutomationQueueFixture):
             with self.profile.store.connection() as connection:
                 row = connection.execute("SELECT * FROM automation_steps WHERE kind='verify'").fetchone()
                 flow = connection.execute('SELECT status FROM automation_flows').fetchone()
-            if row and flow['status'] == 'waiting_external':
+            if row and flow['status'] == 'awaiting_acceptance':
                 break
             self.server.automation_consumer_service.wake()
             threading.Event().wait(.02)
@@ -154,3 +154,11 @@ class ConsumerAssemblyTests(AutomationQueueFixture):
         self.assertEqual(result['receipt']['step_id'], row['id'])
         self.assertEqual((output / 'stdout.log').read_bytes().strip(), b'real gateway verification')
         self.assertEqual(row['status'], 'completed')
+        with self.profile.store.connection() as connection:
+            delivery = connection.execute('SELECT * FROM task_deliveries').fetchone()
+            item = connection.execute('SELECT * FROM task_items WHERE id=?',(self.item['id'],)).fetchone()
+            self.assertEqual(delivery['source'], 'automation_verify')
+            self.assertEqual(delivery['source_key'], row['id'])
+            self.assertEqual(item['state'], 'review')
+            self.assertIsNone(item['accepted_delivery_id'])
+            self.assertEqual(connection.execute('SELECT COUNT(*) FROM task_reviews').fetchone()[0], 0)

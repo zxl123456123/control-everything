@@ -451,7 +451,14 @@ class ConsumerTests(AutomationQueueFixture):
             receipt = run_verification(**step['request']['verification'], cwd=step['request']['scope']['cwd'],
                 output_dir=output, task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'])
             return {'receipt': receipt, 'output_dir': str(output)}
-        self.consumer = self.consumer_type(self.queue, self.host, verification=verify)
+        def check(step, flow):
+            from control_everything.execution.verification import read_verification_receipt
+            output = self.profile.data_dir / 'automation-verification' / flow['id'] / step['id']
+            spec = step['request']['verification']
+            return {'receipt': read_verification_receipt(output_dir=output, argv=spec['argv'],
+                cwd=step['request']['scope']['cwd'], task_id=flow['task_id'], flow_id=flow['id'],
+                step_id=step['id'], source_files=spec['source_files']), 'output_dir': str(output)}
+        self.consumer = self.consumer_type(self.queue, self.host, verification=verify, check_verification=check)
         return verify
 
     def test_verification_real_command_passes_and_binary_logs_are_persisted(self):
@@ -459,7 +466,7 @@ class ConsumerTests(AutomationQueueFixture):
         result = self.pump()
         self.assertEqual(result['step']['kind'], 'verify')
         self.assertEqual(result['step']['status'], 'completed')
-        self.assertEqual(result['flow']['attention']['reason'], 'code_review_or_acceptance_not_connected')
+        self.assertEqual(result['flow']['status'], 'awaiting_acceptance')
         receipt = result['step']['result']['receipt']
         self.assertEqual(receipt['exit_code'], 0)
         from pathlib import Path

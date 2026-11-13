@@ -7,8 +7,9 @@ from uuid import uuid4
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace import dispatch
-from control_everything.workspace.native_progress import check_versions, fail, packed, row_view, task_access
+from control_everything.workspace.native_progress import check_versions, digest, fail, packed, row_view, task_access, touch
 from control_everything.workspace.store import now_utc
+from control_everything.workspace.automation_planning import planning_outcome
 
 LEASE_SECONDS = 60
 STEP_TRANSITIONS = {
@@ -192,6 +193,78 @@ class AutomationQueue:
             connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
                                (kind, stamp, flow['id']))
             return row_view(self._step(connection, identity))
+
+    def publish_delivery(self, lease, step, checked_result):
+        """Publish one current checked verification, without granting human acceptance."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            flow, current = view['flow'], view['step']
+            if (not flow or not current or current['id'] != step['id']
+                    or current['kind'] != 'verify' or current['status'] != 'completed'
+                    or current['request'] != step['request'] or current['result'] != step['result']):
+                fail('automation_step_changed')
+            receipt = checked_result['receipt']
+            if (receipt != current['result'].get('receipt') or receipt['status'] != 'passed'
+                    or type(receipt['exit_code']) is not int or receipt['exit_code'] != 0
+                    or receipt['source_changed'] is not False or receipt['source_before'] != receipt['source_after']):
+                fail('automation_delivery_unverified')
+            existing = connection.execute("SELECT * FROM task_deliveries WHERE task_id=? AND source='automation_verify' "
+                'AND source_key=?', (flow['task_id'], current['id'])).fetchone()
+            if existing:
+                if (flow['status'] != 'awaiting_acceptance' or flow['attention'].get('delivery_id') != existing['id']
+                        or row_view(existing)['material']['receipt'] != receipt):
+                    fail('automation_step_changed')
+                return {**view, 'delivery': row_view(existing)}
+            if flow['status'] != 'running' or flow['revision'] != step['flow_revision']:
+                fail('automation_step_changed')
+            context, request = flow['context'], current['request']
+            problem = self._input_problem(connection, flow['task_id'], context)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            records = {kind: row_view(self._step(connection, request.get(kind + '_step_id'))) for kind in
+                       ('implement', 'plan', 'review')}
+            implement, plan, review = (records[key] for key in ('implement', 'plan', 'review'))
+            versions = {key: context[key] for key in ('requirement_revision','brief_revision','policy_version')}
+            if (any(not record or record['flow_id'] != flow['id'] or record['status'] != 'completed'
+                    or record['request'].get('context') != context for record in records.values())
+                    or implement['kind'] != 'implement' or plan['kind'] != 'plan' or review['kind'] != 'plan_review'
+                    or request.get('context') != context or request.get('versions') != versions
+                    or request.get('implement_hash') != digest(implement['result']['text'])
+                    or request.get('plan_hash') != digest(plan['result']['text'])
+                    or request.get('review_hash') != digest(review['result']['text'])
+                    or any(implement['request'].get(key) != request.get(key) for key in
+                           ('plan_step_id','review_step_id','plan_hash','review_hash','versions'))
+                    or request['verification'] != context['input']['request'].get('verification')
+                    or any(request['scope'] != {key: record['request']['params'].get(key) for key in
+                           ('runtimeId','environmentId','repoId','worktreeId','cwd')} for record in records.values())
+                    or planning_outcome(plan, review)['action'] != 'implement'):
+                fail('automation_delivery_unverified')
+            for record, model in ((plan,'gpt-6-astra'),(review,'gpt-6-astra'),(implement,'gpt-6.1-sol')):
+                if (record['request']['params'].get('model') != model
+                        or record['result'].get('facts',{}).get('status',{}).get('model') != model):
+                    fail('automation_delivery_unverified')
+            if connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
+                    'WHERE f.project_id=? AND s.writes_project=1 '
+                    "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')", (flow['project_id'],)).fetchone():
+                fail('automation_project_busy')
+            identity, stamp = str(uuid4()), now_utc()
+            material = {**request, 'flow_id': flow['id'], 'verify_step_id': current['id'],
+                        'receipt': receipt, 'verify_hash': digest(current['result']),
+                        'output_dir': checked_result['output_dir'], 'identity_scope': 'declared_inputs'}
+            connection.execute('INSERT INTO task_deliveries(id,task_id,native_run_id,source,source_key,summary,'
+                'material_json,verification,created_at) VALUES(?,?,NULL,?,?,?,?,?,?)',
+                (identity,flow['task_id'],'automation_verify',current['id'],
+                 'Declared input verification exited 0 with unchanged source and complete logs.',packed(material),'passed',stamp))
+            item = task_access(connection, flow['task_id'], writable=True)
+            touch(connection, item, 'review', delivery_id=identity, accepted=False)
+            attention = {'delivery_id':identity, 'expected_revision':item['revision']+1,
+                         'progress_revision':item['progress_revision']+1}
+            connection.execute("UPDATE automation_flows SET status='awaiting_acceptance',phase='acceptance',"
+                'attention_json=?,revision=revision+1,updated_at=? WHERE id=?', (packed(attention),stamp,flow['id']))
+            return {**self._view(connection,flow['id']), 'delivery': row_view(connection.execute(
+                'SELECT * FROM task_deliveries WHERE id=?',(identity,)).fetchone())}
 
     def pending_events(self):
         with self.store.connection() as connection:

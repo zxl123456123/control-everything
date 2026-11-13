@@ -10,12 +10,13 @@ from control_everything.workspace.native_progress import digest, fail, packed
 
 
 class AutomationConsumer:
-    def __init__(self, queue, adapter, *, verification=None):
+    def __init__(self, queue, adapter, *, verification=None, check_verification=None):
         self.queue, self.adapter = queue, adapter
         self.launch = AutomationLaunch(queue, adapter)
         self.cursor = None
         self.lease = None
         self.verification = verification
+        self.check_verification = check_verification
 
     def run_once(self, *, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set() or not self.adapter.available:
@@ -109,6 +110,22 @@ class AutomationConsumer:
             except Exception as error:
                 result, status = {'reason': 'verification_incomplete', 'error_type': type(error).__name__}, 'unknown'
             return self.queue.record(lease, step, status, result=result)
+        if step['status'] == 'completed':
+            if self.check_verification is None:
+                return self._wait(lease, step, {'reason': 'verification_checker_unavailable'})
+            try:
+                checked = self.check_verification(step, view['flow'])
+                if checked['receipt'] != step['result']['receipt']:
+                    raise ValueError('verification_receipt_changed')
+            except Exception:
+                return self._wait(lease, step, {'reason': 'verification_evidence_invalid'})
+            try:
+                return self.queue.publish_delivery(lease, step, checked)
+            except ProfileError as error:
+                if str(error) not in ('automation_delivery_unverified', 'automation_project_busy',
+                                     'invalid_planning_result', 'automation_plan_changed', 'independent_review_required'):
+                    raise
+                return self._wait(lease, step, {'reason': str(error)})
         if step['status'] == 'dispatching':
             step = self.queue.record(lease, step, 'unknown')
         reason = ('code_review_or_acceptance_not_connected' if step['status'] == 'completed' else
