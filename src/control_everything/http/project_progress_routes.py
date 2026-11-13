@@ -47,7 +47,7 @@ def handle(handler, path, *, write=False):
             elif action == 'native-feedback':
                 result = service.save_feedback(task_id, body)
             elif action == 'delivery-review':
-                result = service.review_delivery(task_id, body)
+                result = workspace.review_task_delivery(task_id, body)
             else:
                 if body != {}:
                     raise ValueError('invalid_body')

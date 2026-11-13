@@ -20,7 +20,7 @@ from control_everything.workspace import project_dirs
 from control_everything.workspace import dispatch
 from control_everything.workspace import task_sessions
 from control_everything.workspace import task_messages
-from control_everything.workspace import automation_events
+from control_everything.workspace import automation_events, automation_delivery_reviews
 from control_everything.workspace.validation import (
     finite_number, windows_path, inside_project, observation_owner, path_key, project_id_valid, validate_codex_project,
 )
@@ -85,6 +85,7 @@ class WorkspaceService:
         self.store = profile.store if profile is not None else WorkspaceStore(db_path)
         from control_everything.workspace.native_progress import NativeProgress
         self.native_progress = NativeProgress(self.store, progress_adapter)
+        self.check_verification = None
         self.registry_path, self.manual_path, self.todos_path = registry_path, manual_path, todos_path
         self.session_reader = profile.codex_threads if profile is not None else session_reader or list_threads
         self.quota_source = quota_source or CodexQuotaSource()
@@ -556,6 +557,18 @@ class WorkspaceService:
 
     def enable_task_automation(self, task_id, body):
         return automation_events.enable_local(self.store, task_id, body)
+
+    def review_task_delivery(self, task_id, body):
+        from control_everything.workspace.native_progress import body_fields
+        body_fields(body, ('expected_revision','progress_revision','delivery_id','verdict','reason','confirmed','client_token'))
+        if not isinstance(body['delivery_id'], str):
+            raise ProfileError('invalid_review','delivery_id')
+        with self.store.connection() as connection:
+            delivery = connection.execute('SELECT source FROM task_deliveries WHERE id=? AND task_id=?',
+                                          (body['delivery_id'],task_id)).fetchone()
+        if delivery and delivery['source'] == 'automation_verify':
+            return automation_delivery_reviews.review_delivery(self,task_id,body)
+        return self.native_progress.review_delivery(task_id,body)
 
     def save_task_brief(self, task_id, body):
         return dispatch.save_brief(self.profile, task_id, body)

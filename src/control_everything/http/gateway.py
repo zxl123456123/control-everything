@@ -1289,6 +1289,7 @@ class PanelServer(ThreadingHTTPServer):
             from control_everything.execution.verification import run_verification, read_verification_receipt
             adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
             self.workspace.native_progress.adapter = adapter
+            self.workspace.check_verification = None
             if runtime is not None:
                 profile = self.profile
                 def verify(step, flow):
@@ -1304,6 +1305,7 @@ class PanelServer(ThreadingHTTPServer):
                     receipt = read_verification_receipt(output_dir=output, argv=spec['argv'], cwd=scope['cwd'],
                         task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'], source_files=spec['source_files'])
                     return {'receipt': receipt, 'output_dir': str(output)}
+                self.workspace.check_verification = check_verification
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
                 self.automation_consumer_service = AutomationConsumerService(
                     AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification))
