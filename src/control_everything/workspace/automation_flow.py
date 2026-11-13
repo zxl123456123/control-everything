@@ -145,3 +145,34 @@ class AutomationQueue:
             connection.execute('UPDATE automation_flows SET revision=revision+1,updated_at=? WHERE id=?',
                                (stamp, current['flow_id']))
             return row_view(self._step(connection, step['id']))
+
+    def reserve_next(self, lease, previous, kind, request, *, writes_project=True):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (previous['flow_id'],)).fetchone()
+            frozen = packed({'context': json.loads(flow['context_json']), **request})
+            existing = connection.execute('SELECT id,kind,request_json,writes_project FROM automation_steps '
+                'WHERE flow_id=? AND ordinal=?', (flow['id'], previous['ordinal'] + 1)).fetchone()
+            if existing:
+                if (existing['kind'] != kind or existing['request_json'] != frozen
+                        or existing['writes_project'] != int(writes_project)):
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            current = self._step(connection, previous['id'])
+            if (current['status'] != 'completed' or flow['status'] != 'running'
+                    or current['flow_revision'] != previous['flow_revision']):
+                fail('automation_step_changed')
+            if writes_project and connection.execute('SELECT 1 FROM automation_steps s '
+                    'JOIN automation_flows f ON f.id=s.flow_id WHERE f.project_id=? AND s.writes_project=1 '
+                    "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')", (flow['project_id'],)).fetchone():
+                return None
+            identity, stamp = str(uuid4()), now_utc()
+            operation = f'{int(self.clock() * 1000)}-{uuid4().hex}'
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow['id'], previous['ordinal'] + 1, kind, 0, lease.generation, int(writes_project),
+                 'reserved', operation, frozen, stamp, stamp))
+            connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
+                               (kind, stamp, flow['id']))
+            return row_view(self._step(connection, identity))
