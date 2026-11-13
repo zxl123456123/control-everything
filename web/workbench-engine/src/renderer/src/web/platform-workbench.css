@@ -6,12 +6,9 @@
 :root:has(.platform-project-entry) {
   --ce-workbench-chrome: #f5f3ef;
   --ce-workbench-accent: #9a5f2e;
-  --ce-workbench-sheen: linear-gradient(125deg, #b9894b0d, transparent 58%);
+  --ce-workbench-sheen: none;
   --ce-workbench-panel-rgb: 255 253 250;
-  --ce-workbench-glow:
-    radial-gradient(ellipse at 5% 0%, #e3b88f99, transparent 65%),
-    radial-gradient(ellipse at 100% 100%, #a6c2bc66, transparent 65%),
-    linear-gradient(130deg, transparent 20%, #d3a47c38 45%, transparent 72%);
+  --ce-workbench-glow: none;
   --ce-workbench-panel: #ffffff;
   --ce-workbench-line: #e5dfd6;
   --ce-workbench-hover: #efeae3;
@@ -25,12 +22,9 @@
 :root.dark:has(.platform-project-entry) {
   --ce-workbench-chrome: #17191b;
   --ce-workbench-accent: #e4b580;
-  --ce-workbench-sheen: linear-gradient(125deg, #ba6e3026, transparent 58%);
+  --ce-workbench-sheen: none;
   --ce-workbench-panel-rgb: 29 30 32;
-  --ce-workbench-glow:
-    radial-gradient(ellipse at 5% 0%, #cf875799, transparent 65%),
-    radial-gradient(ellipse at 100% 100%, #537d7957, transparent 65%),
-    linear-gradient(130deg, transparent 20%, #b477453d 45%, transparent 72%);
+  --ce-workbench-glow: none;
   --ce-workbench-panel: #222325;
   --ce-workbench-line: #393838;
   --ce-workbench-hover: #2c2c2e;
@@ -188,7 +182,7 @@
   animation: none;
 }
 
-/* Paint glass once per surface; nested opaque fills would hide the shared light. */
+/* Paint glass once per surface without stacking translucent fills. */
 :root:has(.platform-workspace-header)
   .platform-project-entry
   :is(
