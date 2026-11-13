@@ -19,6 +19,41 @@ from control_everything.integrations.progress_feishu import NotSent
 
 
 class GitHubEventQueueTests(unittest.TestCase):
+    def test_ai_answer_is_frozen_before_uncertain_send_and_reused(self):
+        from tests.backend.test_github_event_messages import push, REPO
+        data = push()
+        data['repository'] = self.payload['repository']
+        self.config['ai_review'] = {'enabled': True}
+        body = json.dumps(data).encode()
+        self.accept(event='push', body=body)
+        reviews = []
+        def review(before, after):
+            reviews.append((before, after))
+            return 'AI 总结：修复连接。'
+        attempted = []
+        def uncertain(text, identity, **kwargs):
+            attempted.append((text, identity))
+            raise TimeoutError('fixture')
+        queue.drain(self.config, uncertain, clock=lambda: self.now, review=review)
+        queue.drain(self.config, self.sender, clock=lambda: self.now + 121, review=review)
+        self.assertEqual(len(reviews), 1)
+        self.assertEqual(attempted[0], self.sent[0][:2])
+        self.assertIn('AI 总结：修复连接。', self.sent[0][0])
+        self.assertNotIn('提交总结：', self.sent[0][0])
+
+    def test_model_failure_does_not_block_base_notification(self):
+        from tests.backend.test_github_event_messages import push
+        data = push()
+        data['repository'] = self.payload['repository']
+        self.config['ai_review'] = {'enabled': True}
+        self.accept(event='push', body=json.dumps(data).encode())
+        def unavailable(*args):
+            raise OSError('fixture')
+        result = queue.drain(self.config, self.sender, clock=lambda: self.now, review=unavailable)
+        self.assertEqual(result['sent'], 1)
+        self.assertIn('AI 分析暂不可用', self.sent[0][0])
+        self.assertIn('提交总结', self.sent[0][0])
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

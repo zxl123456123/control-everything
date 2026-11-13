@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from control_everything.integrations.github_event_queue import accept_event, drain, retry_delay
 from control_everything.integrations.progress_feishu import FeishuSender
 from control_everything.integrations.progress_notifications import settings
+from control_everything.integrations.github_push_review import make_reviewer
 
 HOOK_PATH = '/hooks/github/progress'
 MAX_BODY = 25 * 1024 * 1024
@@ -96,12 +97,12 @@ def make_server(config, secret, wake, *, address=('127.0.0.1', 19891)):
 
 def deliver_events(config, route, account, wake):
     delay = 0
+    review = make_reviewer(config) if config.get('ai_review') else None
     while True:
         wake.wait(delay)
         wake.clear()
         try:
-            # A new batch gets a fresh short-lived token; no model or GitHub query is involved.
-            result = drain(config, FeishuSender(account['appId'], account['appSecret'], route['target']))
+            result = drain(config, FeishuSender(account['appId'], account['appSecret'], route['target']), review=review)
             print(json.dumps({'worker': result}), flush=True)
             delay = retry_delay(config, time.time())
         except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as error:

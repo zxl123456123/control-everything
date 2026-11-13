@@ -31,6 +31,8 @@ def _ledger(config):
         database.execute('PRAGMA busy_timeout=5000')
         database.execute('CREATE TABLE IF NOT EXISTS webhook_receipts (delivery TEXT PRIMARY KEY, '
                          'event TEXT NOT NULL, body_sha TEXT NOT NULL, outcome TEXT NOT NULL)')
+        database.execute('CREATE TABLE IF NOT EXISTS push_reviews (uuid TEXT PRIMARY KEY, before_sha TEXT NOT NULL, '
+                         'after_sha TEXT NOT NULL, prepared INTEGER NOT NULL DEFAULT 0)')
         database.execute('BEGIN IMMEDIATE')
         stored = database.execute("SELECT value FROM metadata WHERE key='event_identity'").fetchone()
         if stored is not None and stored[0] != identity:
@@ -78,15 +80,39 @@ def accept_event(config, secret, delivery, event, body, signature):
         outcome = 'ping' if event == 'ping' else 'accepted' if message is not None else 'ignored'
         if message is not None:
             _queue(database, 'github:' + delivery, message)
+            if event == 'push' and config.get('ai_review') and not payload.get('deleted'):
+                delivery_uuid = database.execute('SELECT uuid FROM outbox WHERE identity=?', ('github:' + delivery + ':0',)).fetchone()[0]
+                database.execute('INSERT INTO push_reviews(uuid,before_sha,after_sha) VALUES(?,?,?)',
+                                 (delivery_uuid, payload['before'], payload['after']))
         database.execute('INSERT INTO webhook_receipts VALUES(?,?,?,?)', (delivery, event, body_sha, outcome))
         database.commit()
     return {'status': outcome, 'delivery': delivery}
 
 
-def drain(config, send, *, clock=time.time):
+def drain(config, send, *, clock=time.time, review=None):
     """Send only previously received events; never fetch or synthesize GitHub activity."""
     with _ledger(config) as database:
-        return _deliver(database, send, clock)
+        def prepared_send(body, delivery_uuid, *, deadline=None):
+            row = database.execute('SELECT before_sha,after_sha,prepared FROM push_reviews WHERE uuid=?', (delivery_uuid,)).fetchone()
+            if row and not row[2]:
+                # Freeze a fallback before external calls. A crash cannot cause a new model answer on retry.
+                fallback = body + '\nAI 分析暂不可用。'
+                database.execute('UPDATE push_reviews SET prepared=1 WHERE uuid=?', (delivery_uuid,))
+                database.execute('UPDATE outbox SET body=? WHERE uuid=?', (fallback, delivery_uuid))
+                database.commit()
+                try:
+                    analysis = review(row[0], row[1]) if review else None
+                    if not isinstance(analysis, str) or not analysis.strip():
+                        raise ValueError('review_unavailable')
+                    # Keep event metadata and link, replacing the raw commit list with the analysis.
+                    prefix = body.split('\n提交总结：', 1)[0] + '\n' if '\n提交总结：' in body else body.rsplit('查看：', 1)[0]
+                    body = prefix + analysis + '\n查看：' + body.rsplit('查看：', 1)[-1]
+                    database.execute('UPDATE outbox SET body=? WHERE uuid=?', (body, delivery_uuid))
+                    database.commit()
+                except (OSError, ValueError, KeyError, TypeError):
+                    body = fallback
+            return send(body, delivery_uuid, deadline=deadline)
+        return _deliver(database, prepared_send, clock)
 
 
 def retry_delay(config, now):
