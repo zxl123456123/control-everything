@@ -18,8 +18,9 @@ const Scope = {
 } as const
 export const PlatformProgressCreate = z.object({
   ...Scope, cwd: z.string().min(1).max(32768), prompt: z.string().min(1).max(131072),
-  operationId: z.string().regex(/^\d{13}-[0-9a-f]{32}$/)
-}).strict()
+  operationId: z.string().regex(/^\d{13}-[0-9a-f]{32}$/),
+  model: z.enum(['gpt-6-astra', 'gpt-6.1-sol']).optional()
+}).strict().refine(p => p.model === undefined || p.agent === 'codex', 'Explicit model requires Codex')
 export const PlatformProgressResume = z.object({ ...Scope, providerSession: ProviderSession }).strict()
 const ObserveBound = z.object({
   contractVersion: z.literal(1), expectedBinding: PlatformProgressBinding

@@ -490,3 +490,34 @@ describe('durable settled send', () => {
     expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
   })
 })
+
+describe('explicit platform Codex model', () => {
+  const params = () => ({ contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+    repoId: 'repo', worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'work',
+    operationId: '1793000000000-11111111111111111111111111111111' })
+  it.each(['gpt-6-astra', 'gpt-6.1-sol'])('passes only model preference %s', async model => {
+    await call('create', { ...params(), model })
+    expect(runtime.createAgentSession).toHaveBeenCalledWith(expect.objectContaining({ launchPreferences: { model } }), expect.anything())
+  })
+  it('leaves absent model preferences to the host', async () => {
+    await call('create', params())
+    expect(vi.mocked(runtime.createAgentSession).mock.calls[0][0]).not.toHaveProperty('launchPreferences')
+  })
+  it.each([{ model: 'other' }, { model: 'gpt-6-astra', agent: 'claude' }])('rejects invalid selection %j', selection => {
+    expect(() => call('create', { ...params(), ...selection })).toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+  it('retains the owner gate with an explicit model', async () => {
+    await expect(call('create', { ...params(), model: 'gpt-6-astra' }, { caller: { kind: 'paired-device', deviceId: 'device' } })).rejects.toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+})
+
+it.each(['gpt-6-astra', undefined])('projects only the observed model %s', model => {
+  if (model !== undefined) row.model = model
+  const snapshot = readPlatformTaskProgressSnapshot(runtime, binding)
+  expect(snapshot).toMatchObject({ available: true })
+  if (!snapshot.available) throw new Error('Trusted snapshot unavailable')
+  if (model === undefined) expect(snapshot.status).not.toHaveProperty('model')
+  else expect(snapshot.status).toHaveProperty('model', model)
+})

@@ -134,7 +134,8 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
       const cwd = context.runtime.resolveWorkspaceTerminalStartupCwd(scope, params.cwd)
       const result = await context.runtime.createAgentSession(CreateAgentSessionParams.parse({
         clientOperationId: params.operationId, worktree: `id:${params.worktreeId}`, agent: params.agent,
-        prompt: params.prompt, promptDelivery: 'auto-submit', startupCwd: cwd, presentation: 'background', viewMode: 'terminal'
+        prompt: params.prompt, promptDelivery: 'auto-submit', startupCwd: cwd, presentation: 'background', viewMode: 'terminal',
+        ...(params.model === undefined ? {} : { launchPreferences: { model: params.model } })
       }), { signal: context.signal })
       return { contractVersion: 1, ...result, binding: captureBinding(context.runtime, result.terminal.handle, params) }
     }
