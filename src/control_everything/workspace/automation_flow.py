@@ -5,6 +5,7 @@ import json
 import time
 from uuid import uuid4
 
+from control_everything.input_validation import ProfileError
 from control_everything.workspace import dispatch
 from control_everything.workspace.native_progress import check_versions, fail, packed, row_view, task_access
 from control_everything.workspace.store import now_utc
@@ -96,11 +97,6 @@ class AutomationQueue:
             if connection.execute("SELECT 1 FROM automation_flows WHERE task_id=? "
                     "AND status NOT IN ('completed','failed','cancelled')", (event['task_id'],)).fetchone():
                 return None
-            if connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
-                    'WHERE f.project_id=? AND s.writes_project=1 '
-                    "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",
-                    (event['project_id'],)).fetchone():
-                return None
             payload = json.loads(event['payload_json'])
             item = task_access(connection, event['task_id'], writable=True)
             check_versions(item, {'expected_revision': event['requirement_revision']})
@@ -115,9 +111,20 @@ class AutomationQueue:
             identity, step_id, stamp = str(uuid4()), str(uuid4()), now_utc()
             context = {'policy_version': 1, 'requirement_revision': event['requirement_revision'],
                        'brief_revision': event['brief_revision'], 'input': payload}
+            supported = payload['request']['agent'] == 'codex'
+            if supported and connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
+                    'WHERE f.project_id=? AND s.writes_project=1 '
+                    "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",
+                    (event['project_id'],)).fetchone():
+                return None
             connection.execute('INSERT INTO automation_flows(id,task_id,project_id,origin_event_id,status,phase,'
                 'context_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',
                 (identity, item['id'], item['project_id'], event_id, 'running', 'prepare', packed(context), stamp, stamp))
+            if not supported:
+                connection.execute("UPDATE automation_flows SET status='waiting_external',attention_json=? WHERE id=?",
+                    (packed({'reason': 'agent_not_supported', 'agent': payload['request']['agent']}), identity))
+                connection.execute('UPDATE automation_events SET flow_id=?,consumed_at=? WHERE id=?', (identity, stamp, event_id))
+                return self._view(connection, identity)
             operation = f'{int(self.clock() * 1000)}-{uuid4().hex}'
             connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,status,'
                 'operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
@@ -138,6 +145,11 @@ class AutomationQueue:
                 fail('automation_step_changed')
             if status not in STEP_TRANSITIONS.get(current['status'], ()):
                 fail('automation_step_transition')
+            if current['status'] == 'reserved' and status == 'dispatching':
+                flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (current['flow_id'],)).fetchone()
+                problem = self._input_problem(connection, flow['task_id'], json.loads(flow['context_json']))
+                if problem:
+                    fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             stamp = now_utc()
             connection.execute('UPDATE automation_steps SET status=?,binding_json=?,result_json=?,updated_at=? WHERE id=?',
                 (status, current['binding_json'] if binding is None else packed(binding),
@@ -163,6 +175,10 @@ class AutomationQueue:
             if (current['status'] != 'completed' or flow['status'] != 'running'
                     or current['flow_revision'] != previous['flow_revision']):
                 fail('automation_step_changed')
+            context = json.loads(flow['context_json'])
+            problem = self._input_problem(connection, flow['task_id'], context)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             if writes_project and connection.execute('SELECT 1 FROM automation_steps s '
                     'JOIN automation_flows f ON f.id=s.flow_id WHERE f.project_id=? AND s.writes_project=1 '
                     "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')", (flow['project_id'],)).fetchone():
@@ -176,3 +192,56 @@ class AutomationQueue:
             connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
                                (kind, stamp, flow['id']))
             return row_view(self._step(connection, identity))
+
+    def pending_events(self):
+        with self.store.connection() as connection:
+            return [row[0] for row in connection.execute('SELECT e.id FROM automation_events e '
+                'LEFT JOIN automation_flows f ON f.id=e.flow_id WHERE e.flow_id IS NULL OR f.status=\'running\' '
+                'ORDER BY e.received_at,e.id')]
+
+    def get_step(self, step_id):
+        with self.store.connection() as connection:
+            return row_view(self._step(connection, step_id))
+
+    def check_current(self, lease, step):
+        """Validate the current frozen input before an external dispatch."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            if (view['flow']['status'] != 'running' or view['step']['id'] != step['id']
+                    or view['flow']['revision'] != step['flow_revision']):
+                fail('automation_step_changed')
+            return self._input_problem(connection, view['flow']['task_id'], view['flow']['context'])
+
+    @staticmethod
+    def _input_problem(connection, task_id, context):
+        try:
+            item = task_access(connection, task_id, writable=True)
+        except ProfileError as error:
+            if str(error) == 'project_unavailable':
+                return 'project_unavailable'
+            raise
+        brief = dispatch._brief(connection, item['id'])
+        if (item['revision'] != context['requirement_revision'] or brief['revision'] != context['brief_revision']):
+            return 'requirement_changed'
+        try:
+            directory = dispatch._directory(connection, item['project_id'], brief['execution_directory_id'])
+        except ProfileError:
+            return 'project_directory_changed'
+        if directory != context['input']['directory']:
+            return 'project_directory_changed'
+        return None
+
+    def wait(self, lease, step, status, phase, attention):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            if (view['flow']['status'] != 'running' or view['step']['id'] != step['id']
+                    or view['flow']['revision'] != step['flow_revision']
+                    or view['step']['status'] != step['status']):
+                fail('automation_step_changed')
+            connection.execute('UPDATE automation_flows SET status=?,phase=?,attention_json=?,revision=revision+1,'
+                'updated_at=? WHERE id=?', (status, phase, packed(attention), now_utc(), step['flow_id']))
+            return self._view(connection, step['flow_id'])
