@@ -331979,8 +331979,8 @@
     {
       "path": "src/main/pty/codex-shell-no-daemon.test.ts",
       "upstream_sha256": "98bc5b65aee40fe81a1f5dfceb7441a747e93a393d1aa62fad107b499bba90ac",
-      "current_sha256": "7fda5f1a842b6c4c31d73fe8aecf1e49ab2541156014d7e567a16a6ebccdd49d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "9e09a374f6ad3cc2991a262a97b47722bcfa61f7ff8781abfd0a8add72b2a530",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；验证Windows Codex默认KEY过滤下平台已知Git非交互配置的单次恢复"
     },
     {
       "path": "src/main/pty/wsl-orca-env.ts",
@@ -332081,8 +332081,8 @@
     {
       "path": "src/shared/codex-shell-function.ts",
       "upstream_sha256": "7f380cfe78f978b702c72f5814dee5e3a7eacb2c6b22990e245365b0f0ea1e57",
-      "current_sha256": "2c4045c1a4025ca2d9929be35f7b380050240775121480204f09a444d6a3159d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "1b1b1ee104e7396998961551088fc96c5c7eafc3984fccd0fd9b61b4cd2764e5",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；仅为Windows Codex单次恢复平台已知的两个Git非交互配置名称，保留用户环境过滤"
     },
     {
       "path": "src/shared/wsl-login-shell-command.test.ts",
