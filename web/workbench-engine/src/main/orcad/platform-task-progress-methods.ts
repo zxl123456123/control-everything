@@ -18,6 +18,7 @@ import { splitWorktreeId } from '../../shared/worktree/id'
 import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import type { TuiAgent } from '../../shared/tui-agent'
 import { agentProviderSessionsEqual } from '../../shared/agent-session-resume'
+import { withTimeout } from '../runtime/runtime-async-boundaries'
 
 function requireOwner(context: RpcContext): void {
   if (context.caller?.kind !== 'local-cli' || context.orchestrationCaller)
@@ -158,7 +159,18 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
           return { contractVersion: 1, available: false, canSendFeedback: false, reason: 'stale_incarnation', readAt: Date.now() }
       } else binding = params.expectedBinding
       const snapshot = context.runtime.getPlatformTaskProgressSnapshot(binding)
-      if (!snapshot.available) return { ...snapshot, canSendFeedback: false }
+      if (!snapshot.available) {
+        if (snapshot.reason !== 'status_unavailable' || platformBindingState(context.runtime, binding) !== 'current')
+          return { ...snapshot, canSendFeedback: false }
+        // A startup prompt can precede the first hook. It diagnoses the wait, never a completed turn.
+        const interactiveWait = await withTimeout(
+          context.runtime.getTerminalInteractiveWait(binding.terminalHandle).catch(() => undefined), 100, undefined
+        )
+        if (platformBindingState(context.runtime, binding) !== 'current')
+          return { ...snapshot, reason: 'binding_changed', canSendFeedback: false }
+        return { ...snapshot, canSendFeedback: false,
+          ...(interactiveWait === undefined ? {} : { interactiveWait }) }
+      }
       const settled = await context.runtime.isTerminalRunningSettledPromptAgent(binding.terminalHandle)
       const current = context.runtime.getPlatformTaskProgressSnapshot(snapshot.binding)
       const canResume = current.available && EnsureAgentSessionParams.safeParse({ kind: 'explicit',

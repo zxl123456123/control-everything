@@ -67,6 +67,7 @@ beforeEach(() => {
     getPlatformTaskProgressSnapshot: (b: PlatformProgressBinding) => readPlatformTaskProgressSnapshot(runtime, b),
     isTerminalRunningSettledPromptAgent: vi.fn(async () => true),
     getTerminalAgentStatus: vi.fn(async () => ({ handle: 'terminal', isRunningAgent: true, status: 'idle' })),
+    getTerminalInteractiveWait: vi.fn(async () => undefined),
     getDriver: vi.fn(() => ({ kind: 'desktop' })), observeTerminalAgentPrompt: vi.fn(),
     sendTerminalAgentPrompt: vi.fn(async (_handle: string, _text: string, opts: any) => {
       await opts.beforeWrite('pty'); const value = receipt().send; opts.onInputAccepted(value); return value
@@ -174,6 +175,51 @@ describe('same-row ingestion fence', () => {
   it('keeps evidence time distinct from read time and projects the exact row', () => {
     expect(readPlatformTaskProgressSnapshot(runtime, binding)).toMatchObject({ available: true, evidenceTime: { kind: 'observed', at: 90 }, deliveredAt: 100,
       status: { lastAssistantMessage: 'Result', turnEndDisposition: 'identified' } })
+  })
+  it('reports a startup prompt without treating it as trusted task progress', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    const wait = { source: 'prompt-text' as const, reason: 'agent-hooks-review-prompt' as const }
+    vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue(wait)
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding })).toMatchObject({
+      available: false, reason: 'status_unavailable', canSendFeedback: false, interactiveWait: wait
+    })
+    expect(runtime.getTerminalInteractiveWait).toHaveBeenCalledWith(binding.terminalHandle)
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+    expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
+  })
+  it('does not inspect a stale terminal binding', async () => {
+    vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue('replacement')
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, reason: 'binding_changed', canSendFeedback: false })
+    expect(runtime.getTerminalInteractiveWait).not.toHaveBeenCalled()
+  })
+  it('discards a diagnostic if the process changes during inspection', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockImplementation(async () => {
+      vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue('replacement')
+      return { source: 'prompt-text', reason: 'agent-hooks-review-prompt' }
+    })
+    const result = await call('observe', { contractVersion: 1, expectedBinding: binding })
+    expect(result).toMatchObject({ available: false, reason: 'binding_changed' })
+    expect(result).not.toHaveProperty('interactiveWait')
+  })
+  it('keeps progress unavailable when diagnostic inspection fails', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockRejectedValue(new Error('synthetic unavailable stream'))
+    const result = await call('observe', { contractVersion: 1, expectedBinding: binding })
+    expect(result).toMatchObject({ available: false, reason: 'status_unavailable', canSendFeedback: false })
+    expect(result).not.toHaveProperty('interactiveWait')
+  })
+  it('bounds a stalled diagnostic without losing the unknown progress result', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockImplementation(() => new Promise(() => {}))
+    vi.useFakeTimers()
+    try {
+      const pending = call('observe', { contractVersion: 1, expectedBinding: binding })
+      await vi.advanceTimersByTimeAsync(101)
+      expect(await pending).toMatchObject({ available: false, reason: 'status_unavailable', canSendFeedback: false })
+      expect(runtime.getTerminalInteractiveWait).toHaveBeenCalledTimes(1)
+    } finally { vi.useRealTimers() }
   })
   it.each(['unobserved', 'incarnation', 'replay', 'restored', 'provider-only', 'program-only', 'remote', 'wrong-provider', 'wrong-worktree'])('rejects %s', reason => {
     if (reason === 'unobserved') observed = { kind: 'unobserved' }
