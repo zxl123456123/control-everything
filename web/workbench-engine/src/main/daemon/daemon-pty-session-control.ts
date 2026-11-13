@@ -10,6 +10,7 @@ import { normalizeWslColdRestoreCwd } from './wsl-cold-restore-cwd'
 import { SessionNotFoundError, type ListSessionsResult } from './types'
 import { resolveSafePtyDefaultCwd } from '../providers/pty-default-cwd'
 import type { PtySpawnResult } from '../providers/pty-provider-contract'
+import type { PtyIncarnationId } from '../../shared/pty-incarnation'
 
 export const LIVENESS_PROBE_TIMEOUT_MS = 2_000
 
@@ -95,6 +96,20 @@ export abstract class DaemonPtySessionControl extends DaemonPtySessionInput {
     } catch {
       return null
     }
+  }
+
+  async stopExact(
+    id: string,
+    expectedIncarnationId: PtyIncarnationId,
+    opts?: { deadlineMs?: number }
+  ): Promise<void> {
+    await this.ensureConnected(opts?.deadlineMs)
+    // The host checks identity after connection waits; older hosts must refuse, never use kill.
+    await this.client.request(
+      'killExact',
+      { sessionId: id, expectedIncarnationId, immediate: true },
+      remainingDaemonRequestTimeoutMs(opts?.deadlineMs)
+    )
   }
 
   async shutdown(

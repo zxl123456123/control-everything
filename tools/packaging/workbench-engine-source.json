@@ -327298,7 +327298,8 @@
     "src/renderer/src/components/settings/PlatformSurfaceTransparencyControl.tsx",
     "src/shared/workbench-appearance.ts",
     "src/renderer/src/components/terminal-pane/TerminalTouchControls.tsx",
-    "src/renderer/src/components/terminal-pane/TerminalTouchControls.test.tsx"
+    "src/renderer/src/components/terminal-pane/TerminalTouchControls.test.tsx",
+    "src/main/daemon/daemon-pty-exact-stop.test.ts"
   ],
   "adapted_files": [
     {
@@ -339186,6 +339187,18 @@
       "upstream_sha256": "167d7d55f03b1871688a152ad20737ccaf7268db49f5aa12776fbef6afda79de",
       "current_sha256": "ecb7c21b592e31fd1d47f974211c78592730bf6bdb4110e33db85fbf314cf512",
       "reason": "按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
+    },
+    {
+      "path": "src/main/providers/pty-provider-contract.ts",
+      "upstream_sha256": "ee8fb3ccdd1f3a736ea1e31024b027571dd3c47b886e8ff6d9ea9b440a2bd037",
+      "current_sha256": "e90bca17aebc5679373ccff6ccd7b944f0ea61cb14eec7f0371f5c6a537d2800",
+      "reason": "为任务取消提供独立的实例约束停止能力，复用宿主killExact并保留历史，不进入休眠或泛化kill路径"
+    },
+    {
+      "path": "src/main/daemon/daemon-pty-session-control.ts",
+      "upstream_sha256": "57115fbe43afa36b3f1c12450ad5f354864201d931f49aa165ce4c38234e3537",
+      "current_sha256": "b57326ec7159949a3d17a8f4113f09162a3ce51a17082f6616f6bbc9d67a14ec",
+      "reason": "为任务取消提供独立的实例约束停止能力，复用宿主killExact并保留历史，不进入休眠或泛化kill路径"
     }
   ],
   "reviewed_findings": [
