@@ -31,7 +31,7 @@ CREATE TABLE manual_records (id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, pro
 SCHEMA1_TABLES = ("projects", "project_directories", "project_sources", "project_manual", "project_manual_history",
                      "todos", "tasks", "manual_records", "profile_imports")
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 STATES = ("todo", "doing", "blocked", "review", "done")
 MAX_REVISION = (1 << 53) - 1
 MAX_BODY_BYTES = 262144
@@ -45,6 +45,7 @@ SCHEMA7_TABLES = SCHEMA6_TABLES
 SCHEMA8_TABLES = (*SCHEMA7_TABLES, "task_messages")
 SCHEMA9_TABLES = (*SCHEMA8_TABLES, "execution_runs", "execution_events", "execution_approvals")
 SCHEMA10_TABLES = (*SCHEMA9_TABLES, "task_native_runs", "task_deliveries", "task_native_message_delivery")
+SCHEMA11_TABLES = (*SCHEMA10_TABLES, "automation_events")
 ITEM_COLUMNS = ("id", "origin", "origin_id", "title", "project_id", "provider_id", "state", "session_key",
                 "source", "created_at", "updated_at", "todo_position", "sort_index", "resume_state", "revision",
                 "priority", "focus", "assigned_agent_id")
@@ -113,7 +114,7 @@ VIEWS = (
 )
 _SCHEMA_TABLES = {1: SCHEMA1_TABLES, 2: SCHEMA2_TABLES, 3: SCHEMA3_TABLES, 4: SCHEMA4_TABLES,
                   5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES,
-                  10: SCHEMA10_TABLES}
+                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES}
 
 
 def tables_for(version):
@@ -360,6 +361,35 @@ def finish_schema10(connection, receipt=None):
     connection.execute("PRAGMA user_version=10")
 
 
+def add_schema11(connection):
+    connection.execute("""CREATE TABLE automation_events(
+ id TEXT PRIMARY KEY NOT NULL, source_instance TEXT NOT NULL, source_event_id TEXT NOT NULL,
+ task_id TEXT NOT NULL REFERENCES task_items(id), project_id TEXT NOT NULL REFERENCES projects(id),
+ actor_id TEXT NOT NULL, authorization TEXT NOT NULL CHECK(authorization IN ('explicit_assignment','auto_enabled')),
+ requirement_revision INTEGER NOT NULL CHECK(requirement_revision BETWEEN 1 AND 9007199254740991),
+ brief_revision INTEGER NOT NULL CHECK(brief_revision BETWEEN 0 AND 9007199254740991),
+ request_hash TEXT NOT NULL, payload_json TEXT NOT NULL, received_at TEXT NOT NULL, consumed_at TEXT,
+ UNIQUE(source_instance,source_event_id))""")
+
+
+def install_schema11(connection, *, fresh=False):
+    if fresh:
+        install_schema10(connection, fresh=True)
+    add_schema11(connection)
+    if fresh:
+        finish_schema11(connection)
+
+
+def finish_schema11(connection):
+    register_writer(connection, 11)
+    for table in SCHEMA11_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(11):
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=11")
+
+
 def finish_schema2(connection, receipt):
     register_writer(connection, 2)
     for statement in (*VIEWS, *guard_statements(2)):
@@ -532,8 +562,10 @@ def _expected_schema_signature(version):
             install_schema8(expected, fresh=True)
         elif version == 9:
             install_schema9(expected, fresh=True)
-        else:
+        elif version == 10:
             install_schema10(expected, fresh=True)
+        else:
+            install_schema11(expected, fresh=True)
         return tuple(schema_signature(expected))
     finally:
         expected.close()
