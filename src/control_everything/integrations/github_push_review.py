@@ -64,7 +64,10 @@ def review_push(repository, before, after, get, model):
     summary, findings = result['summary'], result['findings']
     if not isinstance(summary, str) or not summary.strip() or len(summary) > 800 or not isinstance(findings, list) or len(findings) > 3:
         raise ValueError('review_output_invalid')
-    lines = ['AI 总结：' + _text(summary)]
+    summary = _text(summary)
+    sentence = re.search(r'[。！？]|[.!?](?=\s|$)', summary)
+    end = sentence.end() if sentence else len(summary)
+    lines = ['<b>AI 总结：' + summary[:end] + '</b>' + summary[end:]]
     for finding in findings:
         file = next((f for f in files if f['path'] == finding['path']), None)
         line, issue = finding['line'], finding['issue']
@@ -72,7 +75,7 @@ def review_push(repository, before, after, get, model):
         if (type(line) is not int or file is None or line not in locations[file['path']]
                 or not isinstance(issue, str) or not issue.strip() or len(issue) > 300):
             raise ValueError('review_finding_location_invalid')
-        lines.extend(['AI 简评：' + _text(issue), f'https://github.com/{repository}/blob/{after}/{quote(file["path"], safe="/")}#L{line}'])
+        lines.extend(['<b>AI 简评：</b>' + _text(issue), f'https://github.com/{repository}/blob/{after}/{quote(file["path"], safe="/")}#L{line}'])
     if head_only or partial or deletion_only:
         lines.append('分析范围：' + ('新建分支，仅分析分支头提交。' if head_only else '')
                      + ('部分文本差异；大文件、二进制或超限内容未覆盖。' if partial else '')

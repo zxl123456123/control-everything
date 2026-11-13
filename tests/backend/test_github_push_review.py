@@ -22,6 +22,25 @@ class PushReviewTests(unittest.TestCase):
         self.assertIn('改进任务',text)
         self.assertIn('/blob/'+B+'/src/a.py#L1',text)
 
+    def test_summary_lead_and_finding_label_are_bold_after_sanitizing(self):
+        data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
+                'files': [{'filename': 'a.py', 'patch': '@@ -1 +1 @@\n-old\n+new'}]}
+        for summary, lead, rest in (
+                ('任务更新更清楚。方便查看进度。', '任务更新更清楚。', '方便查看进度。'),
+                ('更新完成！继续查看。', '更新完成！', '继续查看。'),
+                ('是否更新？继续查看。', '是否更新？', '继续查看。'),
+                ('Updates are visible. Check progress.', 'Updates are visible.', ' Check progress.'),
+                ('调整版本1.2的展示', '调整版本1.2的展示', ''),
+                ('<b>任务</b>更新。<at user_id="all">后续</at>',
+                 '＜b＞任务＜/b＞更新。', '＜at user_id="all"＞后续＜/at＞')):
+            with self.subTest(summary=summary):
+                text = review_push('example/repo', A, B, lambda p: data, lambda d: {
+                    'summary': summary, 'findings': [{'path': 'a.py', 'line': 1, 'issue': '<b>具体问题</b>'}]})
+                self.assertTrue(text.startswith('<b>AI 总结：' + lead + '</b>' + rest + '\n'))
+                self.assertIn('\n<b>AI 简评：</b>＜b＞具体问题＜/b＞\n', text)
+                self.assertIn('/blob/' + B + '/a.py#L1', text)
+                self.assertNotIn('<at', text)
+
     def test_partial_scope_is_explicit_and_invented_file_is_rejected(self):
         data={'commits':[{'sha':B}],'merge_base_commit':{'sha':A},'total_commits':1,
               'files':[{'filename':'a.png','status':'modified'}]}

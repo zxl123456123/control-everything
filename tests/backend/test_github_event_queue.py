@@ -41,6 +41,40 @@ class GitHubEventQueueTests(unittest.TestCase):
         self.assertIn('AI 总结：修复连接。', self.sent[0][0])
         self.assertNotIn('提交总结：', self.sent[0][0])
 
+    def test_formatted_analysis_is_frozen_and_old_pending_text_is_unchanged(self):
+        from tests.backend.test_github_event_messages import push
+        from control_everything.integrations.github_push_review import review_push
+        self.config['ai_review'] = {'enabled': True}
+        data = push()
+        data['repository'] = self.payload['repository']
+        self.accept(event='push', body=json.dumps(data).encode())
+        before, after = data['before'], data['after']
+        diff = {'commits': [{'sha': after}], 'merge_base_commit': {'sha': before},
+                'files': [{'filename': 'a.py', 'patch': '@@ -1 +1 @@\n-old\n+new'}]}
+        def review(*args):
+            return review_push(self.config['repository'], before, after, lambda p: diff,
+                               lambda d: {'summary': '任务更清楚。便于查看。', 'findings': []})
+        attempted = []
+        def uncertain(body, identity, **kwargs):
+            attempted.append((body, identity))
+            raise TimeoutError('fixture')
+        queue.drain(self.config, uncertain, clock=lambda: self.now, review=review)
+        queue.drain(self.config, self.sender, clock=lambda: self.now + 121,
+                    review=lambda *args: self.fail('formatted answer must be frozen'))
+        self.assertEqual(attempted[0], self.sent[0][:2])
+        self.assertIn('<b>【代码推送】</b>', self.sent[0][0])
+        self.assertIn('<b>AI 总结：任务更清楚。</b>便于查看。', self.sent[0][0])
+        self.assertIn('/compare/', self.sent[0][0])
+        # Simulate an old, already prepared outbox row awaiting retry after an uncertain send.
+        with queue._ledger(self.config) as database:
+            database.execute("UPDATE outbox SET status='unknown', body=?", ('旧版纯文本正文',))
+            database.commit()
+        original = self.rows('SELECT body,uuid FROM outbox')[0]
+        queue.drain(self.config, self.sender, clock=lambda: self.now + 242,
+                    review=lambda *args: self.fail('old answer must not be regenerated'))
+        self.assertEqual(self.sent[-1][:2], original)
+        self.assertEqual(self.rows('SELECT body,uuid FROM outbox'), [original])
+
     def test_model_failure_does_not_block_base_notification(self):
         from tests.backend.test_github_event_messages import push
         data = push()

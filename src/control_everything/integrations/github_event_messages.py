@@ -80,7 +80,7 @@ def _template(title, repository, actor, content, received_at, delivery):
     received_at = received_at if received_at is not None else datetime.now(SHANGHAI)
     if not isinstance(received_at, datetime) or received_at.utcoffset() is None:
         raise ValueError('received_at_timezone_required')
-    lines = [f'【{title}】', f'仓库：{repository}',
+    lines = [f'<b>【{title}】</b>', f'仓库：{repository}',
              f'接收时间：{received_at.astimezone(SHANGHAI):%Y-%m-%d %H:%M:%S}（北京时间）',
              f'操作人：{actor}']
     return '\n'.join([*lines, content])

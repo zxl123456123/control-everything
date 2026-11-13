@@ -47,7 +47,7 @@ class EventTemplateTests(unittest.TestCase):
         for event, data, heading, item in cases:
             with self.subTest(event=event):
                 text = render_event(event, data, REPO, received_at=self.received, delivery=self.delivery)
-                self.assertTrue(text.startswith('【' + heading + '】\n'))
+                self.assertTrue(text.startswith('<b>【' + heading + '】</b>\n'))
                 for expected in ('仓库：' + REPO, '接收时间：2026-11-12 02:02:03（北京时间）',
                                  '操作人：actor', item, '\n查看：https://github.com/'):
                     self.assertIn(expected, text)
@@ -70,7 +70,7 @@ class EventTemplateTests(unittest.TestCase):
     def test_pr_conversation_comments_are_labeled_as_pr_comments(self):
         data = payload('created', comment={'id': 80, 'user': {'login': 'commenter'}})
         data['issue']['pull_request'] = {}
-        self.assertTrue(render_event('issue_comment', data, REPO).startswith('【PR 评论】\n'))
+        self.assertTrue(render_event('issue_comment', data, REPO).startswith('<b>【PR 评论】</b>\n'))
 
     def test_default_receipt_time_is_labeled_and_naive_override_is_rejected(self):
         self.assertRegex(render_event('issues', payload(), REPO),
@@ -288,8 +288,9 @@ class ValidationTests(unittest.TestCase):
         original = deepcopy(data)
         text = render_event('issues', data, REPO)
         self.assertEqual(data, original)
+        content = text.split('\n', 1)[1]
         for unsafe in ('<', '>', '\x00', '\u202e'):
-            self.assertNotIn(unsafe, text)
+            self.assertNotIn(unsafe, content)
         self.assertIn('＜at', text)
 
 
