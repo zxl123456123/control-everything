@@ -1269,20 +1269,47 @@ class PanelServer(ThreadingHTTPServer):
         super().__init__(*args, **kwargs)
         self.agent_presence = {}
         self.agent_presence_lock = threading.Lock()
+        self.automation_consumer_service = None
 
     def attach_workbench_runtime(self, runtime):
+        consumer = self.__dict__.get('automation_consumer_service')
+        if consumer is not None:
+            consumer.close()
         previous = self.__dict__.get('native_progress_observer')
         if previous is not None:
             previous.close()
         self.workbench_runtime = runtime
         self.native_progress_observer = None
+        self.automation_consumer_service = None
         if self.workspace is not None and self.profile is not None:
             from control_everything.integrations.workbench_progress import WorkbenchProgressAdapter
             from control_everything.workspace.native_progress_observer import NativeProgressObserver
-            self.workspace.native_progress.adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
+            from control_everything.workspace.automation_flow import AutomationQueue
+            from control_everything.workspace.automation_consumer import AutomationConsumer, AutomationConsumerService
+            adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
+            self.workspace.native_progress.adapter = adapter
             if runtime is not None:
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
-                self.native_progress_observer.start()
+                self.automation_consumer_service = AutomationConsumerService(
+                    AutomationConsumer(AutomationQueue(self.workspace.store), adapter))
+                try:
+                    self.native_progress_observer.start()
+                    self.automation_consumer_service.start()
+                except Exception:
+                    try:
+                        self.automation_consumer_service.close()
+                    except Exception:
+                        # Retain an unconfirmed worker for explicit close/replacement retry.
+                        pass
+                    else:
+                        self.automation_consumer_service = None
+                    try:
+                        self.native_progress_observer.close()
+                    except Exception:
+                        pass
+                    else:
+                        self.native_progress_observer = None
+                    raise
 
     def agent_seen(self, identity):
         with self.agent_presence_lock:
@@ -1306,9 +1333,19 @@ class PanelServer(ThreadingHTTPServer):
                     observer.start()
 
     def server_close(self):
+        close_error = None
+        consumer = self.__dict__.get('automation_consumer_service')
+        if consumer is not None:
+            try:
+                consumer.close()
+            except Exception as error:
+                close_error = error
         progress_observer = self.__dict__.get('native_progress_observer')
-        if progress_observer is not None:
-            progress_observer.close()
+        if progress_observer is not None and close_error is None:
+            try:
+                progress_observer.close()
+            except Exception as error:
+                close_error = error
         reader_error = None
         lock = self.__dict__.get('_news_reader_lock')
         if lock is not None:
@@ -1321,7 +1358,7 @@ class PanelServer(ThreadingHTTPServer):
         if reader is not None:
             try:
                 reader.close()
-            except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+            except Exception as error:
                 reader_error = error
         try:
             source = self.__dict__.get('news_source')
@@ -1341,7 +1378,11 @@ class PanelServer(ThreadingHTTPServer):
                 if installation is not None:
                     installation.close()
             finally:
-                super().server_close()
+                try:
+                    super().server_close()
+                finally:
+                    if close_error is not None:
+                        raise close_error
         if reader_error is not None:
             raise reader_error
 

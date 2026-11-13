@@ -79,9 +79,10 @@ class WorkbenchProgressTests(unittest.TestCase):
 
     def test_post_bind_assembly_uses_single_observer_and_replacement_closes_old(self):
         progress = SimpleNamespace(adapter=None)
-        server = SimpleNamespace(workspace=SimpleNamespace(native_progress=progress), profile=object())
+        server = SimpleNamespace(workspace=SimpleNamespace(native_progress=progress, store=object()), profile=object())
         runtime = Mock(ready=True)
-        with patch('control_everything.workspace.native_progress_observer.NativeProgressObserver') as factory:
+        with patch('control_everything.workspace.native_progress_observer.NativeProgressObserver') as factory, \
+             patch('control_everything.workspace.automation_consumer.AutomationConsumerService'):
             first, second = Mock(), Mock()
             factory.side_effect = [first, second]
             PanelServer.attach_workbench_runtime(server, runtime)
