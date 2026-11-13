@@ -20,6 +20,7 @@ import {
 import { DegradedDaemonFreshSpawnRouter } from './degraded-daemon-fresh-spawn-routing'
 import { DegradedDaemonOwnerRecovery } from './degraded-daemon-owner-recovery'
 import type { WriteSettlement } from '../../shared/pty-write-settlement'
+import type { PtyIncarnationId } from '../../shared/pty-incarnation'
 
 export class DegradedDaemonPtyProvider implements IPtyProvider {
   readonly isDegraded = true
@@ -132,6 +133,16 @@ export class DegradedDaemonPtyProvider implements IPtyProvider {
 
   setPtyBackgrounded(id: string, background: boolean): void {
     this.providerFor(id).setPtyBackgrounded?.(id, background)
+  }
+
+  async stopExact(
+    id: string,
+    expectedIncarnationId: PtyIncarnationId,
+    opts?: { deadlineMs?: number }
+  ): Promise<void> {
+    const provider = this.providerFor(id)
+    if (!provider.stopExact) throw new Error('exact_stop_unsupported')
+    await provider.stopExact(id, expectedIncarnationId, opts)
   }
 
   async shutdown(

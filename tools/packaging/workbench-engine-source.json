@@ -339199,6 +339199,30 @@
       "upstream_sha256": "57115fbe43afa36b3f1c12450ad5f354864201d931f49aa165ce4c38234e3537",
       "current_sha256": "b57326ec7159949a3d17a8f4113f09162a3ce51a17082f6616f6bbc9d67a14ec",
       "reason": "为任务取消提供独立的实例约束停止能力，复用宿主killExact并保留历史，不进入休眠或泛化kill路径"
+    },
+    {
+      "path": "src/main/daemon/daemon-pty-router.ts",
+      "upstream_sha256": "44277df45b25bdbb7f2debe50b72e58fa77756a8d35e9a6911217780cbcb81f0",
+      "current_sha256": "cabf94e22d3533d6e99552521cf534fe475d417395b71d0a650774a350f3a9c6",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/daemon/daemon-pty-router.test.ts",
+      "upstream_sha256": "fd5dc4b104978bfc8fc6d8c9e856faf0f6b8d790c8d67e02aa0acf8ab6fc203d",
+      "current_sha256": "8f81882b5a6cfbf585a8d21c5f5b767f8c0f845202ee3991c745ae72063ff0b9",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/daemon/degraded-daemon-pty-provider.ts",
+      "upstream_sha256": "9bd411ff31538d6cf399f90e3c308dd84f36eaaea917bae2dd0ec9ae2fc8086e",
+      "current_sha256": "936281400d0d6d6109f03c6e0bbedf5287a8857e090ffc594e8a7bcad994d2aa",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/daemon/degraded-daemon-pty-provider.test.ts",
+      "upstream_sha256": "c84f75b5dff7b726460d278b4ca454ba2d63c26bd7d0a5f1bc0fd08e72ef412a",
+      "current_sha256": "d722247cfa9df0ea8be31d0bbe43c717b0913105c74ce06176d09d5dd94bf64e",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
     }
   ],
   "reviewed_findings": [

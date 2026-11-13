@@ -21,6 +21,7 @@ import { findLegacySessionOwner } from './daemon-router-legacy-owner'
 import { retireExitedLegacyAdapter, type ExitedLegacyVerdict } from './daemon-router-exited-legacy'
 import type { WriteSettlement } from '../../shared/pty-write-settlement'
 import type { TerminalOscColorQueryReplyColors } from '../../shared/terminal-osc-color-reply'
+import type { PtyIncarnationId } from '../../shared/pty-incarnation'
 
 export class DaemonPtyRouter implements IPtyProvider {
   private current: DaemonPtyAdapter
@@ -148,6 +149,14 @@ export class DaemonPtyRouter implements IPtyProvider {
 
   setPtyBackgrounded(id: string, background: boolean): void {
     this.adapterFor(id).setPtyBackgrounded(id, background)
+  }
+
+  async stopExact(
+    id: string,
+    expectedIncarnationId: PtyIncarnationId,
+    opts?: { deadlineMs?: number }
+  ): Promise<void> {
+    await this.adapterFor(id).stopExact(id, expectedIncarnationId, opts)
   }
 
   async shutdown(
