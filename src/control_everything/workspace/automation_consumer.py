@@ -1,5 +1,8 @@
 """Advance one explicitly authorized planning stage, stopping at a durable wait."""
 
+import logging
+import threading
+
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
@@ -11,11 +14,13 @@ class AutomationConsumer:
         self.queue, self.adapter = queue, adapter
         self.launch = AutomationLaunch(queue, adapter)
         self.cursor = None
+        self.lease = None
 
-    def run_once(self):
-        if not self.adapter.available:
+    def run_once(self, *, cancel_event=None):
+        if cancel_event is not None and cancel_event.is_set() or not self.adapter.available:
             return None
         lease = self.queue.acquire()
+        self.lease = lease
         if lease is None:
             return None
         events = self.queue.pending_events()
@@ -23,6 +28,8 @@ class AutomationConsumer:
             index = events.index(self.cursor) + 1
             events = events[index:] + events[:index]
         for event_id in events:
+            if cancel_event is not None and cancel_event.is_set():
+                return None
             self.cursor = event_id
             view = self.queue.claim(lease, event_id)
             if view is None:
@@ -36,8 +43,8 @@ class AutomationConsumer:
             if step['status'] != 'completed':
                 try:
                     if step['kind'] == 'prepare':
-                        return self.launch.prepare(lease, step)
-                    return self.launch.run(lease, step)
+                        return self.launch.prepare(lease, step, cancel_event=cancel_event)
+                    return self.launch.run(lease, step, cancel_event=cancel_event)
                 except ProfileError as error:
                     reason = str(error)
                     if reason not in ('automation_requirement_changed', 'project_unavailable', 'project_directory_changed'):
@@ -50,7 +57,7 @@ class AutomationConsumer:
                     return self._wait(lease, step, {'reason': 'model_unobserved' if observed is None else 'model_mismatch',
                                                    'expected_model': expected, 'observed_model': observed})
             try:
-                return self._advance(lease, view, step)
+                return self._advance(lease, view, step, cancel_event=cancel_event)
             except ProfileError as error:
                 # Ownership/CAS failures must propagate rather than being relabelled as model output failures.
                 if str(error) == 'automation_requirement_changed':
@@ -66,7 +73,9 @@ class AutomationConsumer:
         return self.queue.wait(lease, step, status, phase or step['kind'],
             {'step_id': step['id'], **attention})
 
-    def _reserve(self, lease, step, context, scope, kind, attempt, extra=None):
+    def _reserve(self, lease, step, context, scope, kind, attempt, extra=None, *, cancel_event=None):
+        if cancel_event is not None and cancel_event.is_set():
+            return None
         payload = context['input']
         prompt = ('PLAN_REVIEW' if kind == 'plan_review' else 'PLAN') + '\nRead only; do not modify files or run write commands.\n'
         prompt += ('Small means a bounded correction, not new features, behavior scope changes, permissions, '
@@ -89,24 +98,77 @@ class AutomationConsumer:
             request['review_of'] = {'step_id': step['id'], 'text_sha256': digest(step['result']['text'])}
         return self.queue.reserve_next(lease, step, kind, request, writes_project=False)
 
-    def _advance(self, lease, view, step):
+    def _advance(self, lease, view, step, *, cancel_event=None):
         context = view['flow']['context']
         if step['kind'] == 'prepare':
-            return self._reserve(lease, step, context, step['result']['scope'], 'plan', 0)
+            return self._reserve(lease, step, context, step['result']['scope'], 'plan', 0, cancel_event=cancel_event)
         scope = {key: step['request']['params'][key] for key in
                  ('runtimeId', 'environmentId', 'repoId', 'worktreeId', 'cwd')}
         if step['kind'] == 'plan':
             read_plan(step)
             return self._reserve(lease, step, context, scope, 'plan_review', step['request']['plan_attempt'],
-                                 {'plan': step['result']['text']})
+                                 {'plan': step['result']['text']}, cancel_event=cancel_event)
         plan = self.queue.get_step(step['request']['review_of']['step_id'])
         outcome = planning_outcome(plan, step)
         if outcome['action'] == 'revise_plan':
             return self._reserve(lease, step, context, scope, 'plan', outcome['next_attempt'],
-                                 {'plan': plan['result']['text'], 'review': step['result']['text']})
+                                 {'plan': plan['result']['text'], 'review': step['result']['text']}, cancel_event=cancel_event)
         attention = {**outcome, 'plan_step_id': plan['id'], 'review_step_id': step['id'],
                      'plan_hash': digest(plan['result']['text']), 'review_hash': digest(step['result']['text']),
                      'versions': {key: context[key] for key in ('requirement_revision', 'brief_revision', 'policy_version')}}
         if outcome['action'] == 'wait_for_user':
             return self._wait(lease, step, attention, status='waiting_user')
         return self._wait(lease, step, {**attention, 'reason': 'implementation_not_connected'}, phase='implementation')
+
+
+class AutomationConsumerService:
+    """One cooperatively stopped worker; production assembly is a separate slice."""
+    def __init__(self, consumer):
+        self.consumer = consumer
+        self.stop_event, self.wake_event = threading.Event(), threading.Event()
+        self.thread = None
+        self.last_error = None
+
+    def start(self):
+        if self.thread is not None or self.stop_event.is_set():
+            return
+        self.thread = threading.Thread(target=self._run, name='automation-consumer', daemon=True)
+        self.thread.start()
+
+    def wake(self):
+        self.wake_event.set()
+
+    def _run(self):
+        while not self.stop_event.is_set():
+            self.wake_event.clear()
+            if self.stop_event.is_set():
+                break
+            try:
+                self.consumer.run_once(cancel_event=self.stop_event)
+            except ProfileError as error:
+                if str(error) == 'automation_owner_lost':
+                    self.consumer.lease = None
+                else:
+                    self.last_error = type(error).__name__
+                    logging.getLogger(__name__).error('Automation consumer failed: %s', self.last_error)
+                    break
+            except Exception as error:
+                self.last_error = type(error).__name__
+                logging.getLogger(__name__).error('Automation consumer failed: %s', self.last_error)
+                break
+            self.wake_event.wait(1)
+
+    def close(self):
+        self.stop_event.set()
+        self.wake_event.set()
+        if self.thread is not None:
+            self.thread.join(timeout=2)
+            if self.thread.is_alive():
+                raise RuntimeError('automation_consumer_close_timeout')
+        if self.consumer.lease is not None:
+            try:
+                self.consumer.queue.release(self.consumer.lease)
+            except ProfileError as error:
+                if str(error) != 'automation_owner_lost':
+                    raise
+            self.consumer.lease = None
