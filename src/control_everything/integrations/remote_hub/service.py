@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from .identity import HubError, Identity, public_key_fingerprint
 from .automation_mailbox import AutomationMailbox
+from .automation_producer import AutomationProducers
 from .provisioning import validate_new_account
 from .sessions import BrowserSessions
 from .store import ONLINE_WINDOW, RECOVERABLE, public_device
@@ -19,7 +20,7 @@ from .store import ONLINE_WINDOW, RECOVERABLE, public_device
 class RemoteHubService:
     def __init__(self, store, identities, verifier, provisioner, *, public_origin, route_proof,
                  ssh_host, ssh_host_key, ssh_port=2223, admin_subjects=(), channel_probe=None, user_directory=None, user_provisioning=None,
-                 static_paths=(), document_paths=("/studio", "/workspace", "/workspace-admin", "/news", "/sessions", "/progress")):
+                 automation_producers=(), static_paths=(), document_paths=("/studio", "/workspace", "/workspace-admin", "/news", "/sessions", "/progress")):
         parsed = urlsplit(public_origin)
         if parsed.scheme != "https" or parsed.netloc != parsed.hostname or parsed.path or not route_proof:
             raise ValueError("invalid_hub_origin_or_proof")
@@ -31,6 +32,7 @@ class RemoteHubService:
         self.user_provisioning = user_provisioning
         self.sessions = BrowserSessions(store, public_origin)
         self.automation_mailbox = AutomationMailbox(store)
+        self.automation_producers = AutomationProducers(automation_producers)
         self.channel_probe = channel_probe
         self.static_paths, self.document_paths = frozenset(static_paths), frozenset(document_paths)
         self._limits, self._limit_lock = {}, threading.Lock()
@@ -305,6 +307,9 @@ class RemoteHubService:
                         "user": "ced_" + device["device_id"], "host_key": self.ssh_host_key},
                 "remote_http_port": device["http_port"], "remote_ws_port": device["ws_port"],
                 "proxy_token": device["proxy_secret"]}
+
+    def receive_automation_message(self, token, body):
+        return self.automation_producers.receive(self.automation_mailbox, token, body)
 
     def claim_automation_message(self, token):
         return {'message': self.automation_mailbox.claim(token)}

@@ -45,6 +45,14 @@ def dispatch(service, method, uri, headers, body):
             "/remote/api/admin/members", "/remote/api/admin/members/activate",
             "/remote/desktop/admin/members", "/remote/desktop/admin/members/activate"):
         raise HubError("invalid_request_uri", 400)
+    if path.startswith("/remote/producer/"):
+        if "?" in uri:
+            raise HubError("invalid_request_uri", 400)
+        if path != "/remote/producer/automation/receive":
+            raise HubError("not_found", 404)
+        if method != "POST":
+            raise HubError("method_not_allowed", 405)
+        return 200, service.receive_automation_message(_bearer(headers), body), {}
     cookie = SimpleCookie()
     try:
         cookie.load(headers.get("Cookie", ""))
@@ -220,9 +228,18 @@ def build_server(address, service):
             for key, value in extra.items():
                 self.send_header(key, value)
             self.end_headers()
-            self.wfile.write(data)
+            if self.command != "HEAD":
+                self.wfile.write(data)
 
         do_GET = do_POST = handle_request
+
+        def handle_producer_method(self):
+            if urlsplit(self.path).path.startswith("/remote/producer/"):
+                self.handle_request()
+            else:
+                self.send_error(501, "Unsupported method (%r)" % self.command)
+
+        do_PUT = do_PATCH = do_DELETE = do_OPTIONS = do_HEAD = handle_producer_method
 
     server = HubHTTPServer(address, Handler)
     server.daemon_threads = True
