@@ -1,0 +1,148 @@
+"""Local identity facts. Trusted methods are internal adapter boundaries, not HTTP APIs."""
+import hashlib
+import json
+import secrets
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
+
+from control_everything.workspace.store import now_utc
+
+
+class IdentityService:
+    def __init__(self, store, current_binding):
+        self.store = store
+        # The callback reads local credentials only: no network or nested connector lock.
+        self.current_binding = current_binding
+
+    @contextmanager
+    def _transaction(self, project_id):
+        with self.store.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            project = db.execute('SELECT archived FROM projects WHERE id=?', (project_id,)).fetchone()
+            if not project or project['archived']:
+                raise ValueError('identity_project_unavailable')
+            binding = dict(self.current_binding() or {})
+            if not all(binding.get(k) for k in ('hub_origin', 'device_id', 'generation')):
+                raise ValueError('identity_device_unavailable')
+            yield db, binding
+            if binding != dict(self.current_binding() or {}):
+                raise ValueError('identity_device_changed')
+
+    @staticmethod
+    def _current(challenge, binding):
+        if any(challenge[k] != binding[k] for k in ('hub_origin', 'device_id', 'generation')):
+            raise ValueError('identity_device_changed')
+
+    def _challenge(self, db, project_id, challenge_id, binding, *, pending=False):
+        row = db.execute('SELECT * FROM automation_identity_challenges WHERE id=? AND project_id=?',
+                         (challenge_id, project_id)).fetchone()
+        if not row:
+            raise ValueError('identity_challenge_missing')
+        self._current(row, binding)
+        if pending and (row['state'] != 'pending' or row['expires_at'] <= now_utc()):
+            raise ValueError('identity_challenge_unavailable')
+        return row
+
+    def create_challenge(self, project_id, trusted_context, *, lifetime_seconds=600):
+        """Context must come from the authenticated producer configuration adapter."""
+        keys = ('hub_origin', 'device_id', 'generation', 'producer_id', 'channel_account_id', 'app_id', 'chat_id', 'project_id')
+        if (set(trusted_context) != set(keys) or trusted_context.get('project_id') != project_id or type(lifetime_seconds) is not int
+                or not 1 <= lifetime_seconds <= 600
+                or any(type(trusted_context[k]) is not str or not trusted_context[k] for k in keys if k != 'generation')
+                or type(trusted_context['generation']) is not int or trusted_context['generation'] < 1):
+            raise ValueError('identity_context_invalid')
+        with self._transaction(project_id) as (db, binding):
+            self._current(trusted_context, binding)
+            challenge_id, nonce = uuid4().hex, secrets.token_urlsafe(32)
+            expires = (datetime.now(timezone.utc) + timedelta(seconds=lifetime_seconds)).isoformat()
+            db.execute('INSERT INTO automation_identity_challenges VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                       (challenge_id, project_id, *(trusted_context[k] for k in ('hub_origin','producer_id','channel_account_id','app_id','chat_id','device_id','generation')),
+                        hashlib.sha256(nonce.encode()).hexdigest(), None, expires, 'awaiting_message', now_utc()))
+            return {'challenge_id': challenge_id, 'nonce': nonce, 'expires_at': expires}
+
+    def attach_message(self, project_id, challenge_id, trusted_message_id):
+        """Only the trusted sender may attach its actual message receipt."""
+        if type(trusted_message_id) is not str or not trusted_message_id:
+            raise ValueError('identity_message_invalid')
+        with self._transaction(project_id) as (db, binding):
+            row = self._challenge(db, project_id, challenge_id, binding)
+            if row['expires_at'] <= now_utc() or row['state'] not in ('awaiting_message', 'pending'):
+                raise ValueError('identity_challenge_unavailable')
+            if row['message_id'] and row['message_id'] != trusted_message_id:
+                raise ValueError('identity_message_conflict')
+            db.execute("UPDATE automation_identity_challenges SET message_id=?,state='pending' WHERE id=?",
+                       (trusted_message_id, challenge_id))
+
+    def receive_candidate(self, project_id, challenge_id, trusted_envelope):
+        """Future binding adapter supplies SDK identity and authenticated producer provenance.
+
+        No current decision envelope is accepted as an identity binding envelope.
+        """
+        expected = {'producer_id','channel_account_id','app_id','chat_id','message_id','nonce','actor_open_id','event_id','inbox_message_id'}
+        if set(trusted_envelope) != expected or any(type(v) is not str or not v for v in trusted_envelope.values()):
+            raise ValueError('identity_candidate_invalid')
+        e = trusted_envelope
+        with self._transaction(project_id) as (db, binding):
+            row = self._challenge(db, project_id, challenge_id, binding, pending=True)
+            if (any(row[k] != e['channel_account_id' if k == 'account_id' else k] for k in ('producer_id','account_id','app_id','chat_id','message_id'))
+                    or not secrets.compare_digest(row['nonce_hash'], hashlib.sha256(e['nonce'].encode()).hexdigest())):
+                raise ValueError('identity_candidate_mismatch')
+            inbox = db.execute('SELECT * FROM automation_remote_inbox WHERE hub_origin=? AND device_id=? AND generation=? AND message_id=?',
+                               (row['hub_origin'], row['device_id'], row['generation'], e['inbox_message_id'])).fetchone()
+            payload = {'kind': 'feishu_identity_binding', 'project_id': project_id,
+                       **{k: e[k] for k in ('producer_id','channel_account_id','app_id','chat_id','message_id','actor_open_id')},
+                       'binding': {'namespace':'control-everything.identity.v1','challenge_id':challenge_id,'nonce':e['nonce']}}
+            if (not inbox or inbox['source'] != 'feishu:' + hashlib.sha256(json.dumps([e['channel_account_id'],e['app_id']], ensure_ascii=True, separators=(',', ':')).encode()).hexdigest() or inbox['event_id'] != e['event_id']
+                    or json.loads(inbox['payload_json']) != payload):
+                raise ValueError('identity_provenance_mismatch')
+            prior = db.execute('SELECT c.* FROM automation_identity_candidates c JOIN automation_identity_challenges h ON h.id=c.challenge_id WHERE h.hub_origin=? AND h.account_id=? AND h.app_id=? AND c.source_event_id=?', (row['hub_origin'],row['account_id'],row['app_id'],e['event_id'])).fetchone()
+            if prior:
+                if any(prior[k] != value for k, value in {'challenge_id':challenge_id,'app_id':e['app_id'],'open_id':e['actor_open_id'],'inbox_message_id':e['inbox_message_id']}.items()):
+                    raise ValueError('identity_event_conflict')
+                return dict(prior)
+            prior = db.execute('SELECT * FROM automation_identity_candidates WHERE challenge_id=? AND app_id=? AND open_id=?',
+                               (challenge_id,e['app_id'],e['actor_open_id'])).fetchone()
+            if prior:
+                raise ValueError('identity_candidate_conflict')
+            candidate = uuid4().hex
+            db.execute('INSERT INTO automation_identity_candidates VALUES(?,?,?,?,?,?,?)',
+                       (candidate,challenge_id,e['app_id'],e['actor_open_id'],e['event_id'],e['inbox_message_id'],now_utc()))
+            return dict(db.execute('SELECT * FROM automation_identity_candidates WHERE id=?',(candidate,)).fetchone())
+
+    def list(self, project_id):
+        with self._transaction(project_id) as (db, binding):
+            rows = db.execute('SELECT * FROM automation_identity_challenges WHERE project_id=? ORDER BY created_at,id',(project_id,)).fetchall()
+            result = []
+            for row in rows:
+                if any(row[k] != binding[k] for k in ('hub_origin','device_id','generation')):
+                    continue
+                fact = dict(row)
+                fact.pop('nonce_hash')
+                fact['candidates'] = [dict(c) for c in db.execute('SELECT * FROM automation_identity_candidates WHERE challenge_id=? ORDER BY created_at,id',(row['id'],))]
+                fact['bindings'] = [dict(b) for b in db.execute('SELECT * FROM automation_identity_bindings WHERE challenge_id=?',(row['id'],))]
+                result.append(fact)
+            return result
+
+    def confirm(self, project_id, candidate_id):
+        """Call only after local-control authorization and explicit candidate selection."""
+        with self._transaction(project_id) as (db, binding):
+            candidate = db.execute('SELECT * FROM automation_identity_candidates WHERE id=?',(candidate_id,)).fetchone()
+            if not candidate:
+                raise ValueError('identity_candidate_missing')
+            row = self._challenge(db,project_id,candidate['challenge_id'],binding,pending=True)
+            identity = uuid4().hex
+            db.execute('INSERT INTO automation_identity_bindings VALUES(?,?,?,?,?,?,?)',
+                       (identity,row['id'],candidate_id,project_id,'active',now_utc(),None))
+            db.execute("UPDATE automation_identity_challenges SET state='confirmed' WHERE id=?",(row['id'],))
+            return dict(db.execute('SELECT * FROM automation_identity_bindings WHERE id=?',(identity,)).fetchone())
+
+    def revoke(self, project_id, binding_id):
+        with self._transaction(project_id) as (db, binding):
+            fact = db.execute('SELECT * FROM automation_identity_bindings WHERE id=? AND project_id=?',(binding_id,project_id)).fetchone()
+            if not fact:
+                raise ValueError('identity_binding_missing')
+            self._challenge(db,project_id,fact['challenge_id'],binding)
+            db.execute("UPDATE automation_identity_bindings SET state='revoked',revoked_at=COALESCE(revoked_at,?) WHERE id=?",(now_utc(),binding_id))
+            db.execute("UPDATE automation_identity_challenges SET state='revoked' WHERE id=?",(fact['challenge_id'],))
+            return dict(db.execute('SELECT * FROM automation_identity_bindings WHERE id=?',(binding_id,)).fetchone())
