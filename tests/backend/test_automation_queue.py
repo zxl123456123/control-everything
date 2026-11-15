@@ -53,6 +53,26 @@ class FeishuAssignmentTests(AutomationQueueFixture):
         with self.profile.store.connection() as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM automation_events WHERE source_instance='feishu'").fetchone()[0], 1)
 
+    def test_stored_assignment_enters_only_the_named_task(self):
+        from control_everything.workspace.automation_events import apply_feishu_assignments
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        other = self.profile.store.save_item({'title': 'Stored assignment', 'project_id': self.project['id'],
+                                               'provider_id': None, 'state': 'todo', 'session_key': None})
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        RemoteAutomationInbox(self.profile.store).receive(binding, {
+            'id': 'om-assign', 'source': 'feishu:test', 'event_id': 'evt-stored', 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {
+                'kind': 'feishu_assignment', 'actor_open_id': 'ou-owner',
+                'assignment': {'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
+                               'text': '请做这个任务'}}})
+        applied = apply_feishu_assignments(self.profile.store, binding)
+        self.assertEqual(applied[0]['event']['task_id'], other['id'])
+        self.assertTrue(apply_feishu_assignments(self.profile.store, binding)[0]['replayed'])
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM automation_events WHERE task_id=?",
+                                                (other['id'],)).fetchone()[0], 1)
+
 
 class AutomationQueueStorageTests(AutomationQueueFixture):
     def insert_flow(self, connection, flow_id, event_id):

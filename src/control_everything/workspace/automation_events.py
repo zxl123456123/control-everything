@@ -22,6 +22,36 @@ def event_view(row):
 ASSIGNMENT = '请做这个任务'
 
 
+def apply_feishu_assignments(store, binding):
+    """Apply stored assignments. A stored row is not permission to choose a directory."""
+    if any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
+        return []
+    with store.connection() as db:
+        rows = db.execute('''SELECT event_id, payload_json FROM automation_remote_inbox
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state='pending'
+            ORDER BY received_at,message_id''',
+            (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
+    applied = []
+    for row in rows:
+        try:
+            payload = json.loads(row['payload_json'])
+        except (TypeError, ValueError):
+            continue
+        assignment = payload.get('assignment') if type(payload) is dict else None
+        if (payload.get('kind') != 'feishu_assignment' or type(assignment) is not dict
+                or assignment.get('text') != ASSIGNMENT or not isinstance(payload.get('actor_open_id'), str)):
+            continue
+        try:
+            result = accept_feishu_assignment(store, assignment.get('task_id'), {
+                'source': 'human', 'quoted': False, 'actor_id': payload['actor_open_id'],
+                'event_id': row['event_id'], 'text': ASSIGNMENT})
+        except ProfileError:
+            continue
+        if result['action'] == 'execute':
+            applied.append(result)
+    return applied
+
+
 def accept_feishu_assignment(store, task_id, message):
     """An explicit human assignment enters the queue. It cannot choose the command or directory."""
     if (not isinstance(message, dict) or message.get('source') != 'human' or message.get('quoted') is True

@@ -57,7 +57,7 @@ class AutomationProducers:
 
     def receive(self, mailbox, token, body):
         fields = {'producer_id', 'event_id', 'chat_id', 'message_id', 'actor_open_id'}
-        if (type(body) is not dict or set(body) not in (fields | {'decision'}, fields | {'binding'}, fields | {'plan_release'})
+        if (type(body) is not dict or set(body) not in (fields | {'decision'}, fields | {'binding'}, fields | {'plan_release'}, fields | {'assignment'})
                 or not _text(body['producer_id'])):
             raise HubError('invalid_request_fields', 400)
         config = self._producers.get(body['producer_id'])
@@ -75,6 +75,12 @@ class AutomationProducers:
                     or release['namespace'] != 'control-everything.automation.v1'
                     or not _text(release['flow_id']) or release['text'] != '按已审方案实现'
                     or type(release['requirement_revision']) is not int or release['requirement_revision'] < 0):
+                raise HubError('invalid_producer_decision', 400)
+        elif 'assignment' in body:
+            assignment = body['assignment']
+            if (type(assignment) is not dict or set(assignment) != {'namespace', 'task_id', 'text'}
+                    or assignment['namespace'] != 'control-everything.automation.v1'
+                    or not _text(assignment['task_id']) or assignment['text'] != '请做这个任务'):
                 raise HubError('invalid_producer_decision', 400)
         elif 'binding' in body:
             binding = body['binding']
@@ -102,6 +108,9 @@ class AutomationProducers:
         elif 'plan_release' in body:
             payload.update(kind='feishu_plan_release', producer_id=config['producer_id'],
                            plan_release=dict(release))
+        elif 'assignment' in body:
+            payload.update(kind='feishu_assignment', producer_id=config['producer_id'],
+                           assignment=dict(assignment))
         else:
             payload.update(kind='feishu_card_decision', decision=dict(decision))
         return mailbox.receive(config['device_id'], config['generation'], source, body['event_id'], payload)

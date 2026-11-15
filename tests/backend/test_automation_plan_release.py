@@ -30,3 +30,12 @@ class PlanReleaseTests(unittest.TestCase):
         body['plan_release'] = dict(body['plan_release'], text='不错')
         with self.assertRaises(HubError):
             producers.receive(mailbox, token, body)
+        assigned = {key: body[key] for key in body if key != 'plan_release'}
+        assigned['event_id'] = 'evt-assign'
+        assigned['assignment'] = {'namespace': 'control-everything.automation.v1', 'task_id': 'task-1',
+                                  'text': '请做这个任务'}
+        self.assertEqual(producers.receive(mailbox, token, assigned)['state'], 'pending')
+        self.assertEqual(mailbox.last['kind'], 'feishu_assignment')
+        assigned['assignment'] = dict(assigned['assignment'], text='以后可以做')
+        with self.assertRaises(HubError):
+            producers.receive(mailbox, token, assigned)

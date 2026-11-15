@@ -6,6 +6,7 @@ import threading
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
+from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, is_plan_release, target_wait_card, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
@@ -34,6 +35,7 @@ class AutomationConsumer:
         if binding:
             apply_plan_releases(self.queue.store, self, binding)
             apply_acceptance_decisions(self.queue.store, getattr(self, 'review_service', None), binding)
+            apply_feishu_assignments(self.queue.store, binding)
         events = self.queue.pending_events(integration_only=not self.adapter.available)
         if self.cursor in events:
             index = events.index(self.cursor) + 1
