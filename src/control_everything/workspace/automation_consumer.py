@@ -9,7 +9,7 @@ from control_everything.workspace.automation_launch import AutomationLaunch, REA
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
-    repair_budget_card, target_wait_card, verification_card, waiting_card)
+    rejection_card, repair_budget_card, target_wait_card, verification_card, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -71,6 +71,14 @@ class AutomationConsumer:
                 return self._integrate(lease, step, {**view['flow'], 'status': 'running',
                     'revision': step['flow_revision']}, cancel_event=cancel_event)
             attention = view['flow'].get('attention') or {}
+            if (view['flow']['phase'] == 'acceptance' and view['flow']['status'] == 'waiting_external'
+                    and attention.get('reason') == 'acceptance_rejected'):
+                if self.on_wait is not None:
+                    try:
+                        self.on_wait(rejection_card(view['flow']))
+                    except Exception as error:
+                        logging.getLogger(__name__).error('Automation rejection card failed: %s', type(error).__name__)
+                return view
             if (view['flow']['phase'] == 'acceptance' and view['flow']['status'] == 'waiting_external'
                     and attention.get('reason') == 'acceptance_changes_requested'):
                 verify = step if step['kind'] == 'verify' else self.queue.get_step(step['request']['verify_step_id'])

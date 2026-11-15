@@ -22,6 +22,21 @@ def integration_failure_card(flow, step):
             'body': {'elements': [{'tag': 'markdown', 'content': 'develop 复测没有通过。这不是成功，也不会自动重试。'}, button]}}
 
 
+def rejection_card(flow):
+    """A rejected delivery stays rejected. The button does not resume work."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = attention.get('expected_revision')
+    if (not task_id or flow.get('status') != 'waiting_external' or flow.get('phase') != 'acceptance'
+            or attention.get('reason') != 'acceptance_rejected' or type(revision) is not int or revision < 0):
+        raise ValueError('rejection_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '这一版已拒绝'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'acceptance_rejected'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '验收未通过'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '这一版已拒绝。不会自动返修，也不会集成 develop。'}, button]}}
+
+
 def verification_card(flow):
     """Verification is missing. The button does not invent a command."""
     attention = (flow or {}).get('attention') or {}

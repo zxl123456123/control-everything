@@ -77,6 +77,25 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         self.assertNotIn('integration_target', flow['attention'])
         self.assertNotIn('integrate', kinds)
 
+    def test_rejected_delivery_stays_stopped_and_emits_a_card(self):
+        from control_everything.workspace.automation_delivery_reviews import review_delivery
+        cards = []
+        self.consumer.on_wait = cards.append
+        body = dict(self.approval, verdict='rejected', reason='飞书拒绝', client_token='reject-1')
+        review_delivery(self.service, self.item['id'], body)
+        self.consumer.run_once()
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['reason'], 'acceptance_rejected')
+        self.assertNotIn('choice', cards[0]['body']['elements'][1]['value'])
+        with self.profile.store.connection() as connection:
+            flow = self.queue._view(connection, self.published['flow']['id'])['flow']
+            kinds = [row['kind'] for row in connection.execute('SELECT kind FROM automation_steps')]
+            accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
+                                          (self.item['id'],)).fetchone()['accepted_delivery_id']
+        self.assertEqual(flow['status'], 'waiting_external')
+        self.assertEqual(flow['attention']['reason'], 'acceptance_rejected')
+        self.assertNotIn('implement', kinds[4:])
+        self.assertIsNone(accepted)
+
     def test_changes_requested_reserves_a_repair_without_accepting(self):
         from control_everything.workspace.automation_delivery_reviews import review_delivery
         body = dict(self.approval, verdict='changes_requested', reason='飞书要求修改', client_token='change-1')

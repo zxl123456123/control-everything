@@ -507,7 +507,7 @@ class AutomationQueue:
             return [row[0] for row in connection.execute('SELECT e.id FROM automation_events e '
                 'LEFT JOIN automation_flows f ON f.id=e.flow_id WHERE (e.flow_id IS NULL OR f.status=\'running\' '
                 "OR (f.status='waiting_external' AND f.phase='integration' AND json_extract(f.attention_json,'$.reason')='integration_not_connected') "
-                "OR (f.status='waiting_external' AND f.phase='acceptance' AND json_extract(f.attention_json,'$.reason')='acceptance_changes_requested')) AND (?=0 OR f.phase='integration') ORDER BY e.received_at,e.id", (int(integration_only),))]
+                "OR (f.status='waiting_external' AND f.phase='acceptance' AND json_extract(f.attention_json,'$.reason') IN ('acceptance_changes_requested','acceptance_rejected'))) AND (?=0 OR f.phase='integration') ORDER BY e.received_at,e.id", (int(integration_only),))]
 
     def get_step(self, step_id):
         with self.store.connection() as connection:
