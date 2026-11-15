@@ -548,6 +548,30 @@ class AutomationQueue:
             return 'project_directory_changed'
         return None
 
+    def invalidate_changed_releases(self, lease):
+        """A new requirement version ends a release wait. It does not start implementation."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            rows = connection.execute("SELECT id FROM automation_flows WHERE status='waiting_user'").fetchall()
+            changed = []
+            stamp = now_utc()
+            for row in rows:
+                view = self._view(connection, row[0])
+                flow, step = view['flow'], view['step']
+                if flow.get('status') != 'waiting_user' or (flow.get('attention') or {}).get('release_ready') is not True:
+                    continue
+                if self._input_problem(connection, flow['task_id'], flow['context']) != 'requirement_changed':
+                    continue
+                attention = {'reason': 'requirement_changed', 'step_id': None if step is None else step['id']}
+                updated = connection.execute(
+                    "UPDATE automation_flows SET status='waiting_external',phase=?,attention_json=?,revision=revision+1,"
+                    "updated_at=? WHERE id=? AND status='waiting_user'",
+                    (flow['phase'], packed(attention), stamp, flow['id']))
+                if updated.rowcount == 1:
+                    changed.append(self._view(connection, flow['id'])['flow'])
+            return changed
+
     def wait(self, lease, step, status, phase, attention):
         with self.store.connection() as connection:
             connection.execute('BEGIN IMMEDIATE')

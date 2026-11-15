@@ -33,6 +33,12 @@ class AutomationConsumer:
         self.lease = lease
         if lease is None:
             return None
+        for flow in self.queue.invalidate_changed_releases(lease):
+            if self.on_wait is not None:
+                try:
+                    self.on_wait(requirement_card(flow))
+                except Exception as error:
+                    logging.getLogger(__name__).error('Automation requirement card failed: %s', type(error).__name__)
         binding = self.current_binding() if callable(getattr(self, 'current_binding', None)) else None
         if binding:
             apply_plan_releases(self.queue.store, self, binding)
