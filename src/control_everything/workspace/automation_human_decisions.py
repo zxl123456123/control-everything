@@ -72,7 +72,7 @@ def apply_acceptance_decisions(store, service, binding):
         return []
     with store.connection() as db:
         rows = db.execute('''SELECT payload_json FROM automation_remote_inbox
-            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state='pending'
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
             ORDER BY received_at,message_id''',
             (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
     applied = []
@@ -117,7 +117,7 @@ def apply_plan_releases(store, consumer, binding):
         return []
     with store.connection() as db:
         rows = db.execute('''SELECT payload_json FROM automation_remote_inbox
-            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state='pending'
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
             ORDER BY received_at,message_id''',
             (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
     applied = []

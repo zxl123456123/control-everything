@@ -493,6 +493,8 @@ class ConsumerTests(AutomationQueueFixture):
         waiting = self.pump()
         revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
         self._store_release(waiting['flow']['id'], revision)
+        with self.profile.store.connection() as connection:
+            connection.execute("UPDATE automation_remote_inbox SET ack_state='acknowledged'")
         result = self.pump()
         self.assertEqual(result['flow']['status'], 'awaiting_acceptance', result['flow'])
         with self.profile.store.connection() as connection:

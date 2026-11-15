@@ -28,7 +28,7 @@ def apply_feishu_assignments(store, binding):
         return []
     with store.connection() as db:
         rows = db.execute('''SELECT event_id, payload_json FROM automation_remote_inbox
-            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state='pending'
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
             ORDER BY received_at,message_id''',
             (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
     applied = []
