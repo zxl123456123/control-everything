@@ -7,6 +7,7 @@ from http.server import ThreadingHTTPServer
 from unittest.mock import Mock
 
 from control_everything.http.gateway import PanelHandler
+from control_everything.integrations.remote_connector import ConnectorError
 from tests.backend import test_profile_http
 
 
@@ -60,6 +61,8 @@ class IdentityHTTPTests(unittest.TestCase):
         self.assertEqual(facts['identities'][0]['state'],'awaiting_message')
         self.assertEqual(facts['identities'][0]['candidates'],[])
         self.connector.identity_context.assert_called_once_with('producer','p')
+        self.connector.register_identity_send.assert_not_called()
+        self.connector.identity_send_status.assert_not_called()
         self.assertEqual(self.request('/contexts')[1]['contexts'],[self.context])
 
     def test_local_authority_and_strict_body(self):
@@ -118,12 +121,67 @@ class IdentityHTTPTests(unittest.TestCase):
     def test_pending_configuration_change_rejects_without_writes(self):
         from types import SimpleNamespace
         self.server.desktop = SimpleNamespace(configuration_changed=True)
-        for path,body in (('/challenges',{'producer_id':'producer'}),('/confirm',{'candidate_id':'a'*32})):
+        for path,body in (('/challenges',{'producer_id':'producer'}),('/send',{'producer_id':'producer'}),
+                          ('/confirm',{'candidate_id':'a'*32})):
             self.assertEqual(self.request(path,'POST',body)[0],409)
         with self.profile.store.connection() as db:
             for table in ('automation_identity_challenges','automation_identity_bindings'):
                 self.assertEqual(db.execute('SELECT count(*) FROM '+table).fetchone()[0],0)
         self.connector.identity_context.assert_not_called()
+        self.connector.register_identity_send.assert_not_called()
+
+    def test_send_registers_once_without_pending_or_role(self):
+        def register(context, challenge):
+            self.assertEqual(context, self.context)
+            self.assertEqual(set(challenge), {'challenge_id', 'nonce', 'expires_at'})
+            self.assertTrue(challenge['nonce'])
+            return {'challenge_id': challenge['challenge_id'], 'state': 'queued', 'nonce': challenge['nonce']}
+        self.connector.register_identity_send.side_effect = register
+        status, body = self.request('/send', 'POST', {'producer_id': 'producer'})
+        self.assertEqual(status, 202, body)
+        self.assertEqual(body, {'challenge_id': body['challenge_id'], 'transport_state': 'queued'})
+        self.assertNotIn('nonce', json.dumps(body))
+        self.assertEqual(self.connector.register_identity_send.call_count, 1)
+        fact = self.request()[1]['identities'][0]
+        self.assertEqual(fact['state'], 'awaiting_message')
+        self.assertEqual(fact['candidates'], [])
+        self.assertEqual(fact['bindings'], [])
+        with self.profile.store.connection() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM automation_identity_bindings').fetchone()[0], 0)
+            for table in ('task_reviews', 'task_items', 'automation_flows'):
+                self.assertEqual(db.execute('SELECT count(*) FROM ' + table).fetchone()[0], 0)
+
+    def test_send_failure_keeps_challenge_and_does_not_retry(self):
+        self.connector.register_identity_send.side_effect = ConnectorError('identity_send_context_changed', 409)
+        status, body = self.request('/send', 'POST', {'producer_id': 'producer'})
+        self.assertEqual(status, 409, body)
+        self.assertEqual(set(body), {'reason', 'challenge_id'})
+        self.assertEqual(body['reason'], 'identity_send_context_changed')
+        self.assertNotIn('nonce', json.dumps(body))
+        self.assertEqual(self.connector.register_identity_send.call_count, 1)
+        fact = self.request()[1]['identities'][0]
+        self.assertEqual(fact['id'], body['challenge_id'])
+        self.assertEqual(fact['state'], 'awaiting_message')
+        self.assertEqual(fact['bindings'], [])
+        self.connector.register_identity_send.side_effect = ConnectorError('remote_network_unavailable')
+        status, unknown = self.request('/send', 'POST', {'producer_id': 'producer'})
+        self.assertEqual((status, set(unknown), unknown['transport_state']), (202, {'challenge_id', 'transport_state'}, 'unknown'))
+        self.assertEqual(self.connector.register_identity_send.call_count, 2)
+        self.assertEqual(len(self.request()[1]['identities']), 2)
+        self.connector.register_identity_send.return_value = {'challenge_id': '0' * 32, 'state': 'queued'}
+        self.connector.register_identity_send.side_effect = None
+        status, unverified = self.request('/send', 'POST', {'producer_id': 'producer'})
+        self.assertEqual(unverified['transport_state'], 'unknown')
+        self.assertEqual(status, 202)
+
+    def test_send_rejects_bad_body_without_a_challenge(self):
+        self.assertEqual(self.request('/send')[0], 405)
+        self.assertEqual(self.request('/send', 'POST', {'producer_id': 'producer', 'nonce': 'forged'})[0], 400)
+        self.connector.identity_context.side_effect = ConnectorError('remote_identity_context_unavailable', 409)
+        self.assertEqual(self.request('/send', 'POST', {'producer_id': 'missing'})[0], 409)
+        self.connector.register_identity_send.assert_not_called()
+        with self.profile.store.connection() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM automation_identity_challenges').fetchone()[0], 0)
 
 class RejectedProxyBodyTests(unittest.TestCase):
     def handler(self, method):

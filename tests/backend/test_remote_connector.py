@@ -337,6 +337,98 @@ class ConnectorTests(unittest.TestCase):
         self.peer.config['automation_identity_contexts'] = [context, context]
         with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
 
+    def _identity_send_parts(self):
+        context = dict(producer_id='p', channel_account_id='a', app_id='app', chat_id='chat',
+                       project_id='project', device_id='device-1', generation=1,
+                       hub_origin=self.connector.config.hub_origin)
+        challenge = {'challenge_id': 'ab' * 16, 'nonce': 'local-nonce', 'expires_at': '2026-11-15T12:00:00+00:00'}
+        expected = {key: context[key] for key in (
+            'producer_id', 'project_id', 'channel_account_id', 'app_id', 'chat_id', 'device_id', 'generation')}
+        status = {'attempt_id': 'cd' * 16, 'challenge_id': challenge['challenge_id'], 'state': 'queued',
+                  'expires_at': challenge['expires_at'], 'context': dict(expected), 'message_id': None}
+        return context, challenge, expected, status
+
+    def test_identity_send_propagates_expected_context_once(self):
+        self.authorize(); self.connector.confirm()
+        context, challenge, expected, status = self._identity_send_parts()
+        seen = []
+        def request(method, path, body=None, token=None, **kwargs):
+            seen.append((method, path, body, token))
+            return dict(status, context=dict(expected))
+        self.peer.request = request
+        result = self.connector.register_identity_send(context, challenge)
+        self.assertEqual(seen, [('POST', '/remote/desktop/identity-send/register', {
+            'producer_id': 'p', 'challenge_id': challenge['challenge_id'], 'nonce': 'local-nonce',
+            'expires_at': challenge['expires_at'], 'expected_context': expected}, TOKEN)])
+        self.assertNotIn('hub_origin', seen[0][2]['expected_context'])
+        self.assertEqual(set(result), {'attempt_id', 'challenge_id', 'state', 'expires_at', 'context', 'message_id'})
+        self.assertEqual(result['state'], 'queued')
+        self.assertNotIn('nonce', result)
+        seen.clear()
+        self.assertEqual(self.connector.identity_send_status(challenge['challenge_id'])['challenge_id'], challenge['challenge_id'])
+        self.assertEqual(seen, [('POST', '/remote/desktop/identity-send/status',
+                                 {'challenge_id': challenge['challenge_id']}, TOKEN)])
+        seen.clear()
+        def sent_request(method, path, body=None, token=None, **kwargs):
+            seen.append((method, path, body, token))
+            return dict(status, state='sent', message_id='card-1', context=dict(expected))
+        self.peer.request = sent_request
+        self.assertEqual(self.connector.identity_send_status(challenge['challenge_id'])['message_id'], 'card-1')
+        self.assertEqual(len(seen), 1)
+
+    def test_identity_send_rejects_changed_credential_and_bad_status(self):
+        self.authorize(); self.connector.confirm()
+        context, challenge, expected, status = self._identity_send_parts()
+        original = self.store.read
+        def changed(method, path, body=None, token=None, **kwargs):
+            credential = original('credentials.bin', protected=True)
+            self.store.write('credentials.bin', dict(credential, control_token='B' * 43), protected=True)
+            return dict(status, context=dict(expected))
+        self.peer.request = changed
+        with self.assertRaises(ConnectorError) as caught:
+            self.connector.register_identity_send(context, challenge)
+        self.assertEqual(caught.exception.code, 'remote_identity_context_changed')
+        self.assertEqual(caught.exception.status, 0)
+        self.store.write('credentials.bin', original('credentials.bin', protected=True), protected=True)
+        for label, response in (
+                ('extra', dict(status, token='secret')),
+                ('challenge', dict(status, challenge_id='ff' * 16)),
+                ('context', dict(status, context=dict(expected, chat_id='other'))),
+                ('bool-generation', dict(status, context=dict(expected, generation=True))),
+                ('queued-message', dict(status, message_id='card')),
+                ('sent-empty', dict(status, state='sent', message_id=''))):
+            with self.subTest(label=label):
+                self.peer.request = lambda *args, **kwargs: response
+                with self.assertRaises(ConnectorError) as caught:
+                    self.connector.register_identity_send(context, challenge)
+                self.assertEqual(caught.exception.code, 'remote_response_invalid')
+
+    def test_identity_send_precheck_and_explicit_errors_do_not_retry(self):
+        self.authorize(); self.connector.confirm()
+        context, challenge, expected, status = self._identity_send_parts()
+        calls = []
+        self.peer.request = lambda *args, **kwargs: calls.append(args)
+        for changes in ({'device_id': 'other'}, {'generation': 2}, {'hub_origin': 'https://other.example.test'}):
+            with self.subTest(changes=tuple(changes)):
+                with self.assertRaises(ConnectorError) as caught:
+                    self.connector.register_identity_send(dict(context, **changes), challenge)
+                self.assertEqual(caught.exception.status, 409)
+        self.assertEqual(calls, [])
+        for error in (ConnectorError('identity_send_context_changed', 409), ConnectorError('remote_network_unavailable'),
+                      ConnectorError('not_found', 404)):
+            with self.subTest(code=error.code):
+                seen = []
+                def request(*args, **kwargs):
+                    seen.append(args[1])
+                    raise error
+                self.peer.request = request
+                method = self.connector.identity_send_status if error.status == 404 else self.connector.register_identity_send
+                arguments = (challenge['challenge_id'],) if error.status == 404 else (context, challenge)
+                with self.assertRaises(ConnectorError) as caught:
+                    method(*arguments)
+                self.assertEqual((caught.exception.code, caught.exception.status), (error.code, error.status))
+                self.assertEqual(len(seen), 1)
+
 
     def test_inflight_identity_or_stop_changes_preserve_durable_pending(self):
         from control_everything.workspace.store import WorkspaceStore

@@ -7,7 +7,8 @@ from control_everything.input_validation import ProfileError
 from control_everything.workspace.store import WorkspaceError
 from control_everything.workspace.validation import project_id_valid
 
-ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-identities(?:/(contexts|challenges|confirm|revoke))?\Z')
+ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-identities(?:/(contexts|challenges|confirm|revoke|send))?\Z')
+_TRANSPORT_STATES = {'queued', 'sending', 'unknown', 'sent', 'expired'}
 
 
 def handle(handler, path, *, write=False):
@@ -47,13 +48,32 @@ def handle(handler, path, *, write=False):
         elif not write:
             result = {'identities':service.list(project_id)}
         else:
-            key = {'challenges':'producer_id','confirm':'candidate_id','revoke':'binding_id'}[action]
+            key = {'challenges':'producer_id','send':'producer_id','confirm':'candidate_id','revoke':'binding_id'}[action]
             if (type(body) is not dict or set(body) != {key} or type(body[key]) is not str or not body[key]
-                    or len(body[key]) > 256 or (action != 'challenges' and not re.fullmatch('[0-9a-f]{32}',body[key]))):
+                    or len(body[key]) > 256 or (action not in ('challenges', 'send') and not re.fullmatch('[0-9a-f]{32}',body[key]))):
                 raise ValueError('invalid_request')
             if action == 'challenges':
                 context = connector.identity_context(body[key],project_id)
                 result = service.create_challenge(project_id,context)
+            elif action == 'send':
+                context = connector.identity_context(body[key],project_id)
+                created = service.create_challenge(project_id,context)
+                # The nonce exists only until this call returns. Do not retry or include it.
+                try:
+                    reported = connector.register_identity_send(context, created)
+                except ConnectorError as error:
+                    if error.status:
+                        handler.reply(error.status, {'reason': error.code, 'challenge_id': created['challenge_id']})
+                    else:
+                        handler.reply(202, {'challenge_id': created['challenge_id'], 'transport_state': 'unknown'})
+                    return True
+                state = reported.get('state') if type(reported) is dict else None
+                if (type(reported) is not dict or reported.get('challenge_id') != created['challenge_id']
+                        or state not in _TRANSPORT_STATES):
+                    handler.reply(202, {'challenge_id': created['challenge_id'], 'transport_state': 'unknown'})
+                else:
+                    handler.reply(202, {'challenge_id': created['challenge_id'], 'transport_state': state})
+                return True
             elif action == 'confirm':
                 result = service.confirm(project_id,body[key])
             else:

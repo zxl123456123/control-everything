@@ -339,6 +339,59 @@ class DeviceKeys:
             raise ConnectorError("remote_key_operation_failed") from None
 
 
+_IDENTITY_CONTEXT_KEYS = ('producer_id', 'project_id', 'channel_account_id', 'app_id', 'chat_id', 'device_id', 'generation')
+_IDENTITY_SEND_STATES = {'queued', 'sending', 'unknown', 'sent', 'expired'}
+
+
+def _identity_text(value):
+    return type(value) is str and value and len(value) <= 256 and all(ord(char) >= 32 for char in value)
+
+
+def _identity_context_fields(value, code='remote_identity_context_invalid'):
+    if (type(value) is not dict or set(value) != set(_IDENTITY_CONTEXT_KEYS)
+            or type(value['generation']) is not int or value['generation'] < 1
+            or any(not _identity_text(value[key]) for key in _IDENTITY_CONTEXT_KEYS if key != 'generation')):
+        raise ConnectorError(code)
+    return {key: value[key] for key in _IDENTITY_CONTEXT_KEYS}
+
+
+def _frozen_identity_context(context):
+    if (type(context) is not dict or set(context) != {*_IDENTITY_CONTEXT_KEYS, 'hub_origin'}
+            or type(context['hub_origin']) is not str or not context['hub_origin']
+            or any(ord(char) < 32 for char in context['hub_origin'])):
+        raise ConnectorError('remote_identity_context_invalid')
+    return context['hub_origin'], _identity_context_fields({key: context[key] for key in _IDENTITY_CONTEXT_KEYS})
+
+
+def _identity_challenge(challenge):
+    if (type(challenge) is not dict or set(challenge) != {'challenge_id', 'nonce', 'expires_at'}
+            or type(challenge['challenge_id']) is not str or not re.fullmatch(r'[0-9a-f]{32}', challenge['challenge_id'])
+            or not _identity_text(challenge['nonce']) or not _identity_text(challenge['expires_at'])):
+        raise ConnectorError('remote_identity_send_invalid', 400)
+    return challenge
+
+
+def _parse_identity_send_status(value, challenge_id, expected=None):
+    fields = {'attempt_id', 'challenge_id', 'state', 'expires_at', 'context', 'message_id'}
+    if (type(value) is not dict or set(value) != fields
+            or type(value['attempt_id']) is not str or not re.fullmatch(r'[0-9a-f]{32}', value['attempt_id'])
+            or value['challenge_id'] != challenge_id or value['state'] not in _IDENTITY_SEND_STATES
+            or not _identity_text(value['expires_at'])):
+        raise ConnectorError('remote_response_invalid')
+    context = _identity_context_fields(value['context'], 'remote_response_invalid')
+    if expected is not None and any(type(context[key]) is not type(expected[key]) or context[key] != expected[key]
+                                    for key in expected):
+        raise ConnectorError('remote_response_invalid')
+    message_id = value['message_id']
+    if value['state'] == 'sent':
+        if not _identity_text(message_id):
+            raise ConnectorError('remote_response_invalid')
+    elif message_id is not None:
+        raise ConnectorError('remote_response_invalid')
+    return {'attempt_id': value['attempt_id'], 'challenge_id': value['challenge_id'], 'state': value['state'],
+            'expires_at': value['expires_at'], 'context': context, 'message_id': message_id}
+
+
 class RemoteConnector:
     def __init__(self, config, store, *, peer=None, keys=None, tunnel_factory=RemoteTunnel,
                  now=time.monotonic, on_revoked=None, mailbox_sink=None):
@@ -679,6 +732,47 @@ class RemoteConnector:
             if context['producer_id'] == producer_id and context['project_id'] == project_id:
                 return context
         raise ConnectorError('remote_identity_context_unavailable')
+
+    def register_identity_send(self, context, challenge):
+        """Register one frozen challenge. The nonce is not stored, so this must not be retried."""
+        hub_origin, expected = _frozen_identity_context(context)
+        _identity_challenge(challenge)
+        with self._lock, self.store.locked():
+            credential = self._identity_credential()
+            config_snapshot = self.config
+        if (not credential or config_snapshot.hub_origin != hub_origin
+                or credential['device_id'] != expected['device_id']
+                or type(credential['generation']) is not int or credential['generation'] != expected['generation']):
+            raise ConnectorError('remote_identity_context_changed', 409)
+        response = self.peer.request('POST', '/remote/desktop/identity-send/register', {
+            'producer_id': expected['producer_id'], 'challenge_id': challenge['challenge_id'],
+            'nonce': challenge['nonce'], 'expires_at': challenge['expires_at'], 'expected_context': expected,
+        }, credential['control_token'])
+        with self._lock, self.store.locked():
+            if self.config != config_snapshot or self._identity_credential() != credential:
+                raise ConnectorError('remote_identity_context_changed')
+        return _parse_identity_send_status(response, challenge['challenge_id'], expected)
+
+    def identity_send_status(self, challenge_id):
+        """Read one current-generation transport status. This does not grant a send or a role."""
+        if type(challenge_id) is not str or not re.fullmatch(r'[0-9a-f]{32}', challenge_id):
+            raise ConnectorError('remote_identity_send_invalid', 400)
+        with self._lock, self.store.locked():
+            credential = self._identity_credential()
+            config_snapshot = self.config
+        if not credential:
+            raise ConnectorError('remote_identity_context_unavailable', 409)
+        response = self.peer.request('POST', '/remote/desktop/identity-send/status',
+                                     {'challenge_id': challenge_id}, credential['control_token'])
+        with self._lock, self.store.locked():
+            if self.config != config_snapshot or self._identity_credential() != credential:
+                raise ConnectorError('remote_identity_context_changed')
+        parsed = _parse_identity_send_status(response, challenge_id)
+        if (parsed['context']['device_id'] != credential['device_id']
+                or type(credential['generation']) is not int
+                or parsed['context']['generation'] != credential['generation']):
+            raise ConnectorError('remote_response_invalid')
+        return parsed
 
     def prepare_access(self):
         """Load a confirmed private credential before starting the single runtime."""
