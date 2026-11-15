@@ -33,6 +33,27 @@ class AutomationQueueFixture(unittest.TestCase):
         self.event = self.service.enable_task_automation(self.item['id'], self.body)
 
 
+class FeishuAssignmentTests(AutomationQueueFixture):
+    def test_explicit_assignment_enters_once_and_cannot_set_execution(self):
+        from control_everything.workspace.automation_events import accept_feishu_assignment
+        other = self.profile.store.save_item({'title': 'Another clear task', 'project_id': self.project['id'],
+                                               'provider_id': None, 'state': 'todo', 'session_key': None})
+        message = {'source': 'human', 'quoted': False, 'actor_id': 'ou-owner', 'event_id': 'evt-assign',
+                   'text': '请做这个任务'}
+        first = accept_feishu_assignment(self.profile.store, other['id'], message)
+        second = accept_feishu_assignment(self.profile.store, other['id'], message)
+        self.assertEqual(first['action'], 'execute')
+        self.assertFalse(first['replayed'])
+        self.assertTrue(second['replayed'])
+        self.assertEqual(second['event']['id'], first['event']['id'])
+        self.assertEqual(first['event']['authorization'], 'explicit_assignment')
+        self.assertNotIn('argv', first['event']['payload']['request'])
+        self.assertEqual(accept_feishu_assignment(self.profile.store, other['id'], {**message, 'text': '以后可以做'})['action'], 'reject')
+        self.assertEqual(accept_feishu_assignment(self.profile.store, other['id'], {**message, 'cwd': 'C:/secret'})['action'], 'reject')
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM automation_events WHERE source_instance='feishu'").fetchone()[0], 1)
+
+
 class AutomationQueueStorageTests(AutomationQueueFixture):
     def insert_flow(self, connection, flow_id, event_id):
         connection.execute('INSERT INTO automation_flows(id,task_id,project_id,origin_event_id,status,phase,'

@@ -19,6 +19,50 @@ def event_view(row):
     return event
 
 
+ASSIGNMENT = '请做这个任务'
+
+
+def accept_feishu_assignment(store, task_id, message):
+    """An explicit human assignment enters the queue. It cannot choose the command or directory."""
+    if (not isinstance(message, dict) or message.get('source') != 'human' or message.get('quoted') is True
+            or any(key in message for key in ('argv', 'cwd', 'agent', 'worktree_id', 'verification'))):
+        return {'action': 'reject', 'reason': 'not_an_assignment'}
+    text, actor, event_id = message.get('text'), message.get('actor_id'), message.get('event_id')
+    if (text != ASSIGNMENT or not isinstance(actor, str) or not actor or not isinstance(event_id, str)
+            or not event_id or len(event_id) > 256):
+        return {'action': 'reject', 'reason': 'not_an_assignment'}
+    with store.connection() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        existing = connection.execute("SELECT * FROM automation_events WHERE source_instance='feishu' AND source_event_id=?",
+                                      (event_id,)).fetchone()
+        item = task_access(connection, task_id, writable=True)
+        brief = dispatch._brief(connection, task_id)
+        if not brief['request_text'].strip():
+            brief['request_text'] = item['title']
+        if not brief['request_text'].strip() or item['revision'] < 1:
+            raise ProfileError('brief_required', status=409)
+        if connection.execute("SELECT 1 FROM automation_flows WHERE task_id=? AND status NOT IN ('completed','failed','cancelled')",
+                              (task_id,)).fetchone():
+            return {'action': 'reject', 'reason': 'task_already_active'}
+        directory = dispatch._directory(connection, item['project_id'], brief['execution_directory_id'])
+        payload = {'request': {'agent': 'codex', 'worktree_id': directory['binding_id']}, 'title': item['title'],
+                   'brief': brief, 'directory': directory, 'assignment_text': text}
+        request_hash = digest({'task_id': task_id, 'event_id': event_id, 'actor_id': actor, 'payload': payload})
+        if existing is not None:
+            if existing['request_hash'] != request_hash or existing['task_id'] != task_id:
+                raise ProfileError('automation_event_conflict', status=409)
+            return {'action': 'execute', 'event': event_view(existing), 'replayed': True}
+        identity = str(uuid4())
+        connection.execute(
+            'INSERT INTO automation_events(id,source_instance,source_event_id,task_id,project_id,actor_id,'
+            'authorization,requirement_revision,brief_revision,request_hash,payload_json,received_at) '
+            'VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+            (identity, 'feishu', event_id, task_id, item['project_id'], actor, 'explicit_assignment',
+             item['revision'], brief['revision'], request_hash, packed(payload), now_utc()))
+        return {'action': 'execute', 'event': event_view(connection.execute(
+            'SELECT * FROM automation_events WHERE id=?', (identity,)).fetchone()), 'replayed': False}
+
+
 def enable_local(store, task_id, body):
     """The HTTP caller must establish local control; source/actor are never body fields."""
     body_fields(body, ('expected_revision', 'brief_revision', 'client_token', 'agent', 'worktree_id'), ('verification',))
