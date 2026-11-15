@@ -126,7 +126,10 @@ class Desktop:
         while not self._stop.wait(2):
             self.tick()
 
-    def serve(self):
+    def serve(self, *, headless=False):
+        if headless:
+            self.server.serve_forever()
+            return
         if self.window_host is None:
             webbrowser.open(self.server.local_origin + '/desktop')
             self.server.serve_forever()
@@ -233,6 +236,7 @@ def main(argv=None):
     parser.add_argument('--sandbox-lock-root', type=Path)
     parser.add_argument('--installed-data-dir', help=argparse.SUPPRESS)
     parser.add_argument('--port', type=int, default=8766)
+    parser.add_argument('--headless', action='store_true')
     args = parser.parse_args(argv)
     if args.installed_data_dir is not None and args.installed_data_dir != '_':
         from control_everything.installation.desktop_settings import decode_data_directory
@@ -250,7 +254,7 @@ def main(argv=None):
     try:
         desktop.start()
         print(f'本机电脑绑定：{desktop.server.local_origin}/desktop', flush=True)
-        desktop.serve()
+        desktop.serve(headless=args.headless)
     except KeyboardInterrupt:
         pass
     finally:
