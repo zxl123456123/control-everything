@@ -9,6 +9,22 @@ VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
 
 
+def target_wait_card(flow):
+    """A blocked integration wait. The button does not register a target or start integration."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = attention.get('expected_revision')
+    if (flow.get('status') != 'waiting_external' or flow.get('phase') != 'integration' or not task_id
+            or attention.get('reason') != 'integration_not_connected' or attention.get('integration_target')
+            or type(revision) is not int or revision < 0):
+        raise ValueError('target_wait_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '需要登记 develop 目标'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'integration_target_required'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '集成还不能开始'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '验收已记录。还没有 develop 集成目标，所以不会开始集成。'}, button]}}
+
+
 def acceptance_card(flow):
     """A card for the current delivery. It does not accept by being sent."""
     attention = (flow or {}).get('attention') or {}

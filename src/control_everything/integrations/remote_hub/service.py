@@ -25,6 +25,7 @@ def _card_identity(card):
     value = button.get('value') if type(button) is dict else None
     text = lambda key: isinstance(value.get(key), str) and 1 <= len(value[key]) <= 256
     plan = {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'choice'}
+    blocked = {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'reason'}
     acceptance = {'namespace', 'decision_id', 'task_id', 'delivery_id', 'flow_id',
                   'expected_revision', 'progress_revision', 'verdict'}
     if type(card) is not dict or card.get('schema') != '2.0' or type(value) is not dict:
@@ -38,6 +39,10 @@ def _card_identity(card):
             and type(value['expected_revision']) is int and value['expected_revision'] >= 0
             and type(value['progress_revision']) is int and value['progress_revision'] >= 0):
         return 'acceptance:' + value['flow_id'], value['expected_revision']
+    if (set(value) == blocked and value['namespace'] == 'control-everything.automation.v1'
+            and value['reason'] == 'integration_target_required' and text('task_id') and text('flow_id')
+            and type(value['requirement_revision']) is int and value['requirement_revision'] >= 0):
+        return 'target:' + value['flow_id'], value['requirement_revision']
     raise HubError('invalid_waiting_card', 400)
 
 

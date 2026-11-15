@@ -69,6 +69,12 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         self.assertEqual(stored[0], 200)
         self.assertNotEqual(stored[1]['id'], first[1]['id'])
         self.assertTrue(self.request('/remote/desktop/automation/card', acceptance)[1]['duplicate'])
+        blocked = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 4, 'reason': 'integration_target_required'}}]}}
+        held = self.request('/remote/desktop/automation/card', blocked)
+        self.assertEqual(held[0], 200)
+        self.assertNotIn(held[1]['id'], (first[1]['id'], stored[1]['id']))
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers

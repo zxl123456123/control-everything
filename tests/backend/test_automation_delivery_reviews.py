@@ -61,9 +61,14 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
     def test_accepted_delivery_without_a_target_is_not_rejected(self):
         from control_everything.workspace.automation_delivery_reviews import review_delivery
         review_delivery(self.service, self.item['id'], self.approval)
+        cards = []
+        self.consumer.on_wait = cards.append
         self.consumer.integration = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError('integrated'))
         self.consumer.check_verification = self.service.check_verification
         self.consumer.run_once()
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['reason'], 'integration_target_required')
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['flow_id'], self.published['flow']['id'])
+        self.assertNotIn('choice', cards[0]['body']['elements'][1]['value'])
         with self.profile.store.connection() as connection:
             flow = self.queue._view(connection, self.published['flow']['id'])['flow']
             kinds = [row['kind'] for row in connection.execute('SELECT kind FROM automation_steps')]

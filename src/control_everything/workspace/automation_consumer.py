@@ -7,7 +7,7 @@ import threading
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
 from control_everything.workspace.automation_human_decisions import (
-    acceptance_card, apply_acceptance_decisions, apply_plan_releases, is_plan_release, waiting_card)
+    acceptance_card, apply_acceptance_decisions, apply_plan_releases, is_plan_release, target_wait_card, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -49,6 +49,11 @@ class AutomationConsumer:
             if view['flow']['phase'] == 'integration':
                 if (view['flow']['status'] == 'waiting_external'
                         and not (view['flow'].get('attention') or {}).get('integration_target')):
+                    if self.on_wait is not None:
+                        try:
+                            self.on_wait(target_wait_card(view['flow']))
+                        except Exception as error:
+                            logging.getLogger(__name__).error('Automation target card failed: %s', type(error).__name__)
                     return view
                 if self.integration is None or self.check_verification is None:
                     return view
