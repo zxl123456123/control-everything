@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import re
 import sys
+import time
 from urllib.parse import parse_qs, urlsplit
 
 from control_everything.integrations.remote_hub.identity import HubError
@@ -198,7 +199,32 @@ def build_server(address, service):
         def log_message(self, format, *args):
             pass  # Do not log credentials, challenge IDs or request headers.
 
+        def _discard_rejected_body(self):
+            lengths = self.headers.get_all("Content-Length", [])
+            if (self.headers.get_all("Transfer-Encoding", []) or len(lengths) != 1
+                    or not re.fullmatch(r"[0-9]{1,10}", lengths[0])
+                    or not 1 <= int(lengths[0]) <= 4096):
+                return
+            remaining = int(lengths[0])
+            timeout = self.connection.gettimeout()
+            deadline = time.monotonic() + 0.25
+            try:
+                while remaining:
+                    budget = deadline - time.monotonic()
+                    if budget <= 0:
+                        break
+                    self.connection.settimeout(budget)
+                    chunk = self.rfile.read1(remaining)
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+            except OSError:
+                pass
+            finally:
+                self.connection.settimeout(timeout)
+
         def handle_request(self):
+            body_pending = True
             try:
                 for name in ("Authorization", "Cookie", "Origin", "X-Auth-Request-Access-Token",
                              "X-Auth-Request-User", "X-CE-Route-Proof", "X-CE-Context", "X-CE-CSRF"):
@@ -211,9 +237,12 @@ def build_server(address, service):
                     raise HubError("request_too_large", 413)
                 if self.command == "POST" and self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                     raise HubError("json_required", 415)
+                body_pending = False
                 body = json.loads(self.rfile.read(length)) if length else {}
                 status, result, extra = dispatch(service, self.command, self.path, self.headers, body)
             except HubError as error:
+                if body_pending:
+                    self._discard_rejected_body()
                 status, result, extra = error.status, {"error": error.code, **error.details}, {}
             except (ValueError, UnicodeError):
                 status, result, extra = 400, {"error": "invalid_json"}, {}
