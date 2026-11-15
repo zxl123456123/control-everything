@@ -49,6 +49,11 @@ def dispatch(service, method, uri, headers, body):
     if path.startswith("/remote/producer/"):
         if "?" in uri:
             raise HubError("invalid_request_uri", 400)
+        if path in ('/remote/producer/automation/outbound/claim', '/remote/producer/automation/outbound/sent'):
+            if method != 'POST':
+                raise HubError('method_not_allowed', 405)
+            operation = service.claim_outbound_card if path.endswith('/claim') else service.mark_outbound_card
+            return 200, operation(_bearer(headers), body), {}
         if path in ('/remote/producer/identity-send/claim', '/remote/producer/identity-send/result'):
             if method != 'POST':
                 raise HubError('method_not_allowed', 405)
@@ -74,6 +79,12 @@ def dispatch(service, method, uri, headers, body):
                 raise HubError('method_not_allowed', 405)
             operation = service.automation_identity_send.register if path.endswith('/register') else service.automation_identity_send.status
             return 200, operation(token, body), {}
+        if path == "/remote/desktop/automation/card":
+            if "?" in uri:
+                raise HubError("invalid_request_uri", 400)
+            if method != "POST":
+                raise HubError("method_not_allowed", 405)
+            return 200, service.enqueue_waiting_card(token, body), {}
         if path in ("/remote/desktop/automation/claim", "/remote/desktop/automation/ack"):
             if "?" in uri:
                 raise HubError("invalid_request_uri", 400)

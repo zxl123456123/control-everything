@@ -31,6 +31,10 @@ class AutomationProducers:
             hashes.add(config['token_sha256'])
         self._producers = MappingProxyType(producers)
 
+    def for_device(self, device_id, generation):
+        return [dict(config) for config in self._producers.values()
+                if config['device_id'] == device_id and config['generation'] == generation]
+
     def identity_contexts(self, device_id, generation):
         fields = ('producer_id', 'channel_account_id', 'app_id', 'chat_id',
                   'project_id', 'device_id', 'generation')

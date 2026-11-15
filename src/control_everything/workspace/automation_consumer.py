@@ -148,7 +148,10 @@ class AutomationConsumer:
         view = self.queue.wait(lease, step, status, phase or step['kind'],
             {'step_id': step['id'], **attention})
         if status == 'waiting_user' and self.on_wait is not None:
-            self.on_wait(waiting_card(view['flow']))
+            try:
+                self.on_wait(waiting_card(view['flow']))
+            except Exception as error:
+                logging.getLogger(__name__).error('Automation wait card failed: %s', type(error).__name__)
         return view
 
     def _verify(self, lease, view, step, *, cancel_event=None):

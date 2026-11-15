@@ -41,6 +41,27 @@ class AutomationProducerHTTPTests(unittest.TestCase):
     def receive(self, body=None, **options):
         return self.request(RECEIVE, self.body if body is None else body, token=self.producer_token, **options)
 
+    def test_waiting_card_is_stored_once_and_claimed_by_its_producer(self):
+        value = {'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+                 'requirement_revision': 3, 'choice': '按已审方案实现'}
+        card = {'schema': '2.0', 'body': {'elements': [{'tag': 'markdown'}, {'tag': 'button', 'value': value}]}}
+        first = self.request('/remote/desktop/automation/card', card)
+        self.assertEqual(first[0], 200)
+        self.assertFalse(first[1]['duplicate'])
+        second = self.request('/remote/desktop/automation/card', card)
+        self.assertEqual(second[1], {'id': first[1]['id'], 'duplicate': True, 'state': 'pending'})
+        claimed = self.request('/remote/producer/automation/outbound/claim', {'producer_id': 'producer-a'},
+                               token=self.producer_token)
+        self.assertEqual(claimed[1]['card']['body']['elements'][1]['value']['flow_id'], 'flow-1')
+        marked = self.request('/remote/producer/automation/outbound/sent',
+                              {'producer_id': 'producer-a', 'id': claimed[1]['id'], 'message_id': 'om-card'},
+                              token=self.producer_token)
+        self.assertEqual(marked[1]['state'], 'sent')
+        self.assertIsNone(self.request('/remote/producer/automation/outbound/claim', {'producer_id': 'producer-a'},
+                                       token=self.producer_token)[1]['card'])
+        vague = {'schema': '2.0', 'body': {'elements': [{}, {'value': dict(value, choice='不错')}]}}
+        self.assertEqual(self.request('/remote/desktop/automation/card', vague)[0], 400)
+
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers
         configs = [self.config, dict(self.config, producer_id='other', device_id='other-device',

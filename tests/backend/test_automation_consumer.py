@@ -436,7 +436,10 @@ class ConsumerTests(AutomationQueueFixture):
         self.host.kind = 'feature'
         self.configure_verification()
         cards = []
-        self.consumer.on_wait = cards.append
+        def fail_after_capture(card):
+            cards.append(card)
+            raise RuntimeError('card transport down')
+        self.consumer.on_wait = fail_after_capture
         waiting = self.pump()
         self.assertEqual(waiting['flow']['status'], 'waiting_user')
         self.assertTrue(waiting['flow']['attention']['requires_code_review'])

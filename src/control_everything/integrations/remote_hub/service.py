@@ -7,6 +7,7 @@ import re
 import secrets
 import sqlite3
 import threading
+import uuid
 from urllib.parse import parse_qs, urlsplit
 
 from .identity import HubError, Identity, public_key_fingerprint
@@ -16,6 +17,20 @@ from .automation_identity_send import AutomationIdentitySend
 from .provisioning import validate_new_account
 from .sessions import BrowserSessions
 from .store import ONLINE_WINDOW, RECOVERABLE, public_device
+
+
+def _waiting_release_value(card):
+    elements = ((card or {}).get('body') or {}).get('elements') if type(card) is dict else None
+    button = elements[1] if isinstance(elements, list) and len(elements) > 1 else None
+    value = button.get('value') if type(button) is dict else None
+    if (type(card) is not dict or card.get('schema') != '2.0' or type(value) is not dict
+            or set(value) != {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'choice'}
+            or value['namespace'] != 'control-everything.automation.v1' or value['choice'] != '按已审方案实现'
+            or any(not isinstance(value[key], str) or not value[key] or len(value[key]) > 256
+                   for key in ('task_id', 'flow_id'))
+            or type(value['requirement_revision']) is not int or value['requirement_revision'] < 0):
+        raise HubError('invalid_waiting_card', 400)
+    return value
 
 
 class RemoteHubService:
@@ -314,6 +329,50 @@ class RemoteHubService:
 
     def receive_automation_message(self, token, body):
         return self.automation_producers.receive(self.automation_mailbox, token, body)
+
+    def enqueue_waiting_card(self, token, card):
+        device = self.store.authenticate_control(token)
+        value = _waiting_release_value(card)
+        matches = self.automation_producers.for_device(device['device_id'], device['generation'])
+        if len(matches) != 1:
+            raise HubError('producer_unavailable', 409)
+        producer = matches[0]
+        encoded = json.dumps(card, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        with self.store.transaction() as db:
+            existing = db.execute('SELECT id, message_id FROM automation_outbound_cards WHERE device_id=? AND flow_id=? AND requirement_revision=?',
+                                  (device['device_id'], value['flow_id'], value['requirement_revision'])).fetchone()
+            if existing:
+                return {'id': existing['id'], 'duplicate': True,
+                        'state': 'sent' if existing['message_id'] else 'pending'}
+            identity = uuid.uuid4().hex
+            db.execute('INSERT INTO automation_outbound_cards(id,device_id,producer_id,flow_id,requirement_revision,card_json,created_at) VALUES(?,?,?,?,?,?,?)',
+                       (identity, device['device_id'], producer['producer_id'], value['flow_id'],
+                        value['requirement_revision'], encoded, self.store.clock()))
+            return {'id': identity, 'duplicate': False, 'state': 'pending'}
+
+    def claim_outbound_card(self, token, body):
+        if type(body) is not dict or set(body) != {'producer_id'} or not isinstance(body.get('producer_id'), str):
+            raise HubError('invalid_request_fields', 400)
+        config = self.automation_producers.authenticate(body['producer_id'], token)
+        with self.store.transaction() as db:
+            row = db.execute('SELECT id, card_json FROM automation_outbound_cards WHERE producer_id=? AND message_id IS NULL ORDER BY created_at,id LIMIT 1',
+                             (config['producer_id'],)).fetchone()
+            if row is None:
+                return {'card': None}
+            return {'id': row['id'], 'card': json.loads(row['card_json'])}
+
+    def mark_outbound_card(self, token, body):
+        if (type(body) is not dict or set(body) != {'producer_id', 'id', 'message_id'}
+                or any(not isinstance(body.get(key), str) or not body[key] or len(body[key]) > 256
+                       for key in ('producer_id', 'id', 'message_id'))):
+            raise HubError('invalid_request_fields', 400)
+        config = self.automation_producers.authenticate(body['producer_id'], token)
+        with self.store.transaction() as db:
+            changed = db.execute('UPDATE automation_outbound_cards SET message_id=? WHERE id=? AND producer_id=? AND message_id IS NULL',
+                                 (body['message_id'], body['id'], config['producer_id']))
+            if changed.rowcount != 1:
+                raise HubError('outbound_card_changed', 409)
+        return {'id': body['id'], 'state': 'sent'}
 
     def claim_automation_message(self, token):
         return {'message': self.automation_mailbox.claim(token)}

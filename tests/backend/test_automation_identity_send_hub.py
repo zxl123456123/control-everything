@@ -64,10 +64,11 @@ class IdentitySendTests(unittest.TestCase):
             before = [tuple(row) for row in db.execute('SELECT * FROM automation_inbox')]
             self.assertTrue(before)
             db.execute('DROP TABLE automation_identity_send')
+            db.execute('DROP TABLE automation_outbound_cards')
             db.execute('UPDATE schema_version SET version=4')
         store = RemoteHubStore(path)
         with store.transaction() as db:
-            self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 5)
+            self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 6)
             self.assertEqual([tuple(row) for row in db.execute('SELECT * FROM automation_inbox')], before)
         with closing(sqlite3.connect(path + IDENTITY_SEND_BACKUP_SUFFIX)) as backup:
             self.assertEqual(backup.execute('SELECT version FROM schema_version').fetchone()[0], 4)

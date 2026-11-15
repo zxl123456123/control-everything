@@ -39,6 +39,7 @@ class Desktop:
         service = server.automation_consumer_service
         if service is not None and connector is not None:
             service.consumer.current_binding = connector.current_binding
+            service.consumer.on_wait = connector.publish_waiting_card
         server.desktop_account = account
         server.desktop = self
         server.refresh_workspace_roots = self.refresh_workspace_roots

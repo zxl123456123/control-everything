@@ -880,6 +880,12 @@ class RemoteConnector:
                     self._next_retry = self.now() + min(60, 2 ** min(self._failures, 6))
             return self.status()
 
+    def publish_waiting_card(self, card):
+        credential = self.store.read('credentials.bin', protected=True)
+        if not credential or not credential.get('control_token'):
+            return None
+        return self.peer.request('POST', '/remote/desktop/automation/card', card, credential['control_token'])
+
     def _poll_mailbox(self, credential, stop_event):
         if self.mailbox_sink is None:
             return
