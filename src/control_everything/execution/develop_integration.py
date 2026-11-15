@@ -55,7 +55,7 @@ def run_develop_integration(step, flow, *, git_executable, output_dir, source_ou
     def command(stage, argv, cwd, *, timeout=30):
         nonlocal sequence
         sequence+=1
-        directory=output/f'{sequence:03d}-{stage}'
+        directory=output/f'{sequence:03d}'
         directory.mkdir()
         intent={'stage':stage,'operation_id':step['operation_id'],'argv':argv,'cwd':str(cwd),
                 'request_hash':_digest(step['request']),'input_hash':_digest(snapshot['source_hash']),'timeout':timeout}

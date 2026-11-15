@@ -90,7 +90,9 @@ class DevelopIntegrationTests(IntegrationTargetTests):
         return server
 
     def wait_result(self,server):
-        deadline=time.monotonic()+30
+        # A measured 82-command local run completed at 30.625 seconds.
+        # This is the fixture-wide budget; individual command deadlines stay fixed.
+        deadline=time.monotonic()+60
         while time.monotonic()<deadline:
             with self.profile.store.connection() as c:
                 view=self.queue._view(c,self.request['flow_id'])
@@ -228,10 +230,19 @@ class DevelopIntegrationTests(IntegrationTargetTests):
         from control_everything.workspace.automation_flow import AutomationQueue
         server=self.start_registered()
         root=self.profile.data_dir/'automation-integration'/self.request['flow_id']
+        def candidate_test_started():
+            for path in root.glob('*/*/intent.json'):
+                try:
+                    intent=json.loads(path.read_text(encoding='utf-8'))
+                except json.JSONDecodeError:
+                    continue
+                if intent.get('stage')=='candidate-test':
+                    return True
+            return False
         deadline=time.monotonic()+25
-        while time.monotonic()<deadline and not list(root.glob('*/*-candidate-test/intent.json')):
+        while time.monotonic()<deadline and not candidate_test_started():
             time.sleep(.02)
-        self.assertTrue(list(root.glob('*/*-candidate-test/intent.json')))
+        self.assertTrue(candidate_test_started())
         successor=AutomationQueue(self.profile.store,clock=lambda:time.time()+120)
         lease=successor.acquire()
         self.assertIsNotNone(lease)
@@ -244,3 +255,26 @@ class DevelopIntegrationTests(IntegrationTargetTests):
         self.assertEqual(view['step']['status'],'dispatching')
         self.assertEqual(self.git(self.root/'candidate','rev-parse','HEAD').strip(),self.base)
         self.assert_no_reexecution(server,view)
+
+    def test_deep_profile_preserves_full_receipts_with_numbered_directories(self):
+        from control_everything.profiles.profile import Profile
+        from control_everything.workspace.service import WorkspaceService
+        from control_everything.workspace.automation_flow import AutomationQueue
+        # Match the real diagnostic output base: the old stage suffix exceeded
+        # the Windows directory creation limit before the first remote readback.
+        suffix=len(str(Path('automation-integration')/self.request['flow_id']/('0'*36)))+1
+        profile_length=229-suffix
+        deep=self.root/('p'*(profile_length-len(str(self.root))-1))
+        shutil.copytree(self.profile.data_dir,deep)
+        self.profile=Profile.open(str(deep))
+        self.service=WorkspaceService(profile=self.profile)
+        self.queue=AutomationQueue(self.profile.store,owner_id=self.queue.owner_id)
+        self.consumer.queue=self.queue
+        self.assertEqual(len(str(self.profile.data_dir/'automation-integration'/self.request['flow_id']/('0'*36))),229)
+        self.test_http_background_runner_integrates_exactly_one_commit()
+        with self.profile.store.connection() as c:
+            result=self.queue._view(c,self.request['flow_id'])['step']['result']
+        for command in result['commands']:
+            self.assertTrue(Path(command['directory']).name.isdigit())
+            receipt=json.loads((Path(command['directory'])/'receipt.json').read_text(encoding='utf-8'))
+            self.assertEqual(receipt['stage'],command['stage'])
