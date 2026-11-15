@@ -31,7 +31,7 @@ CREATE TABLE manual_records (id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, pro
 SCHEMA1_TABLES = ("projects", "project_directories", "project_sources", "project_manual", "project_manual_history",
                      "todos", "tasks", "manual_records", "profile_imports")
 
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 STATES = ("todo", "doing", "blocked", "review", "done")
 MAX_REVISION = (1 << 53) - 1
 MAX_BODY_BYTES = 262144
@@ -49,6 +49,8 @@ SCHEMA11_TABLES = (*SCHEMA10_TABLES, "automation_events")
 SCHEMA12_TABLES = (*SCHEMA11_TABLES, "automation_owner", "automation_flows", "automation_steps")
 SCHEMA13_TABLES = SCHEMA12_TABLES
 SCHEMA14_TABLES = (*SCHEMA13_TABLES, "automation_remote_inbox")
+SCHEMA15_TABLES = (*SCHEMA14_TABLES, "automation_identity_challenges",
+                   "automation_identity_candidates", "automation_identity_bindings")
 ITEM_COLUMNS = ("id", "origin", "origin_id", "title", "project_id", "provider_id", "state", "session_key",
                 "source", "created_at", "updated_at", "todo_position", "sort_index", "resume_state", "revision",
                 "priority", "focus", "assigned_agent_id")
@@ -117,7 +119,8 @@ VIEWS = (
 )
 _SCHEMA_TABLES = {1: SCHEMA1_TABLES, 2: SCHEMA2_TABLES, 3: SCHEMA3_TABLES, 4: SCHEMA4_TABLES,
                   5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES,
-                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES, 12: SCHEMA12_TABLES, 13: SCHEMA13_TABLES, 14: SCHEMA14_TABLES}
+                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES, 12: SCHEMA12_TABLES, 13: SCHEMA13_TABLES, 14: SCHEMA14_TABLES,
+                  15: SCHEMA15_TABLES}
 
 
 def tables_for(version):
@@ -648,6 +651,46 @@ def finish_schema9(connection, receipt=None):
     connection.execute("PRAGMA user_version=9")
 
 
+def add_schema15(connection):
+    connection.execute("""CREATE TABLE automation_identity_challenges(
+ id TEXT PRIMARY KEY NOT NULL, project_id TEXT NOT NULL REFERENCES projects(id),
+ hub_origin TEXT NOT NULL, producer_id TEXT NOT NULL, account_id TEXT NOT NULL,
+ app_id TEXT NOT NULL, chat_id TEXT NOT NULL, device_id TEXT NOT NULL,
+ generation INTEGER NOT NULL CHECK(typeof(generation)='integer' AND generation>0),
+ nonce_hash TEXT NOT NULL, message_id TEXT, expires_at TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state IN ('awaiting_message','pending','confirmed','revoked','expired')),
+ created_at TEXT NOT NULL)""")
+    connection.execute("""CREATE TABLE automation_identity_candidates(
+ id TEXT PRIMARY KEY NOT NULL, challenge_id TEXT NOT NULL REFERENCES automation_identity_challenges(id),
+ app_id TEXT NOT NULL, open_id TEXT NOT NULL, source_event_id TEXT NOT NULL,
+ inbox_message_id TEXT NOT NULL, created_at TEXT NOT NULL,
+ UNIQUE(challenge_id,app_id,open_id))""")
+    connection.execute("""CREATE TABLE automation_identity_bindings(
+ id TEXT PRIMARY KEY NOT NULL, challenge_id TEXT NOT NULL REFERENCES automation_identity_challenges(id),
+ candidate_id TEXT NOT NULL REFERENCES automation_identity_candidates(id),
+ project_id TEXT NOT NULL REFERENCES projects(id),
+ state TEXT NOT NULL CHECK(state IN ('active','revoked')),
+ confirmed_at TEXT NOT NULL, revoked_at TEXT)""")
+
+
+def install_schema15(connection, *, fresh=False):
+    if fresh:
+        install_schema14(connection, fresh=True)
+    add_schema15(connection)
+    if fresh:
+        finish_schema15(connection)
+
+
+def finish_schema15(connection):
+    register_writer(connection, 15)
+    for table in SCHEMA15_TABLES:
+        for action in ('insert', 'update', 'delete'):
+            connection.execute(f'DROP TRIGGER IF EXISTS guard_{table}_{action}')
+    for statement in guard_statements(15):
+        connection.execute(statement)
+    connection.execute('PRAGMA user_version=15')
+
+
 def schema_signature(connection):
     return [(kind, name, table, ' '.join(sql.split()) if sql is not None else None)
             for kind, name, table, sql in connection.execute(
@@ -686,8 +729,10 @@ def _expected_schema_signature(version):
             install_schema12(expected, fresh=True)
         elif version == 13:
             install_schema13(expected, fresh=True)
-        else:
+        elif version == 14:
             install_schema14(expected, fresh=True)
+        else:
+            install_schema15(expected, fresh=True)
         return tuple(schema_signature(expected))
     finally:
         expected.close()

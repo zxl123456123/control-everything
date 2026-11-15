@@ -38,8 +38,8 @@ class RemoteInboxSchemaTests(unittest.TestCase):
     def test_fresh14_has_inbox_and_current_signature(self):
         profile=Profile.open(str(self.root/'fresh'))
         with profile.store.connection() as c:
-            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0],14)
-            schema.validate_schema(c,14)
+            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0],schema.SCHEMA_VERSION)
+            schema.validate_schema(c,schema.SCHEMA_VERSION)
             self.insert(c)
             self.assertEqual(c.execute('SELECT state FROM automation_remote_inbox').fetchone()[0],'pending_validation')
 
@@ -51,14 +51,14 @@ class RemoteInboxSchemaTests(unittest.TestCase):
             with profile.store.connection():
                 pass
         result=migration.migrate_tasks(str(profile.data_dir))
-        self.assertEqual(result['schema_version'],14)
+        self.assertEqual(result['schema_version'],schema.SCHEMA_VERSION)
         self.assertEqual(backups.validate_backup(result['backup'])['schema_version'],13)
         restored=backups.restore_backup(result['backup'],str(self.root/'restored13'))
         with closing(migration.raw_connection(Profile(restored).store.path,readonly=True)) as c:
             schema.validate_schema(c,13)
             self.assertEqual(schema.table_facts(c,13),before)
         with profile.store.connection() as c:
-            after=schema.table_facts(c,14)
+            after=schema.table_facts(c,schema.SCHEMA_VERSION)
             self.assertEqual({key:after[key] for key in before},before)
             self.assertEqual(after['automation_remote_inbox']['count'],0)
         self.assertEqual(migration.migrate_tasks(str(profile.data_dir))['status'],'already_current')
@@ -74,10 +74,10 @@ class RemoteInboxSchemaTests(unittest.TestCase):
         restored=Profile.open(str(backups.restore_backup(str(backup),str(self.root/'restored'))))
         with restored.store.connection() as c:
             self.assertEqual(tuple(c.execute('SELECT * FROM automation_remote_inbox').fetchone()),row)
-            after=schema.table_facts(c,14)
+            after=schema.table_facts(c,schema.SCHEMA_VERSION)
             self.assertEqual({k:v for k,v in after.items() if k!='automation_remote_inbox'},
                              {k:v for k,v in before.items() if k!='automation_remote_inbox'})
-        self.assertEqual(migration.preserve_tasks(str(restored.data_dir))['schema_version'],14)
+        self.assertEqual(migration.preserve_tasks(str(restored.data_dir))['schema_version'],schema.SCHEMA_VERSION)
 
     def test_legacy_writer_cannot_write_inbox_or_business_tables(self):
         profile=Profile.open(str(self.root/'guarded'))
@@ -90,7 +90,7 @@ class RemoteInboxSchemaTests(unittest.TestCase):
     def test_inbox_constraints_keep_transport_identity_and_business_state(self):
         profile=Profile.open(str(self.root/'constraints'))
         with closing(sqlite3.connect(profile.store.path)) as c:
-            schema.register_writer(c,14)
+            schema.register_writer(c,schema.SCHEMA_VERSION)
             self.insert(c)
             for statement in (
                     "UPDATE automation_remote_inbox SET generation=0",
