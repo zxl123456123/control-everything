@@ -16,7 +16,8 @@ class PlanningHost(FakeHost):
 
     def create(self, params, *, cancel_event=None):
         self.calls.append(copy.deepcopy(params))
-        self.binding['providerSession']['id'] = str(len(self.calls))
+        if not getattr(self, 'reuse_session', False):
+            self.binding['providerSession']['id'] = str(len(self.calls))
         return super().create(params)
 
     def observe(self, binding, **kwargs):
@@ -110,6 +111,19 @@ class ConsumerTests(AutomationQueueFixture):
     def test_wrong_model_stops(self):
         self.host.model = 'gpt-6.1-sol'
         self.assertEqual(self.pump()['flow']['attention']['reason'], 'model_mismatch')
+
+    def test_same_session_review_does_not_reach_acceptance(self):
+        cards = []
+        self.consumer.on_wait = cards.append
+        self.host.reuse_session = True
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'independent_review_required')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'independent_review_required')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
+        self.assertNotIn('verdict', value)
+        self.assertNotIn('awaiting_acceptance', [result['flow']['status']])
 
     def test_requirement_change_before_dispatch_waits(self):
         cards = []

@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def independent_review_card(flow):
+    """The review shared a session with the work. The button does not accept it."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'independent_review_required' or not task_id
+            or type(revision) is not int or revision < 0):
+        raise ValueError('independent_review_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '审查不是独立的'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'independent_review_required'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能进入验收'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '审查和被审查的工作是同一次会话。不会进入验收。'}, button]}}
+
+
 def requirement_card(flow):
     """The requirement changed. The button does not start the old plan or accept an old delivery."""
     attention = (flow or {}).get('attention') or {}
