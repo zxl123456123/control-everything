@@ -42,8 +42,13 @@ class IntegrationExecutionTests(IntegrationTargetTests):
         def run(*args, **kwargs):
             calls.append(1)
             raise TimeoutError()
+        cards = []
+        self.consumer.on_wait = cards.append
         self.consumer.integration = run
-        self.assertEqual(self.consumer.run_once()['status'],'unknown')
+        failed = self.consumer.run_once()
+        self.assertEqual(failed['status'],'unknown')
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['reason'], 'integration_retest_failed')
+        self.assertNotIn('verdict', cards[0]['body']['elements'][1]['value'])
         self.assertEqual(self.consumer.run_once()['status'],'unknown')
         self.assertEqual(len(calls),1)
 

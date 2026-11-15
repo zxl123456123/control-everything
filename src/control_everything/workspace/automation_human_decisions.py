@@ -9,6 +9,19 @@ VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
 
 
+def integration_failure_card(flow, step):
+    """A failed develop retest. The button does not claim success or retry."""
+    task_id = (flow or {}).get('task_id')
+    if (not task_id or (step or {}).get('kind') != 'integrate' or step.get('status') != 'unknown'
+            or (step.get('result') or {}).get('reason') != 'integration_incomplete'):
+        raise ValueError('integration_failure_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': 'develop 复测未通过'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': 0, 'reason': 'integration_retest_failed'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '集成没有完成'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': 'develop 复测没有通过。这不是成功，也不会自动重试。'}, button]}}
+
+
 def target_wait_card(flow):
     """A blocked integration wait. The button does not register a target or start integration."""
     attention = (flow or {}).get('attention') or {}

@@ -8,7 +8,7 @@ from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
-    acceptance_card, apply_acceptance_decisions, apply_plan_releases, is_plan_release, target_wait_card, waiting_card)
+    acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release, target_wait_card, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -153,8 +153,14 @@ class AutomationConsumer:
         except Exception as error:
             if isinstance(error, ProfileError) and str(error) in ('automation_owner_lost', 'automation_step_changed'):
                 raise
-            return self.queue.record(lease, step, 'unknown', result={
+            recorded = self.queue.record(lease, step, 'unknown', result={
                 'reason': 'integration_incomplete', 'error_type': type(error).__name__})
+            if self.on_wait is not None:
+                try:
+                    self.on_wait(integration_failure_card(flow, recorded))
+                except Exception as card_error:
+                    logging.getLogger(__name__).error('Automation integration card failed: %s', type(card_error).__name__)
+            return recorded
 
     def _emit_acceptance(self, view):
         if self.on_wait is not None and view['flow']['status'] == 'awaiting_acceptance':
