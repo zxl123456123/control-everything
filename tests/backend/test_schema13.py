@@ -51,12 +51,12 @@ class Schema13Tests(unittest.TestCase):
             self.assertIsNone(c.execute('PRAGMA foreign_key_check').fetchone())
             return schema.table_facts(c, version)
 
-    def test_fresh13_allows_only_three_sources_and_keeps_foreign_keys(self):
+    def test_current_allows_only_schema13_delivery_sources_and_keeps_foreign_keys(self):
         profile = Profile.open(str(self.root / 'fresh'))
         with profile.store.connection() as c:
-            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0], 13)
+            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0], schema.SCHEMA_VERSION)
             self.assertEqual(c.execute('PRAGMA foreign_keys').fetchone()[0], 1)
-            schema.validate_schema(c, 13)
+            schema.validate_schema(c, schema.SCHEMA_VERSION)
             c.execute("INSERT INTO task_items(id,origin,origin_id,title,state,sort_index,resume_state,revision) "
                       "VALUES('task','task','old','Task','todo',0,'todo',1)")
             for source in ('native_turn', 'legacy_review', 'automation_verify'):
@@ -73,8 +73,8 @@ class Schema13Tests(unittest.TestCase):
         profile = self.legacy()
         before = self.facts(profile, 12)
         result = migration.migrate_tasks(str(profile.data_dir))
-        self.assertEqual(result['schema_version'], 13)
-        self.assertEqual(self.facts(profile, 13), before)
+        self.assertEqual(result['schema_version'], schema.SCHEMA_VERSION)
+        self.assertEqual({key:value for key,value in self.facts(profile, schema.SCHEMA_VERSION).items() if key in before}, before)
         self.assertEqual(backups.validate_backup(result['backup'])['schema_version'], 12)
         with profile.store.connection() as c:
             foreign_keys = c.execute('PRAGMA foreign_key_list(task_native_message_delivery)').fetchall()
@@ -133,27 +133,27 @@ class Schema13Tests(unittest.TestCase):
             migration.migrate_tasks(str(profile.data_dir))
         self.assertEqual(observed, [('BEGIN EXCLUSIVE',0), ('COMMIT',0), ('close',1)])
 
-    def test_13_and_12_backups_restore_and_old_writers_cannot_write(self):
+    def test_current_and_12_backups_restore_and_old_writers_cannot_write(self):
         profile = self.legacy()
         old = backups.create_backup(profile)
         migration.migrate_tasks(str(profile.data_dir))
-        migrated = self.facts(profile, 13)
+        migrated = self.facts(profile, schema.SCHEMA_VERSION)
         with profile.store.connection() as c:
             c.execute("INSERT INTO task_deliveries VALUES('verify','task',NULL,'automation_verify','step','Verified','{}','tested','now')")
         current = backups.create_backup(profile)
-        before = self.facts(profile, 13)
-        for version, backup in ((12,old),(13,current)):
+        before = self.facts(profile, schema.SCHEMA_VERSION)
+        for version, backup in ((12,old),(schema.SCHEMA_VERSION,current)):
             self.assertEqual(backups.validate_backup(backup)['schema_version'], version)
             restored = backups.restore_backup(str(backup), str(self.root / f'restore-{version}'))
             if version == 12:
                 migration.migrate_tasks(str(restored))
-            self.assertEqual(self.facts(Profile(restored), 13), migrated if version == 12 else before)
-        self.assertEqual(migration.preserve_tasks(str(profile.data_dir))['schema_version'], 13)
-        for writer in (None,12):
+            self.assertEqual(self.facts(Profile(restored), schema.SCHEMA_VERSION), migrated if version == 12 else before)
+        self.assertEqual(migration.preserve_tasks(str(profile.data_dir))['schema_version'], schema.SCHEMA_VERSION)
+        for writer in (None,12,13):
             with closing(sqlite3.connect(profile.store.path)) as c:
                 if writer is not None:
                     schema.register_writer(c, writer)
-                for table in schema.tables_for(13):
+                for table in schema.tables_for(schema.SCHEMA_VERSION):
                     with self.subTest(writer=writer,table=table):
                         with self.assertRaisesRegex(sqlite3.Error, 'writer_version_mismatch|no such function'):
                             c.execute(f'DELETE FROM {table}') if c.execute(f'SELECT 1 FROM {table} LIMIT 1').fetchone() else c.execute(

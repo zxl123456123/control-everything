@@ -31,7 +31,7 @@ CREATE TABLE manual_records (id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, pro
 SCHEMA1_TABLES = ("projects", "project_directories", "project_sources", "project_manual", "project_manual_history",
                      "todos", "tasks", "manual_records", "profile_imports")
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 STATES = ("todo", "doing", "blocked", "review", "done")
 MAX_REVISION = (1 << 53) - 1
 MAX_BODY_BYTES = 262144
@@ -48,6 +48,7 @@ SCHEMA10_TABLES = (*SCHEMA9_TABLES, "task_native_runs", "task_deliveries", "task
 SCHEMA11_TABLES = (*SCHEMA10_TABLES, "automation_events")
 SCHEMA12_TABLES = (*SCHEMA11_TABLES, "automation_owner", "automation_flows", "automation_steps")
 SCHEMA13_TABLES = SCHEMA12_TABLES
+SCHEMA14_TABLES = (*SCHEMA13_TABLES, "automation_remote_inbox")
 ITEM_COLUMNS = ("id", "origin", "origin_id", "title", "project_id", "provider_id", "state", "session_key",
                 "source", "created_at", "updated_at", "todo_position", "sort_index", "resume_state", "revision",
                 "priority", "focus", "assigned_agent_id")
@@ -116,7 +117,7 @@ VIEWS = (
 )
 _SCHEMA_TABLES = {1: SCHEMA1_TABLES, 2: SCHEMA2_TABLES, 3: SCHEMA3_TABLES, 4: SCHEMA4_TABLES,
                   5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES,
-                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES, 12: SCHEMA12_TABLES, 13: SCHEMA13_TABLES}
+                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES, 12: SCHEMA12_TABLES, 13: SCHEMA13_TABLES, 14: SCHEMA14_TABLES}
 
 
 def tables_for(version):
@@ -471,6 +472,40 @@ def finish_schema13(connection):
     connection.execute("PRAGMA user_version=13")
 
 
+def add_schema14(connection):
+    connection.execute("""CREATE TABLE automation_remote_inbox(
+ hub_origin TEXT NOT NULL, device_id TEXT NOT NULL,
+ generation INTEGER NOT NULL CHECK(typeof(generation)='integer' AND generation>0),
+ message_id TEXT NOT NULL, source TEXT NOT NULL, event_id TEXT NOT NULL,
+ payload_json TEXT NOT NULL, payload_hash TEXT NOT NULL, received_at TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state='pending_validation'),
+ ack_credential_revision INTEGER NOT NULL CHECK(typeof(ack_credential_revision)='integer' AND ack_credential_revision>0),
+ lease_id TEXT NOT NULL, lease_expires_at REAL NOT NULL,
+ ack_state TEXT NOT NULL CHECK(ack_state IN ('pending','acknowledged','lease_stale')),
+ acknowledged_at TEXT, PRIMARY KEY(hub_origin,device_id,generation,message_id),
+ UNIQUE(hub_origin,source,event_id))""")
+    connection.execute('CREATE INDEX automation_remote_inbox_ack ON automation_remote_inbox('
+        'hub_origin,device_id,generation,ack_credential_revision,ack_state,received_at,message_id)')
+
+
+def install_schema14(connection, *, fresh=False):
+    if fresh:
+        install_schema13(connection, fresh=True)
+    add_schema14(connection)
+    if fresh:
+        finish_schema14(connection)
+
+
+def finish_schema14(connection):
+    register_writer(connection, 14)
+    for table in SCHEMA14_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(14):
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=14")
+
+
 def finish_schema2(connection, receipt):
     register_writer(connection, 2)
     for statement in (*VIEWS, *guard_statements(2)):
@@ -649,8 +684,10 @@ def _expected_schema_signature(version):
             install_schema11(expected, fresh=True)
         elif version == 12:
             install_schema12(expected, fresh=True)
-        else:
+        elif version == 13:
             install_schema13(expected, fresh=True)
+        else:
+            install_schema14(expected, fresh=True)
         return tuple(schema_signature(expected))
     finally:
         expected.close()
