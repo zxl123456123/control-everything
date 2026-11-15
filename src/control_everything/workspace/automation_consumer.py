@@ -6,7 +6,8 @@ import threading
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
-from control_everything.workspace.automation_human_decisions import apply_plan_releases, is_plan_release, waiting_card
+from control_everything.workspace.automation_human_decisions import (
+    apply_acceptance_decisions, apply_plan_releases, is_plan_release, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -32,6 +33,7 @@ class AutomationConsumer:
         binding = self.current_binding() if callable(getattr(self, 'current_binding', None)) else None
         if binding:
             apply_plan_releases(self.queue.store, self, binding)
+            apply_acceptance_decisions(self.queue.store, getattr(self, 'review_service', None), binding)
         events = self.queue.pending_events(integration_only=not self.adapter.available)
         if self.cursor in events:
             index = events.index(self.cursor) + 1

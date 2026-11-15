@@ -31,6 +31,33 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         self.approval = {'expected_revision':item['revision'],'progress_revision':item['progress_revision'],
             'delivery_id':self.delivery,'verdict':'approved','reason':'Reviewed exact change','confirmed':True,'client_token':'owner-one'}
 
+    def test_stored_feishu_acceptance_records_only_the_current_delivery(self):
+        from control_everything.workspace.automation_human_decisions import apply_acceptance_decisions
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        decision = {'namespace': 'control-everything.automation.v1', 'decision_id': 'decision-1',
+                    'task_id': self.item['id'], 'delivery_id': self.delivery,
+                    'expected_revision': self.approval['expected_revision'],
+                    'progress_revision': self.approval['progress_revision'], 'verdict': 'approved'}
+        inbox = RemoteAutomationInbox(self.profile.store)
+        inbox.receive(binding, {'id': 'om-stale', 'source': 'feishu:test', 'event_id': 'evt-stale',
+                                 'lease_id': 'lease', 'lease_expires_at': 10, 'payload': {
+                                     'kind': 'feishu_card_decision', 'actor_open_id': 'ou-owner',
+                                     'decision': dict(decision, decision_id='stale', expected_revision=decision['expected_revision'] + 1)}})
+        self.assertEqual(apply_acceptance_decisions(self.profile.store, self.service, binding), [])
+        inbox.receive(binding, {'id': 'om-accept', 'source': 'feishu:test', 'event_id': 'evt-accept',
+                                 'lease_id': 'lease-2', 'lease_expires_at': 11, 'payload': {
+                                     'kind': 'feishu_card_decision', 'actor_open_id': 'ou-owner', 'decision': decision}})
+        first = apply_acceptance_decisions(self.profile.store, self.service, binding)
+        second = apply_acceptance_decisions(self.profile.store, self.service, binding)
+        self.assertFalse(first[0]['replayed'])
+        self.assertTrue(second[0]['replayed'])
+        with self.profile.store.connection() as connection:
+            accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
+                                          (self.item['id'],)).fetchone()['accepted_delivery_id']
+        self.assertEqual(accepted, self.delivery)
+
     def test_normal_published_stage_is_observation_only_and_requires_current_delivery(self):
         item = self.profile.store.get_item(self.item['id'])
         request = {'flow_id':self.published['flow']['id'],

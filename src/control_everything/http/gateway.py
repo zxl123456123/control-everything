@@ -1322,9 +1322,10 @@ class PanelServer(ThreadingHTTPServer):
                         output_dir=output, source_output_dir=source_output, cancel_event=cancel_event, checkpoint=checkpoint)
                 self.workspace.check_verification = check_verification
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
-                self.automation_consumer_service = AutomationConsumerService(
-                    AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification,
-                                       integration=getattr(self, "automation_integration", None) or integrate))
+                consumer = AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification,
+                                              integration=getattr(self, "automation_integration", None) or integrate)
+                consumer.review_service = self.workspace
+                self.automation_consumer_service = AutomationConsumerService(consumer)
                 try:
                     self.native_progress_observer.start()
                     self.automation_consumer_service.start()

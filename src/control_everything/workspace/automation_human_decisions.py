@@ -2,6 +2,7 @@
 import json
 
 from control_everything.input_validation import ProfileError
+from control_everything.workspace.automation_delivery_reviews import review_delivery
 from control_everything.workspace.native_progress import row_view
 
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
@@ -29,6 +30,51 @@ def waiting_card(flow):
                         'flow_id': flow['id'], 'requirement_revision': revision, 'choice': choice}}
     return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '需要决定'}},
             'body': {'elements': [{'tag': 'markdown', 'content': question}, button]}}
+
+
+def apply_acceptance_decisions(store, service, binding):
+    """Apply a stored Feishu acceptance. It does not accept a different delivery."""
+    if service is None or any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
+        return []
+    with store.connection() as db:
+        rows = db.execute('''SELECT payload_json FROM automation_remote_inbox
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state='pending'
+            ORDER BY received_at,message_id''',
+            (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
+    applied = []
+    for row in rows:
+        decision = _stored_acceptance(row['payload_json'])
+        if decision is None:
+            continue
+        try:
+            applied.append(review_delivery(service, decision['task_id'], decision['body']))
+        except ProfileError as error:
+            if str(error) == 'automation_owner_lost':
+                raise
+    return applied
+
+
+def _stored_acceptance(raw):
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    if type(payload) is not dict or payload.get('kind') != 'feishu_card_decision':
+        return None
+    decision = payload.get('decision')
+    actor = payload.get('actor_open_id')
+    fields = {'namespace', 'decision_id', 'task_id', 'delivery_id', 'expected_revision', 'progress_revision', 'verdict'}
+    if (type(decision) is not dict or set(decision) != fields or decision.get('namespace') != 'control-everything.automation.v1'
+            or decision.get('verdict') not in ('approved', 'changes_requested', 'rejected')
+            or any(type(decision.get(key)) is not str or not decision[key] for key in ('decision_id', 'task_id', 'delivery_id'))
+            or any(type(decision.get(key)) is not int or decision[key] < 0 for key in ('expected_revision', 'progress_revision'))
+            or type(actor) is not str or not actor):
+        return None
+    reason = {'approved': '这个版本通过，集成 develop', 'changes_requested': '飞书要求修改', 'rejected': '飞书拒绝'}
+    return {'task_id': decision['task_id'], 'body': {
+        'expected_revision': decision['expected_revision'], 'progress_revision': decision['progress_revision'],
+        'delivery_id': decision['delivery_id'], 'verdict': decision['verdict'], 'reason': reason[decision['verdict']],
+        'confirmed': True, 'client_token': decision['decision_id']}}
 
 
 def apply_plan_releases(store, consumer, binding):
