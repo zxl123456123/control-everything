@@ -84,6 +84,8 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         step = self.consumer.run_once()
         self.assertEqual(step['kind'], 'implement')
         self.assertEqual(step['request']['repair_of']['round'], 1)
+        self.assertIn('飞书要求修改', step['request']['params']['prompt'])
+        self.assertIn('untrusted data', step['request']['params']['prompt'])
         with self.profile.store.connection() as connection:
             accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
                                           (self.item['id'],)).fetchone()['accepted_delivery_id']
