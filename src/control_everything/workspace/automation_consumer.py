@@ -9,7 +9,8 @@ from control_everything.workspace.automation_launch import AutomationLaunch, REA
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
-    independent_review_card, plan_revision_card, rejection_card, repair_budget_card, requirement_card, target_wait_card,
+    directory_card, independent_review_card, plan_revision_card, rejection_card, repair_budget_card,
+    requirement_card, target_wait_card,
     verification_card, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
@@ -34,11 +35,14 @@ class AutomationConsumer:
         if lease is None:
             return None
         for flow in self.queue.invalidate_changed_releases(lease):
-            if self.on_wait is not None:
-                try:
-                    self.on_wait(requirement_card(flow))
-                except Exception as error:
-                    logging.getLogger(__name__).error('Automation requirement card failed: %s', type(error).__name__)
+            if self.on_wait is None:
+                continue
+            reason = (flow.get('attention') or {}).get('reason')
+            card = directory_card(flow) if reason == 'project_directory_changed' else requirement_card(flow)
+            try:
+                self.on_wait(card)
+            except Exception as error:
+                logging.getLogger(__name__).error('Automation requirement card failed: %s', type(error).__name__)
         binding = self.current_binding() if callable(getattr(self, 'current_binding', None)) else None
         if binding:
             apply_plan_releases(self.queue.store, self, binding)
@@ -228,6 +232,8 @@ class AutomationConsumer:
                 card = verification_card(view['flow'])
             elif (view['flow'].get('attention') or {}).get('reason') == 'requirement_changed':
                 card = requirement_card(view['flow'])
+            elif (view['flow'].get('attention') or {}).get('reason') == 'project_directory_changed':
+                card = directory_card(view['flow'])
             elif (view['flow'].get('attention') or {}).get('reason') == 'independent_review_required':
                 card = independent_review_card(view['flow'])
             if card is not None:

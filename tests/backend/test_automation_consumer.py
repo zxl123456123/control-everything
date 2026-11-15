@@ -112,6 +112,30 @@ class ConsumerTests(AutomationQueueFixture):
         self.host.model = 'gpt-6.1-sol'
         self.assertEqual(self.pump()['flow']['attention']['reason'], 'model_mismatch')
 
+    def test_changed_directory_invalidates_a_release_wait(self):
+        from tests.backend.test_automation_queue import bind_actor
+        self.host.kind = 'feature'
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        self.assertIs(waiting['flow']['attention'].get('release_ready'), True)
+        revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
+        self.change_project()
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        self._store_release(waiting['flow']['id'], revision)
+        calls = len(self.host.calls)
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'project_directory_changed')
+        self.assertIsNot(result['flow']['attention'].get('release_ready'), True)
+        value = [card['body']['elements'][1]['value'] for card in cards
+                 if card['body']['elements'][1]['value'].get('reason') == 'project_directory_changed'][-1]
+        self.assertEqual(value['flow_id'], waiting['flow']['id'])
+        self.assertNotIn('choice', value)
+        with self.profile.store.connection() as connection:
+            implements = connection.execute("SELECT id FROM automation_steps WHERE kind='implement'").fetchall()
+        self.assertEqual(implements, [])
+        self.assertEqual(len(self.host.calls), calls)
+
     def test_changed_requirement_invalidates_a_release_wait(self):
         from tests.backend.test_automation_queue import bind_actor
         self.host.kind = 'feature'
@@ -277,6 +301,8 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(len(self.host.calls), 0)
 
     def test_directory_change_after_plan_reserved_prevents_create(self):
+        cards = []
+        self.consumer.on_wait = cards.append
         self.consumer.run_once()
         self.consumer.run_once()
         self.change_project()
@@ -284,6 +310,10 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(result['flow']['attention']['reason'], 'project_directory_changed')
         self.assertEqual(result['step']['kind'], 'plan')
         self.assertEqual(len(self.host.calls), 0)
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'project_directory_changed')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
 
     def test_prompts_include_classification_and_review_contract(self):
         self.pump()
