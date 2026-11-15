@@ -364,6 +364,19 @@ class RemoteHubService:
                         revision, encoded, self.store.clock()))
             return {'id': identity, 'duplicate': False, 'state': 'pending'}
 
+    def lookup_outbound_card(self, token, body):
+        if (type(body) is not dict or set(body) != {'producer_id', 'message_id'}
+                or any(not isinstance(body.get(key), str) or not body[key] or len(body[key]) > 256
+                       for key in ('producer_id', 'message_id'))):
+            raise HubError('invalid_request_fields', 400)
+        config = self.automation_producers.authenticate(body['producer_id'], token)
+        with self.store.transaction() as db:
+            row = db.execute('SELECT card_json FROM automation_outbound_cards WHERE producer_id=? AND message_id=?',
+                             (config['producer_id'], body['message_id'])).fetchone()
+            if row is None:
+                return {'card': None}
+            return {'card': json.loads(row['card_json'])}
+
     def claim_outbound_card(self, token, body):
         if type(body) is not dict or set(body) != {'producer_id'} or not isinstance(body.get('producer_id'), str):
             raise HubError('invalid_request_fields', 400)

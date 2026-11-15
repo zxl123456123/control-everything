@@ -49,10 +49,12 @@ def dispatch(service, method, uri, headers, body):
     if path.startswith("/remote/producer/"):
         if "?" in uri:
             raise HubError("invalid_request_uri", 400)
-        if path in ('/remote/producer/automation/outbound/claim', '/remote/producer/automation/outbound/sent'):
+        if path in ('/remote/producer/automation/outbound/claim', '/remote/producer/automation/outbound/sent',
+                    '/remote/producer/automation/outbound/lookup'):
             if method != 'POST':
                 raise HubError('method_not_allowed', 405)
-            operation = service.claim_outbound_card if path.endswith('/claim') else service.mark_outbound_card
+            operation = {'claim': service.claim_outbound_card, 'sent': service.mark_outbound_card,
+                         'lookup': service.lookup_outbound_card}[path.rsplit('/', 1)[-1]]
             return 200, operation(_bearer(headers), body), {}
         if path in ('/remote/producer/identity-send/claim', '/remote/producer/identity-send/result'):
             if method != 'POST':

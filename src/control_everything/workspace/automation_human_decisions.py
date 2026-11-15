@@ -212,6 +212,19 @@ def apply_waiting_reply(consumer, flow, value, actor_id):
         'source': 'human', 'quoted': False, 'actor_id': actor_id, 'text': PLAN_RELEASE})
 
 
+def release_reply(text, card):
+    """A reply releases only the card it answers. Unrelated text does not choose a flow."""
+    value = (((card or {}).get('body') or {}).get('elements') or [None, None])[1]
+    value = value.get('value') if isinstance(value, dict) else None
+    if (text != PLAN_RELEASE or not isinstance(value, dict) or value.get('choice') != PLAN_RELEASE
+            or value.get('namespace') != 'control-everything.automation.v1'
+            or not isinstance(value.get('flow_id'), str) or not value['flow_id']
+            or type(value.get('requirement_revision')) is not int):
+        return None
+    return {'namespace': value['namespace'], 'flow_id': value['flow_id'], 'text': PLAN_RELEASE,
+            'requirement_revision': value['requirement_revision']}
+
+
 def is_plan_release(message):
     return (isinstance(message, dict) and message.get('source') == 'human' and message.get('quoted') is not True
             and message.get('text') == PLAN_RELEASE and isinstance(message.get('actor_id'), str) and message.get('actor_id'))

@@ -57,6 +57,12 @@ class AutomationProducerHTTPTests(unittest.TestCase):
                               {'producer_id': 'producer-a', 'id': claimed[1]['id'], 'message_id': 'om-card'},
                               token=self.producer_token)
         self.assertEqual(marked[1]['state'], 'sent')
+        found = self.request('/remote/producer/automation/outbound/lookup',
+                             {'producer_id': 'producer-a', 'message_id': 'om-card'}, token=self.producer_token)
+        self.assertEqual(found[1]['card']['body']['elements'][1]['value']['flow_id'], 'flow-1')
+        self.assertIsNone(self.request('/remote/producer/automation/outbound/lookup',
+                                       {'producer_id': 'producer-a', 'message_id': 'om-missing'},
+                                       token=self.producer_token)[1]['card'])
         self.assertIsNone(self.request('/remote/producer/automation/outbound/claim', {'producer_id': 'producer-a'},
                                        token=self.producer_token)[1]['card'])
         vague = {'schema': '2.0', 'body': {'elements': [{}, {'value': dict(value, choice='不错')}]}}

@@ -39,6 +39,15 @@ class HumanDecisionTests(unittest.TestCase):
                 calls.append(flow_id)
         self.assertEqual(apply_plan_releases(self.store, Consumer(), binding), [])
         self.assertEqual(calls, [])
+    def test_reply_releases_only_the_card_it_answers(self):
+        from control_everything.workspace.automation_human_decisions import release_reply
+        card = {'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'flow_id': 'flow-1',
+            'requirement_revision': 3, 'choice': '按已审方案实现'}}]}}
+        self.assertEqual(release_reply('按已审方案实现', card)['flow_id'], 'flow-1')
+        self.assertIsNone(release_reply('不错', card))
+        self.assertIsNone(release_reply('按已审方案实现', {'body': {'elements': [{}, {'value': {'choice': '其他'}}]}}))
+
     def test_explicit_choice_and_acceptance_execute_once_each(self):
         choice = classify_decision(message(), tasks=[task()])
         self.assertEqual(choice['action'], 'execute')
