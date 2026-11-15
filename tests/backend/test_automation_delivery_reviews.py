@@ -31,6 +31,21 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         self.approval = {'expected_revision':item['revision'],'progress_revision':item['progress_revision'],
             'delivery_id':self.delivery,'verdict':'approved','reason':'Reviewed exact change','confirmed':True,'client_token':'owner-one'}
 
+    def test_normal_published_stage_is_observation_only_and_requires_current_delivery(self):
+        item = self.profile.store.get_item(self.item['id'])
+        request = {'flow_id':self.published['flow']['id'],
+            'expected_flow_revision':self.published['flow']['revision']-2,
+            'expected_revision':item['revision']-1,'progress_revision':item['progress_revision']-1,'confirmed':True}
+        with self.profile.store.connection() as c:
+            before = '\n'.join(c.iterdump())
+        result = self.service.resume_task_automation(self.item['id'],request)
+        self.assertEqual(result['status'],'already_at_stage')
+        with self.profile.store.connection() as c:
+            self.assertEqual('\n'.join(c.iterdump()),before)
+            c.execute('UPDATE task_items SET current_delivery_id=NULL WHERE id=?',(self.item['id'],))
+        with self.assertRaises(ProfileError):
+            self.service.resume_task_automation(self.item['id'],request)
+
     def test_real_http_owner_approval_records_acceptance_without_done(self):
         server = PanelServer((HOST,0),PanelHandler)
         server.workspace, server.profile = self.service,self.profile
@@ -187,3 +202,113 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         self.assertTrue(replay['replayed'])
         with self.assertRaises(ProfileError):
             self.service.review_task_delivery(self.item['id'],{**self.approval,'client_token':'another'})
+
+class AutomationCapabilityResumeTests(AutomationQueueFixture):
+    pump = deliveries.AutomationDeliveryTests.pump
+    configure_verification = deliveries.AutomationDeliveryTests.configure_verification
+    prepare = deliveries.AutomationDeliveryTests.prepare
+
+    def setUp(self):
+        super().setUp()
+        self.consumer_type = AutomationConsumer
+        self.queue,self.host=AutomationQueue(self.profile.store),PlanningHost()
+        self.consumer=AutomationConsumer(self.queue,self.host)
+        self.prepare()
+        self.waiting=self.queue.wait(self.consumer.lease,self.view['step'],'waiting_external','verify',
+            {'reason':'code_review_or_acceptance_not_connected'})
+        self.service.check_verification=self.consumer.check_verification
+        self.queue.release(self.consumer.lease)
+        item=self.profile.store.get_item(self.item['id'])
+        self.resume={'flow_id':self.waiting['flow']['id'],'expected_flow_revision':self.waiting['flow']['revision'],
+            'expected_revision':item['revision'],'progress_revision':item['progress_revision'],'confirmed':True}
+
+    def test_resume_keeps_original_operation_and_replay_does_not_repeat_work(self):
+        original=self.waiting['step']
+        result=self.service.resume_task_automation(self.item['id'],self.resume)
+        self.assertEqual(result['status'],'resumed')
+        self.assertEqual(result['flow']['revision'],self.resume['expected_flow_revision']+1)
+        replay=self.service.resume_task_automation(self.item['id'],self.resume)
+        self.assertEqual(replay['status'],'already_at_stage')
+        self.assertEqual(replay['flow']['revision'],result['flow']['revision'])
+        ready=self.pump()
+        self.assertEqual(ready['flow']['status'],'awaiting_acceptance')
+        self.assertEqual(ready['step']['operation_id'],original['operation_id'])
+        self.assertEqual(ready['step']['result'],original['result'])
+        self.assertEqual(len(self.host.calls),3)
+        self.assertEqual(len(self.verification_calls),1)
+        self.assertEqual(self.service.resume_task_automation(self.item['id'],self.resume)['status'],'already_at_stage')
+        self.assertIsNone(self.profile.store.get_item(self.item['id'])['accepted_delivery_id'])
+
+    def test_existing_running_stage_is_observed_without_claiming_request_history(self):
+        # Restore the normal completed-verify running stage, without invoking resume.
+        with self.profile.store.connection() as c:
+            c.execute("UPDATE automation_flows SET status='running',revision=?,attention_json='{}' WHERE id=?",
+                      (self.waiting['flow']['revision']-1,self.resume['flow_id']))
+            before = '\n'.join(c.iterdump())
+        request = {**self.resume,'expected_flow_revision':self.waiting['flow']['revision']-2}
+        result = self.service.resume_task_automation(self.item['id'],request)
+        self.assertEqual(result['status'],'already_at_stage')
+        with self.profile.store.connection() as c:
+            self.assertEqual('\n'.join(c.iterdump()),before)
+
+    def test_wrong_reason_waiting_user_unknown_and_stale_versions_cannot_resume(self):
+        from control_everything.workspace.native_progress import packed
+        for change in ({'confirmed':False},{'expected_flow_revision':True},{'progress_revision':True},
+                       {'expected_flow_revision':self.resume['expected_flow_revision']-1},{'actor':'owner'}):
+            with self.subTest(change=change),self.assertRaises(ProfileError):
+                self.service.resume_task_automation(self.item['id'],{**self.resume,**change})
+        for status,reason in (('waiting_user','code_review_or_acceptance_not_connected'),
+                              ('waiting_external','verification_unknown'),('waiting_external','verification_not_configured')):
+            with self.profile.store.connection() as c:
+                c.execute('UPDATE automation_flows SET status=?,attention_json=?',(status,packed({'reason':reason})))
+            with self.assertRaises(ProfileError):
+                self.service.resume_task_automation(self.item['id'],self.resume)
+        with self.profile.store.connection() as c:
+            c.execute("UPDATE automation_flows SET status='waiting_external',attention_json=?",
+                      (packed({'reason':'code_review_or_acceptance_not_connected'}),))
+            c.execute("UPDATE automation_steps SET status='unknown' WHERE kind='verify'")
+        with self.assertRaises(ProfileError):
+            self.service.resume_task_automation(self.item['id'],self.resume)
+
+    def test_source_change_or_missing_checker_does_not_wake_wait(self):
+        source=self.root/'repo/input.txt'; original=source.read_bytes(); source.write_bytes(b'changed')
+        with self.assertRaises(ProfileError):
+            self.service.resume_task_automation(self.item['id'],self.resume)
+        source.write_bytes(original)
+        self.service.check_verification=None
+        with self.assertRaises(ProfileError):
+            self.service.resume_task_automation(self.item['id'],self.resume)
+        with self.profile.store.connection() as c:
+            self.assertEqual(c.execute('SELECT status FROM automation_flows').fetchone()[0],'waiting_external')
+
+    def test_real_http_resume_is_consumed_by_background_without_model_or_runner_replay(self):
+        import time
+        server=PanelServer((HOST,0),PanelHandler)
+        server.workspace,server.profile=self.service,self.profile
+        server.expected_host=f'127.0.0.1:{server.server_address[1]}'
+        server.origin=server.local_origin='http://'+server.expected_host
+        server.csrf_token='resume-owner-token'
+        with patch('control_everything.integrations.workbench_progress.WorkbenchProgressAdapter',return_value=self.host):
+            server.attach_workbench_runtime(Mock(ready=True))
+        thread=threading.Thread(target=server.serve_forever); thread.start()
+        try:
+            connection=HTTPConnection('127.0.0.1',server.server_address[1],timeout=3)
+            connection.request('POST',f"/api/workspace/tasks/{self.item['id']}/automation-resume",json.dumps(self.resume),
+                {'Origin':server.origin,'X-Session-CSRF':server.csrf_token,'X-Session-Client':'panel','Content-Type':'application/json'})
+            response=connection.getresponse(); value=json.loads(response.read()); connection.close()
+            self.assertEqual(response.status,202,value)
+            deadline=time.monotonic()+5
+            while time.monotonic()<deadline:
+                with self.profile.store.connection() as c:
+                    flow=c.execute('SELECT status FROM automation_flows').fetchone()[0]
+                if flow=='awaiting_acceptance': break
+                server.automation_consumer_service.wake(); threading.Event().wait(.02)
+            self.assertEqual(flow,'awaiting_acceptance')
+        finally:
+            server.shutdown(); thread.join(3); server.server_close()
+        self.assertEqual(len(self.host.calls),3)
+        self.assertEqual(len(self.verification_calls),1)
+        with self.profile.store.connection() as c:
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM automation_steps').fetchone()[0],5)
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM task_deliveries').fetchone()[0],1)
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM task_reviews').fetchone()[0],0)

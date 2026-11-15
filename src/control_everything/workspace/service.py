@@ -558,6 +558,9 @@ class WorkspaceService:
     def enable_task_automation(self, task_id, body):
         return automation_events.enable_local(self.store, task_id, body)
 
+    def resume_task_automation(self, task_id, body):
+        return automation_delivery_reviews.resume_capability(self,task_id,body)
+
     def review_task_delivery(self, task_id, body):
         from control_everything.workspace.native_progress import body_fields
         body_fields(body, ('expected_revision','progress_revision','delivery_id','verdict','reason','confirmed','client_token'))

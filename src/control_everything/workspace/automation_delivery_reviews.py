@@ -26,15 +26,20 @@ def _current(connection, task_id, body):
             or flow['attention'].get('expected_revision') != item['revision']
             or flow['attention'].get('progress_revision') != item['progress_revision']):
         fail('delivery_changed')
+    _evidence(connection, item, flow, verify, material)
+    return item,delivery,flow,verify
+
+
+def _evidence(connection, item, flow, verify, material):
+    receipt = material['receipt']
     context, request = flow['context'],verify['request']
-    if dispatch._brief(connection,task_id)['revision'] != context['brief_revision']:
+    if dispatch._brief(connection,item['id'])['revision'] != context['brief_revision']:
         fail('brief_changed')
     if dispatch._directory(connection,item['project_id'],context['input']['brief']['execution_directory_id']) != context['input']['directory']:
         fail('project_directory_changed')
     records = {kind: row_view(AutomationQueue._step(connection,request.get(kind+'_step_id'))) for kind in ('implement','plan','review')}
     implement, plan, review = (records[key] for key in ('implement','plan','review'))
     versions = {key:context[key] for key in ('requirement_revision','brief_revision','policy_version')}
-    receipt = material['receipt']
     if (any(not record or record['flow_id'] != flow['id'] or record['status'] != 'completed'
             or record['request'].get('context') != context for record in records.values())
             or implement['kind'] != 'implement' or plan['kind'] != 'plan' or review['kind'] != 'plan_review'
@@ -61,8 +66,6 @@ def _current(connection, task_id, body):
             'WHERE f.project_id=? AND s.writes_project=1 '
             "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",(flow['project_id'],)).fetchone():
         fail('automation_project_busy')
-    return item,delivery,flow,verify
-
 
 def review_delivery(service, task_id, body):
     body_fields(body, ('expected_revision','progress_revision','delivery_id','verdict','reason','confirmed','client_token'))
@@ -119,3 +122,68 @@ def review_delivery(service, task_id, body):
             ('integration' if approved else 'acceptance',packed(attention),now_utc(),flow['id']))
         saved = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=?',(identity,)).fetchone())
     return {**service.native_progress.get(task_id),'review':saved,'replayed':False}
+
+
+def resume_capability(service, task_id, body):
+    body_fields(body, ('flow_id','expected_flow_revision','expected_revision','progress_revision','confirmed'))
+    if (body['confirmed'] is not True or not isinstance(body['flow_id'], str)
+            or any(type(body[key]) is not int or body[key] < 0 for key in
+                   ('expected_flow_revision','expected_revision','progress_revision'))):
+        raise ProfileError('invalid_resume')
+
+    def current(connection):
+        item = task_access(connection, task_id, writable=True)
+        view = AutomationQueue._view(connection, body['flow_id'])
+        flow, verify = view['flow'], view['step']
+        if (not flow or flow['task_id'] != task_id or flow['project_id'] != item['project_id']
+                or not verify or verify['kind'] != 'verify' or verify['status'] != 'completed'):
+            fail('automation_step_changed')
+        expected = body['expected_flow_revision']
+        if flow['revision'] == expected+1 and flow['status'] == 'running':
+            check_versions(item, body)
+            return view, True
+        if flow['revision'] == expected+2 and flow['status'] == 'awaiting_acceptance':
+            delivery = row_view(connection.execute('SELECT * FROM task_deliveries WHERE id=?',
+                                (flow['attention'].get('delivery_id'),)).fetchone())
+            if (delivery and item['current_delivery_id'] == delivery['id']
+                    and delivery['task_id'] == task_id and delivery['source'] == 'automation_verify'
+                    and delivery['source_key'] == verify['id']
+                    and item['revision'] == body['expected_revision']+1
+                    and item['progress_revision'] == body['progress_revision']+1):
+                return view, True
+        check_versions(item, body)
+        if (flow['revision'] != expected or flow['status'] != 'waiting_external'
+                or flow['attention'].get('reason') != 'code_review_or_acceptance_not_connected'
+                or connection.execute('SELECT 1 FROM task_deliveries WHERE task_id=?', (task_id,)).fetchone()
+                or connection.execute('SELECT 1 FROM task_reviews WHERE task_id=?', (task_id,)).fetchone()):
+            fail('automation_step_changed')
+        problem = AutomationQueue._input_problem(connection,task_id,flow['context'])
+        if problem:
+            fail(problem)
+        material = {**verify['request'], 'receipt':verify['result'].get('receipt'),
+                    'verify_hash':digest(verify['result']), 'identity_scope':'declared_inputs'}
+        _evidence(connection,item,flow,verify,material)
+        return view, False
+
+    with service.store.connection() as connection:
+        view, at_stage = current(connection)
+    if at_stage:
+        return {**view, 'status':'already_at_stage'}
+    if service.check_verification is None:
+        fail('verification_checker_unavailable')
+    try:
+        checked = service.check_verification(view['step'],view['flow'])
+        if checked['receipt'] != view['step']['result']['receipt']:
+            raise ValueError('verification_receipt_changed')
+    except Exception:
+        fail('verification_evidence_invalid')
+    with service.store.connection() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        latest, at_stage = current(connection)
+        if at_stage:
+            return {**latest, 'status':'already_at_stage'}
+        if latest != view:
+            fail('automation_step_changed')
+        connection.execute("UPDATE automation_flows SET status='running',revision=revision+1,updated_at=? WHERE id=?",
+                           (now_utc(),body['flow_id']))
+        return {**AutomationQueue._view(connection,body['flow_id']), 'status':'resumed'}
