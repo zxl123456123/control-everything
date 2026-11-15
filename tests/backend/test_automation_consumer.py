@@ -89,8 +89,14 @@ class ConsumerTests(AutomationQueueFixture):
 
     def test_revisions_preserve_two_round_budget(self):
         self.host.verdict = 'revise'
+        cards = []
+        self.consumer.on_wait = cards.append
         result = self.pump(60)
         self.assertEqual(result['flow']['attention']['reason'], 'plan_revision_limit')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'plan_revision_limit')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
         self.assertEqual(len(self.host.calls), 6)
         with self.profile.store.connection() as connection:
             attempts = [json.loads(r[0])['plan_attempt'] for r in connection.execute("SELECT request_json FROM automation_steps WHERE kind='plan' ORDER BY ordinal")]

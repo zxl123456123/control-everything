@@ -9,7 +9,7 @@ from control_everything.workspace.automation_launch import AutomationLaunch, REA
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
-    rejection_card, repair_budget_card, target_wait_card, verification_card, waiting_card)
+    plan_revision_card, rejection_card, repair_budget_card, target_wait_card, verification_card, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -211,7 +211,9 @@ class AutomationConsumer:
             {'step_id': step['id'], **attention})
         if self.on_wait is not None:
             card = None
-            if status == 'waiting_user':
+            if status == 'waiting_user' and (view['flow'].get('attention') or {}).get('reason') == 'plan_revision_limit':
+                card = plan_revision_card(view['flow'])
+            elif status == 'waiting_user':
                 card = waiting_card(view['flow'])
             elif (view['flow'].get('attention') or {}).get('reason') == 'repair_budget_exhausted':
                 card = repair_budget_card(view['flow'])

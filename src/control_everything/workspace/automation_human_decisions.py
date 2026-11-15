@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def plan_revision_card(flow):
+    """Two plan revisions are used. The button does not grant another round or start implementation."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (attention.get('versions') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_user' or attention.get('reason') != 'plan_revision_limit' or not task_id
+            or attention.get('release_ready') is True or type(revision) is not int or revision < 0):
+        raise ValueError('plan_revision_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '两轮方案修订已用尽'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'plan_revision_limit'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '需要人处理'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '同一方案的两轮修订已经用尽。不会再自动改方案，也不会开始实现。'}, button]}}
+
+
 def repair_budget_card(flow):
     """The repair budget is exhausted. The button does not grant another round."""
     attention = (flow or {}).get('attention') or {}
