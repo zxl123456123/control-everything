@@ -53,7 +53,7 @@ class AutomationProducers:
 
     def receive(self, mailbox, token, body):
         fields = {'producer_id', 'event_id', 'chat_id', 'message_id', 'actor_open_id'}
-        if (type(body) is not dict or set(body) not in (fields | {'decision'}, fields | {'binding'})
+        if (type(body) is not dict or set(body) not in (fields | {'decision'}, fields | {'binding'}, fields | {'plan_release'})
                 or not _text(body['producer_id'])):
             raise HubError('invalid_request_fields', 400)
         config = self._producers.get(body['producer_id'])
@@ -65,7 +65,13 @@ class AutomationProducers:
             raise HubError('invalid_request_fields', 400)
         if body['chat_id'] != config['chat_id']:
             raise HubError('producer_chat_forbidden', 403)
-        if 'binding' in body:
+        if 'plan_release' in body:
+            release = body['plan_release']
+            if (type(release) is not dict or set(release) != {'namespace', 'flow_id', 'text'}
+                    or release['namespace'] != 'control-everything.automation.v1'
+                    or not _text(release['flow_id']) or release['text'] != '按已审方案实现'):
+                raise HubError('invalid_producer_decision', 400)
+        elif 'binding' in body:
             binding = body['binding']
             if (type(binding) is not dict or set(binding) != {'namespace', 'challenge_id', 'nonce'}
                     or any(not _text(value) for value in binding.values())
@@ -88,6 +94,9 @@ class AutomationProducers:
         if 'binding' in body:
             payload.update(kind='feishu_identity_binding', producer_id=config['producer_id'],
                            binding=dict(binding))
+        elif 'plan_release' in body:
+            payload.update(kind='feishu_plan_release', producer_id=config['producer_id'],
+                           plan_release=dict(release))
         else:
             payload.update(kind='feishu_card_decision', decision=dict(decision))
         return mailbox.receive(config['device_id'], config['generation'], source, body['event_id'], payload)
