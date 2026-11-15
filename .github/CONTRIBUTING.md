@@ -71,6 +71,12 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 ## 开发材料归属
 
+公开指南放 `docs/guides/`，架构与契约放 `docs/architecture/`，接入示例放 `docs/examples/`，`docs` 根只保留 [README.md 索引](../docs/README.md)；开发脚本放 `tools/scripts/`。活跃任务记录放 ignored `docs/current/<feature>/`，以 README.md 记录目标、验收、负责人、文件归属、状态、阻塞及证据链接；历史记录放 ignored `docs/archive/<feature>/`。日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`，旧材料放 `work/archive/<feature>/`；`current`、`archive` 根只放任务目录，`work` 根另保留 README.md 索引。本机记录不提交，整理时保留原文、失败证据和旧路径到新位置的清单。下文命令均从仓库根目录执行。
+
+一次性脚本、临时 clone、缓存、构建输出、预览 profile 和需留证的 TEMP/TMP 必须在本检出 `work/<feature>/` 下，不能为了缩短路径在盘根创建 `ce-*` 副本，也不能改用户或系统临时目录。正式构建沿用已有 `work/ce-native`、`work/workbench-engine-build/<run>/`；普通自动清理的单测可使用系统 Temp。需要临时环境时只给该子进程传任务内的环境变量；用完清理可重建内容，报告与失败日志按任务留存。历史脚本的旧绝对路径保留为证据，恢复前须重新核对，不能直接重跑。`python tools/scripts/check_architecture.py layout` 同时检查本机文档和 work 根散件；显式 `--files` 只检查给定发布候选。
+
+具体流程见[开发文件与产物管理](../docs/guides/development-files.md)。新一次性 driver 先登记 current 任务，再经 `python tools/scripts/run_task.py <feature> --output <产物> -- <命令>` 运行；实际写入从 `CE_TASK_WORK_DIR` 派生。入口检查声明路径、固定任务 cwd 和子进程临时目录，不能替代阅读 driver 的真实写入。结项保留最终验收、实际失败、映射清单及仍被引用的构建输入，再整理其他可重建材料；不按日期清空 archive。README 顶部明确当前状态，结束后归档；暂停和待验收保持 current。提交前额外核对原有合并/变基/拣选状态，独立任务不能消费别人的未完成合并。ignored 证据需要另行备份，不自行选择外部目录或上传。
+
 ### OpenClaw 飞书接入补丁
 
 飞书服务器插件的唯一 TypeScript 维护源为 `tools/packaging/openclaw-feishu/automation-ingress.patch`，固定上游提交、版本、npm 完整性和原始/补丁文件 hash 记录在同目录 `source.json`，保留上游 `LICENSE`。文件 hash 对文本使用 LF 换行。升级时重新核来源并重测，不直接修改线上 dist，不把服务器插件导入 `web`、Python wheel 或静态 HTTP 资源。
@@ -79,11 +85,9 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 在固定源码根使用符合上游 engines 的显式 Node 和 `source.json` 固定的 pnpm；各检出独立安装依赖，默认禁用安装脚本，不运行个人配置或真实会话。定向验证入口为 `node scripts/test-projects.mts extensions/feishu/src/automation-config.test.ts extensions/feishu/src/secret-contract.test.ts extensions/feishu/src/config-schema.test.ts extensions/feishu/src/accounts.test.ts -- --maxWorkers=1`。局部运行产物构建入口为 `node scripts/lib/plugin-npm-runtime-build.mjs extensions/feishu`；dist 不等于可安装发行包或部署验收，发行元数据必须沿用上游发布配方。
 
-公开指南放 `docs/guides/`，架构与契约放 `docs/architecture/`，接入示例放 `docs/examples/`，`docs` 根只保留 [README.md 索引](../docs/README.md)；开发脚本放 `tools/scripts/`。活跃任务记录放 ignored `docs/current/<feature>/`，以 README.md 记录目标、验收、负责人、文件归属、状态、阻塞及证据链接；历史记录放 ignored `docs/archive/<feature>/`。日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`，旧材料放 `work/archive/<feature>/`；`current`、`archive` 根只放任务目录，`work` 根另保留 README.md 索引。本机记录不提交，整理时保留原文、失败证据和旧路径到新位置的清单。下文命令均从仓库根目录执行。
+正式组装入口 `tools/packaging/build_openclaw_feishu.py` 接受 `--source` 独占固定源码目录、`--node` 明确 Node 可执行文件、`--pnpm` 固定版本包的 `bin/pnpm.mjs`，以及仓库 `work/<feature>/` 下尚不存在的 `--output`。源码须已独立安装上述测试与构建的依赖；上游测试 SDK 的 worker 编译会引用其它插件入口与 UI 测试配置，稀疏检出须覆盖真实导入闭包。组装入口不安装依赖、不启动模型或部署。
 
-一次性脚本、临时 clone、缓存、构建输出、预览 profile 和需留证的 TEMP/TMP 必须在本检出 `work/<feature>/` 下，不能为了缩短路径在盘根创建 `ce-*` 副本，也不能改用户或系统临时目录。正式构建沿用已有 `work/ce-native`、`work/workbench-engine-build/<run>/`；普通自动清理的单测可使用系统 Temp。需要临时环境时只给该子进程传任务内的环境变量；用完清理可重建内容，报告与失败日志按任务留存。历史脚本的旧绝对路径保留为证据，恢复前须重新核对，不能直接重跑。`python tools/scripts/check_architecture.py layout` 同时检查本机文档和 work 根散件；显式 `--files` 只检查给定发布候选。
-
-具体流程见[开发文件与产物管理](../docs/guides/development-files.md)。新一次性 driver 先登记 current 任务，再经 `python tools/scripts/run_task.py <feature> --output <产物> -- <命令>` 运行；实际写入从 `CE_TASK_WORK_DIR` 派生。入口检查声明路径、固定任务 cwd 和子进程临时目录，不能替代阅读 driver 的真实写入。结项保留最终验收、实际失败、映射清单及仍被引用的构建输入，再整理其他可重建材料；不按日期清空 archive。README 顶部明确当前状态，结束后归档；暂停和待验收保持 current。提交前额外核对原有合并/变基/拣选状态，独立任务不能消费别人的未完成合并。ignored 证据需要另行备份，不自行选择外部目录或上传。
+入口先核 HEAD、原文件完整 hash、patch/LICENSE hash、实际 Node/pnpm 版本，再在输出目录从原始字节正反应用 U0 patch 并严格核重建字节。应用使用 `git apply --unidiff-zero`，不忽略空白或尝试模糊匹配。原源码只允许未改动基线或精确匹配本 patch 的已应用状态；不覆盖其它工作。`--check` 仅作这些校验；完整运行再执行上述官方测试和局部 runtime 构建，产出 runtime 文件、逐文件 hash、命令日志与 receipt，失败也记录 receipt。子进程临时目录归该输出，不改系统 TEMP/TMP。构建器边界验证使用 `python -m unittest -v tests.backend.test_openclaw_feishu_build`。
 
 ## 功能目录与新增代码归属
 
