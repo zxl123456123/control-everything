@@ -65,8 +65,10 @@ class IdentityHTTPTests(unittest.TestCase):
     def test_local_authority_and_strict_body(self):
         for path,method,body in (('', 'GET',None),('/challenges','POST',{'producer_id':'producer'})):
             for headers in ({'Origin':'https://evil.example'},{'X-CE-Proxy-Token':'forged'}):
-                self.assertEqual(self.request(path,method,body,headers)[0],403)
-        self.assertEqual(self.request('/challenges','POST',{'producer_id':'producer'},{'X-Session-CSRF':'wrong'})[0],403)
+                with self.subTest(method=method,path=path,header_names=tuple(headers)):
+                    self.assertEqual(self.request(path,method,body,headers)[0],403)
+        with self.subTest(method='POST',path='/challenges',header_names=('X-Session-CSRF',)):
+            self.assertEqual(self.request('/challenges','POST',{'producer_id':'producer'},{'X-Session-CSRF':'wrong'})[0],403)
         for body in ({'producer_id':'producer','app_id':'forged'},{'producer_id':'producer','generation':2}, {'producer_id':1}, []):
             self.assertEqual(self.request('/challenges','POST',body)[0],400)
         self.assertEqual(self.request('/challenges','POST',b' '*16385)[0],413)
@@ -122,3 +124,63 @@ class IdentityHTTPTests(unittest.TestCase):
             for table in ('automation_identity_challenges','automation_identity_bindings'):
                 self.assertEqual(db.execute('SELECT count(*) FROM '+table).fetchone()[0],0)
         self.connector.identity_context.assert_not_called()
+
+class RejectedProxyBodyTests(unittest.TestCase):
+    def handler(self, method):
+        import io
+        from email.message import Message
+        from types import SimpleNamespace
+        handler = PanelHandler.__new__(PanelHandler)
+        handler.server = SimpleNamespace(expected_host='127.0.0.1:1234')
+        handler.path = '/api/workspace/projects/p/automation-identities/challenges'
+        handler.headers = Message()
+        handler.headers['Host'] = '127.0.0.1:1234'
+        handler.headers['X-CE-Proxy-Token'] = 'forged'
+        handler.headers['Content-Length'] = '2'
+        handler.rfile = io.BytesIO(b'{}')
+        handler.connection = Mock()
+        handler.connection.gettimeout.return_value = 3
+        handler._post_body_pending = method == 'POST'
+        return handler
+
+    def test_rejected_proxy_discards_actual_post_body_before_reply(self):
+        handler = self.handler('POST')
+        events = []
+        original = handler._discard_rejected_post_body
+        def discard():
+            events.append('discard')
+            original()
+        handler._discard_rejected_post_body = Mock(side_effect=discard)
+        def reply(*args):
+            events.append('reply')
+            self.assertEqual(handler.rfile.tell(),2)
+        handler.reply = Mock(side_effect=reply)
+        self.assertFalse(handler.remote_gate())
+        self.assertEqual(events,['discard','reply'])
+        handler.reply.assert_called_once_with(403,{'reason':'host_rejected'})
+
+    def test_rejected_get_does_not_read_or_change_timeout(self):
+        handler = self.handler('GET')
+        handler.reply = Mock()
+        self.assertFalse(handler.remote_gate())
+        self.assertEqual(handler.rfile.tell(),0)
+        handler.connection.settimeout.assert_not_called()
+
+    def test_valid_remote_proxy_passes_without_discard(self):
+        from control_everything.integrations.remote_access import RemoteAccess, PROXY_HEADER
+        import secrets
+        handler = self.handler('POST')
+        access = RemoteAccess('https://panel.example.test',secrets.token_urlsafe(32))
+        handler.server.remote_access = access
+        handler.headers.replace_header('Host',access.authority)
+        del handler.headers['X-CE-Proxy-Token']
+        handler.headers[PROXY_HEADER] = access.proxy_secret
+        handler.headers['X-CE-Page-Context'] = 'a'*32
+        handler.headers['X-CE-Storage-Scope'] = 'a'*64
+        handler.reply = Mock()
+        handler._discard_rejected_post_body = Mock(wraps=handler._discard_rejected_post_body)
+        self.assertTrue(handler.remote_gate())
+        handler._discard_rejected_post_body.assert_not_called()
+        handler.reply.assert_not_called()
+        self.assertEqual(handler.rfile.tell(),0)
+        handler.connection.settimeout.assert_not_called()

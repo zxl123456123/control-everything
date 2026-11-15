@@ -214,21 +214,26 @@ class PanelHandler(BaseHTTPRequestHandler):
             if self.headers.get_all("Host", []) != [self.server.expected_host] or any(
                     self.headers.get_all(name, []) for name in
                     ("X-CE-Page-Context", "X-CE-Storage-Scope", "X-CE-Context", "X-CE-Proxy-Token")):
+                self._discard_rejected_post_body()
                 self.reply(403, {"reason": "host_rejected"})
                 return False
             return True
         if not access or not access.accept_proxy_request(self.headers):
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_proxy_rejected"})
             return False
         path = urlsplit(self.path)
         if (path.path.startswith("/api/agent/") or path.path == "/api/workspace/agents/heartbeat"
                 or self.headers.get_all("X-Session-Client", []) == ["stdio"]):
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_agent_route_rejected"})
             return False
         if path.path.startswith("/api/desktop/") or path.path in {"/desktop", "/product", "/", "/health", "/workbench/web-index.html"}:
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_local_route_rejected"})
             return False
         if not remote_context.static_path(self.server, path.path) and remote_context.metadata(self) is None:
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_context_required"})
             return False
         return True
