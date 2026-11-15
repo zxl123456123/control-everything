@@ -558,6 +558,10 @@ class WorkspaceService:
     def enable_task_automation(self, task_id, body):
         return automation_events.enable_local(self.store, task_id, body)
 
+    def register_task_integration_target(self, task_id, body):
+        from control_everything.workspace.automation_integration_targets import register_target
+        return register_target(self,task_id,body)
+
     def resume_task_automation(self, task_id, body):
         return automation_delivery_reviews.resume_capability(self,task_id,body)
 

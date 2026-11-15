@@ -7,7 +7,7 @@ from control_everything.input_validation import ProfileError
 from control_everything.sessions.source import canonical_uuid
 from control_everything.workspace.store import WorkspaceError
 
-ROUTE = re.compile(r'/api/workspace/tasks/([^/]+)/(progress|automation-enable|automation-resume|native-start|native-resume|native-release|native-adopt|native-feedback|delivery-review|native-messages/([^/]+)/send)\Z')
+ROUTE = re.compile(r'/api/workspace/tasks/([^/]+)/(progress|automation-integration-target|automation-enable|automation-resume|native-start|native-resume|native-release|native-adopt|native-feedback|delivery-review|native-messages/([^/]+)/send)\Z')
 
 
 def handle(handler, path, *, write=False):
@@ -36,6 +36,8 @@ def handle(handler, path, *, write=False):
             body = handler.read_json_body(max_bytes=65536, strict=True)
             if action == 'automation-enable':
                 result = workspace.enable_task_automation(task_id, body)
+            elif action == 'automation-integration-target':
+                result = workspace.register_task_integration_target(task_id, body)
             elif action == 'automation-resume':
                 result = workspace.resume_task_automation(task_id, body)
             elif action == 'native-start':
