@@ -82,9 +82,16 @@ class AutomationDeliveryTests(AutomationQueueFixture):
                     cwd=self.root/'repo',task_id=self.item['id'],flow_id=self.view['flow']['id'],
                     step_id=self.view['step']['id'],source_files=files)
         (output/'stderr.log').write_bytes(b'changed')
+        cards = []
+        self.consumer.on_wait = cards.append
         result = self.pump()
         self.assertEqual(result['flow']['status'], 'waiting_external')
         self.assertEqual(result['flow']['attention']['reason'], 'verification_evidence_invalid')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'verification_evidence_invalid')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('verdict', value)
+        self.assertNotIn('choice', value)
 
     def test_missing_checker_cannot_publish(self):
         self.prepare()

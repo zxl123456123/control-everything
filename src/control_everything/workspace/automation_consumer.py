@@ -256,6 +256,8 @@ class AutomationConsumer:
                 card = independent_review_card(view['flow'])
             elif (view['flow'].get('attention') or {}).get('reason') == 'project_unavailable':
                 card = unavailable_card(view['flow'])
+            elif (view['flow'].get('attention') or {}).get('reason') == 'verification_evidence_invalid':
+                card = evidence_card(view['flow'])
             if card is not None:
                 try:
                     self.on_wait(card)
