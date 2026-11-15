@@ -458,6 +458,21 @@ class ConsumerTests(AutomationQueueFixture):
                 'SELECT kind FROM automation_steps ORDER BY ordinal')]
         self.assertIn('code_review', kinds)
 
+    def test_code_review_revise_shares_two_repair_rounds(self):
+        self.host.kind = 'feature'
+        self.host.code_verdict = 'revise'
+        self.configure_verification()
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        from control_everything.workspace.automation_human_decisions import apply_waiting_reply
+        apply_waiting_reply(self.consumer, waiting['flow'], cards[0]['body']['elements'][1]['value'], 'owner')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'repair_budget_exhausted')
+        with self.profile.store.connection() as connection:
+            repairs = [row for row in connection.execute("SELECT request_json FROM automation_steps WHERE kind='implement'")]
+        self.assertEqual(sum(1 for row in repairs if json.loads(row['request_json']).get('repair_of')), 2)
+
     def _store_release(self, flow_id, revision, message_id='om-release'):
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
         binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,

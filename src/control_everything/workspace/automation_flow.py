@@ -205,14 +205,17 @@ class AutomationQueue:
             self._guard(connection, lease)
             flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (previous['flow_id'],)).fetchone()
             current = self._step(connection, previous['id'])
-            if (not current or current['kind'] != 'verify' or current['status'] != 'failed'
-                    or flow['status'] != 'running' or current['flow_revision'] != previous['flow_revision']):
+            review = current and current['kind'] == 'code_review' and current['status'] == 'completed'
+            failed_verify = current and current['kind'] == 'verify' and current['status'] == 'failed'
+            if (not current or not (review or failed_verify) or flow['status'] != 'running'
+                    or current['flow_revision'] != previous['flow_revision']):
                 fail('automation_step_changed')
             existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
                                           (flow['id'], current['ordinal'] + 1)).fetchone()
             if existing:
                 repair = json.loads(existing['request_json']).get('repair_of') or {}
-                if existing['kind'] != 'implement' or repair.get('verify_step_id') != current['id']:
+                source_id = repair.get('code_review_step_id') if review else repair.get('verify_step_id')
+                if existing['kind'] != 'implement' or source_id != current['id']:
                     fail('automation_step_conflict')
                 return row_view(self._step(connection, existing['id']))
             used = sum(1 for row in connection.execute(
@@ -229,8 +232,9 @@ class AutomationQueue:
                                   "('reserved','dispatching','running','unknown','cancelling')",
                                   (flow['project_id'],)).fetchone():
                 return None
-            frozen = packed({'context': context, **request, 'repair_of': {
-                'verify_step_id': current['id'], 'round': used + 1}})
+            body = json.loads(current['request_json'])
+            source = {'code_review_step_id': current['id'], 'verify_step_id': body.get('verify_step_id')} if review else {'verify_step_id': current['id']}
+            frozen = packed({'context': context, **request, 'repair_of': {**source, 'round': used + 1}})
             identity, stamp = str(uuid4()), now_utc()
             connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
                 'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
