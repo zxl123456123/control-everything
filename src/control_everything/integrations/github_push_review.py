@@ -38,22 +38,27 @@ def review_push(repository, before, after, get, model):
     elif (not data.get('commits') or data['commits'][-1].get('sha') != after
           or data.get('merge_base_commit', {}).get('sha') != before):
         raise ValueError('review_comparison_not_exact')
-    files, locations, budget, partial, deletion_only = [], {}, 8000, False, False
+    files, locations, budget, deletion_only = [], {}, 32000, False
+    missing_text, budget_limited = False, False
     for item in sorted(data['files'], key=lambda f: f['filename'].startswith(('tests/', 'docs/'))):
         patch = item.get('patch')
-        if not patch or len(files) >= 20 or budget <= 0:
-            partial = True
+        if not patch:
+            missing_text = True
             continue
-        text, added, truncated = _numbered_patch(patch, min(6000 if len(data['files']) == 1 else 2000, budget))
-        partial |= truncated
+        if budget <= 0:
+            budget_limited = True
+            continue
+        text, added, truncated = _numbered_patch(patch, budget)
+        budget_limited |= truncated
         if not text:
-            partial = True
+            missing_text |= not truncated
             continue
         deletion_only |= not any(line.startswith('+') for line in patch.split('\n'))
         budget -= len(text)
         locations[item['filename']] = added
         files.append({'path': item['filename'], 'status': item.get('status'), 'patch': text, 'truncated': truncated})
-    partial |= len(data['files']) >= 300
+    github_file_limit = len(data['files']) >= 300
+    partial = missing_text or budget_limited or github_file_limit
     if not files:
         raise ValueError('review_no_text_diff')
     commits = [data] if head_only else data['commits']
@@ -78,7 +83,9 @@ def review_push(repository, before, after, get, model):
         lines.extend(['<b>AI 简评：</b>' + _text(issue), f'https://github.com/{repository}/blob/{after}/{quote(file["path"], safe="/")}#L{line}'])
     if head_only or partial or deletion_only:
         lines.append('分析范围：' + ('新建分支，仅分析分支头提交。' if head_only else '')
-                     + ('部分文本差异；大文件、二进制或超限内容未覆盖。' if partial else '')
+                     + ('部分文件无法取得文本差异。' if missing_text else '')
+                     + ('受总差异预算限制，部分内容未覆盖。' if budget_limited else '')
+                     + ('GitHub 返回文件数达到300，可能还有未返回的差异。' if github_file_limit else '')
                      + ('纯删除变更仅作总结，简评不覆盖删除引入的问题。' if deletion_only else ''))
     return '\n'.join(lines)
 
@@ -139,7 +146,7 @@ def make_reviewer(config, *, pull_request=False):
                 '仅报告有diff直接证据的具体缺陷，不写泛泛建议，不硬凑问题。无缺陷则findings为空。'
                 '输出JSON：{"summary":"一段中文，不超过250字","findings":[{"path":"实际文件路径","line":新增侧行号,"issue":"用清楚中文说明什么情况下会出什么问题，以及影响"}]}。最多3个问题。'},
                 {'role': 'user', 'content': json.dumps(data, ensure_ascii=False)}]},
-            headers={'Authorization': 'Bearer ' + provider['apiKey']}, timeout=90)
+            headers={'Authorization': 'Bearer ' + provider['apiKey']}, timeout=300)
         choices = result.get('choices')
         if not choices or not isinstance(choices, list):
             raise ValueError('review_model_response_invalid')

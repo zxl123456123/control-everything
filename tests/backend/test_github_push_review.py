@@ -66,7 +66,7 @@ class PushReviewTests(unittest.TestCase):
             ('@@ -8,3 +8,3 @@\n unchanged\n-old\n+new\n tail', 10),
             ('@@ -8,2 +8,0 @@\n-old\n-other', 8),
             ('@@ -8,2 +8,0 @@\n-old\n-other', 9),
-            ('@@ -8 +8,2 @@\n+visible\n+' + 'x' * 6100, 9),
+            ('@@ -8 +8,2 @@\n+visible\n+' + 'x' * 32100, 9),
         ]
         for patch, line in patches:
             with self.subTest(line=line, patch=patch[:40]):
@@ -92,7 +92,7 @@ class PushReviewTests(unittest.TestCase):
 
     def test_complete_lines_and_coverage_are_supplied_within_existing_budget(self):
         data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A}, 'files': [
-            {'filename': 'a.py', 'patch': '@@ -1 +1,2 @@\n+visible\n+' + 'x' * 2100},
+            {'filename': 'a.py', 'patch': '@@ -1 +1,2 @@\n+visible\n+' + 'x' * 32100},
             {'filename': 'binary.png'},
             {'filename': 'b.py', 'patch': '@@ -1 +1 @@\n-old\n+new'},
         ]}
@@ -103,11 +103,15 @@ class PushReviewTests(unittest.TestCase):
             self.assertFalse(request['files'][1]['truncated'])
             self.assertIn('1 +visible', file['patch'])
             self.assertNotIn('added_lines', file)
-            self.assertEqual(request['coverage'], {'head_only': False, 'partial': True,
-                'changed_files': 3, 'analyzed_files': 2})
-            self.assertLessEqual(len(file['patch']), 2000)
+            self.assertEqual(request['coverage']['changed_files'], 3)
+            self.assertEqual(request['coverage']['analyzed_files'], 2)
+            self.assertTrue(request['coverage']['partial'])
+            self.assertLessEqual(len(file['patch']), 32000)
             return {'summary': '更新', 'findings': []}
-        self.assertIn('部分文本差异', review_push('example/repo', A, B, lambda p: data, model))
+        text = review_push('example/repo', A, B, lambda p: data, model)
+        self.assertIn('部分文件无法取得文本差异', text)
+        self.assertIn('受总差异预算限制', text)
+        self.assertNotIn('二进制', text)
 
     def test_pure_deletion_can_be_summarized_without_new_line_findings(self):
         data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
@@ -121,21 +125,20 @@ class PushReviewTests(unittest.TestCase):
         self.assertIn('简评不覆盖删除引入的问题', text)
 
     def test_total_numbered_diff_stays_within_budget(self):
-        patch = '@@ -1,100 +1,100 @@\n' + '\n'.join('+' + 'x' * 30 for _ in range(100))
+        patch = '@@ -1,200 +1,200 @@\n' + '\n'.join('+' + 'x' * 30 for _ in range(200))
         data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
                 'files': [{'filename': f'src/{i}.py', 'patch': patch} for i in range(8)]}
         def model(request):
-            self.assertLessEqual(sum(len(f['patch']) for f in request['files']), 8000)
-            self.assertTrue(all(len(f['patch']) <= 2000 for f in request['files']))
+            self.assertLessEqual(sum(len(f['patch']) for f in request['files']), 32000)
             self.assertTrue(request['coverage']['partial'])
             return {'summary': '更新', 'findings': []}
-        self.assertIn('部分文本差异', review_push('example/repo', A, B, lambda p: data, model))
+        self.assertIn('受总差异预算限制', review_push('example/repo', A, B, lambda p: data, model))
 
     def test_fragments_without_changes_do_not_consume_file_slots(self):
         for oversized in ('@@ -0,0 +1 @@\n+', '@@ -1 +1 @@\n ', '@@ -1 +0,0 @@\n-'):
             with self.subTest(prefix=oversized):
                 data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
-                        'files': [{'filename': f'src/large{i}.py', 'patch': oversized + 'x' * 2100}
+                        'files': [{'filename': f'src/large{i}.py', 'patch': oversized + 'x' * 32100}
                                   for i in range(20)] + [
                             {'filename': 'src/small.py', 'patch': '@@ -1 +1 @@\n-old\n+new'}]}
                 def model(request):
@@ -148,7 +151,7 @@ class PushReviewTests(unittest.TestCase):
 
     def test_header_only_diff_does_not_invoke_model(self):
         data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
-                'files': [{'filename': 'large.py', 'patch': '@@ -0,0 +1 @@\n+' + 'x' * 6100}]}
+                'files': [{'filename': 'large.py', 'patch': '@@ -0,0 +1 @@\n+' + 'x' * 32100}]}
         def model(request):
             self.fail('model must not summarize a hunk header without changed code')
         with self.assertRaisesRegex(ValueError, 'review_no_text_diff'):
@@ -180,7 +183,7 @@ class PushReviewTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             review_pull_request('example/repo', A, B, get, model, context)
 
-    def test_model_receives_shared_evidence_rules_and_original_timeout(self):
+    def test_model_receives_shared_evidence_rules_and_extended_timeout(self):
         from control_everything.integrations.github_push_review import make_reviewer
         data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
                 'files': [{'filename': 'a.py', 'patch': '@@ -1 +1 @@\n-old\n+new'}]}
@@ -195,7 +198,7 @@ class PushReviewTests(unittest.TestCase):
             make_reviewer({'repository': 'example/repo', 'ai_review': {'github_env_file': 'fixture.env'},
                            'openclaw_profile': 'fixture.json'})(A, B)
         call = opener.open.call_args_list[-1]
-        self.assertEqual(call.kwargs['timeout'], 90)
+        self.assertEqual(call.kwargs['timeout'], 300)
         request = json.loads(call.args[0].data)
         system = request['messages'][0]['content']
         for rule in ('summary和findings', '未展示不等于不存在', '完整diff不等于完整文件或完整DOM', '证据不足则不报告'):
@@ -203,16 +206,45 @@ class PushReviewTests(unittest.TestCase):
         payload = json.loads(request['messages'][1]['content'])
         self.assertFalse(payload['files'][0]['truncated'])
 
-    def test_single_changed_file_can_use_up_to_6000_characters(self):
-        for rows, truncated in ((90, False), (180, True)):
+    def test_single_file_can_use_the_total_budget(self):
+        for rows, truncated in ((180, False), (700, True)):
             with self.subTest(rows=rows):
                 patch = f'@@ -0,0 +1,{rows} @@\n' + '\n'.join('+' + 'x' * 50 for _ in range(rows))
                 data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
                         'files': [{'filename': 'a.py', 'patch': patch}]}
                 def model(request):
                     file = request['files'][0]
-                    self.assertGreater(len(file['patch']), 2000)
-                    self.assertLessEqual(len(file['patch']), 6000)
+                    self.assertGreater(len(file['patch']), 6000)
+                    self.assertLessEqual(len(file['patch']), 32000)
                     self.assertEqual(file['truncated'], truncated)
                     return {'summary': '更新', 'findings': []}
                 review_push('example/repo', A, B, lambda p: data, model)
+
+    def test_multiple_files_use_remaining_budget_without_per_file_or_count_limit(self):
+        patch = '@@ -0,0 +1,70 @@\n' + '\n'.join('+' + 'x' * 50 for _ in range(70))
+        files = [{'filename': f'src/{i}.py', 'patch': patch if i < 2 else '@@ -0,0 +1 @@\n+new'}
+                 for i in range(25)]
+        data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A}, 'files': files}
+        def model(request):
+            self.assertEqual(len(request['files']), 25)
+            self.assertTrue(all(not f['truncated'] for f in request['files']))
+            self.assertGreater(len(request['files'][0]['patch']), 2000)
+            self.assertFalse(request['coverage']['partial'])
+            return {'summary': '更新', 'findings': []}
+        self.assertNotIn('分析范围', review_push('example/repo', A, B, lambda p: data, model))
+
+    def test_github_file_limit_is_reported_separately(self):
+        data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A},
+                'files': [{'filename': f'{i}.py', 'patch': '@@ -0,0 +1 @@\n+x'} for i in range(300)]}
+        text = review_push('example/repo', A, B, lambda p: data, lambda d: {'summary': '更新', 'findings': []})
+        self.assertIn('GitHub 返回文件数达到300，可能还有未返回的差异', text)
+        self.assertNotIn('受总差异预算限制', text)
+        self.assertNotIn('无法取得文本差异', text)
+
+    def test_missing_patch_does_not_claim_budget_exhaustion_or_binary_content(self):
+        data = {'commits': [{'sha': B}], 'merge_base_commit': {'sha': A}, 'files': [
+            {'filename': 'unavailable.py'}, {'filename': 'visible.py', 'patch': '@@ -0,0 +1 @@\n+new'}]}
+        text = review_push('example/repo', A, B, lambda p: data, lambda d: {'summary': '更新', 'findings': []})
+        self.assertIn('部分文件无法取得文本差异', text)
+        for absent in ('总差异预算', 'GitHub 返回文件数', '二进制'):
+            self.assertNotIn(absent, text)
