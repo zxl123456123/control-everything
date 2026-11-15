@@ -14,6 +14,7 @@ from control_everything.http.workbench import WorkbenchAssets
 from control_everything.installation import manifest
 from control_everything.integrations.remote_connector import ConnectorConfig, ConnectorStore, RemoteConnector, ConnectorError, InitialServerConfig
 from control_everything.integrations.remote_account import RemoteAccount
+from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, safe_path
 
 
@@ -100,7 +101,8 @@ class Desktop:
             if not self.runtime.ready:
                 self.runtime.start(self.server.local_origin)
             port = urlsplit(self.runtime.websocket_origin).port
-            self.connector.connect(self.server.server_address[1], port, runtime_ready=self.runtime.ready)
+            self.connector.connect(self.server.server_address[1], port, runtime_ready=self.runtime.ready,
+                                   stop_event=self._stop)
         except (ConnectorError, WorkbenchUnavailable, OSError, ValueError):
             # Connector owns the detailed retry/status state; never start a competing runtime.
             return
@@ -129,12 +131,16 @@ class Desktop:
             self.server.desktop_account.close()
         if self._worker:
             self._worker.join(timeout=10)
-        if self.connector:
-            self.connector.close()
         try:
-            self.runtime.close()
+            if self.connector:
+                self.connector.close()
         finally:
-            self.server.server_close()
+            try:
+                self.runtime.close()
+            finally:
+                self.server.server_close()
+        if self._worker is not None and self._worker.is_alive():
+            raise ConnectorError('remote_worker_cleanup_unverified')
 
 
 def _news_runtime(root, engine_relative, files):
@@ -186,7 +192,8 @@ def build_desktop(product_root, data_dir=None, port=8766, *, credential_root=Non
             elif selected.get('storage', '').startswith('generation-'):
                 remote_root = remote_root / selected['storage']
             connector = RemoteConnector(ConnectorConfig(selected['issuer'], selected['hub_origin'], path('ssh'), path('keygen')),
-                                        ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices)
+                                        ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices,
+                                        mailbox_sink=RemoteAutomationInbox(server.workspace.store))
         account = RemoteAccount(connector.peer, connector.store) if connector else None
         editable = not embedded['issuer'] and not embedded['hub_origin'] and selected.get('storage') != 'legacy'
         window_host = manifest.no_links(root / manifest.DESKTOP_WINDOW_EXE) if manifest.DESKTOP_WINDOW_EXE in names else None

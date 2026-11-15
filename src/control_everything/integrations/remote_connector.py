@@ -341,7 +341,7 @@ class DeviceKeys:
 
 class RemoteConnector:
     def __init__(self, config, store, *, peer=None, keys=None, tunnel_factory=RemoteTunnel,
-                 now=time.monotonic, on_revoked=None):
+                 now=time.monotonic, on_revoked=None, mailbox_sink=None):
         self.config, self.store = config, store
         self.peer = peer or RemotePeer(config)
         self.keys = keys or DeviceKeys(config.keygen_executable)
@@ -365,11 +365,15 @@ class RemoteConnector:
         self._operation = None
         self._on_revoked = on_revoked
         self._health_identity = None
+        self.mailbox_sink = mailbox_sink
+        self.mailbox_code = None
 
     def status(self):
         with self._lock:
             result = {"state": self._state, "code": self._code, "configured": True,
                       "portal_url": self.config.hub_origin + "/remote"}
+            if self.mailbox_code:
+                result['mailbox_code'] = self.mailbox_code
             if self._grant and self._state == "authorizing":
                 result.update({k: self._grant[k] for k in ("user_code", "verification_uri", "expires_in")})
                 complete = verified_complete_uri(self._grant.get("verification_uri_complete"), self.config.issuer)
@@ -664,9 +668,11 @@ class RemoteConnector:
                 self._code = "remote_revoke_unconfirmed" if requested else "revoked"
             return self.status()
 
-    def connect(self, http_port, ws_port, *, runtime_ready=True):
+    def connect(self, http_port, ws_port, *, runtime_ready=True, stop_event=None):
         """Called by the product worker; no HTTP GET starts a tunnel or OAuth polling."""
         with self._lock:
+            if self._stop.is_set() or stop_event is not None and stop_event.is_set():
+                return self.status()
             # The authorization/confirmation path owns these stages until it yields.
             if self._state in {"authorizing", "awaiting_local_confirmation", "enrolling"}:
                 return self.status()
@@ -703,6 +709,7 @@ class RemoteConnector:
                     self._state = response.get("state") if response.get("state") in {"online", "offline"} else "connecting"
                     self._code = self._state
                     self._failures = 0
+                    self._poll_mailbox(credential, stop_event)
             except (ConnectorError, ProcessError, OSError, ValueError, KeyError) as error:
                 self._disconnect()
                 code = getattr(error, "code", "remote_connection_failed")
@@ -718,6 +725,57 @@ class RemoteConnector:
                     self._failures += 1
                     self._next_retry = self.now() + min(60, 2 ** min(self._failures, 6))
             return self.status()
+
+    def _poll_mailbox(self, credential, stop_event):
+        if self.mailbox_sink is None:
+            return
+        def current():
+            return (not self._stop.is_set() and not (stop_event and stop_event.is_set())
+                    and not self.store.read('revocation_requested.json')
+                    and not self.store.read('revocation.json')
+                    and not self.store.read('pending.json')
+                    and self.store.read('credentials.bin', protected=True) == credential)
+        if not current():
+            return
+        binding = {'hub_origin': self.config.hub_origin,
+                   **{key: credential[key] for key in ('device_id', 'generation', 'credential_revision')}}
+        ack = None
+        try:
+            ack = self.mailbox_sink.pending_ack(binding)
+            if ack is None:
+                response = self.peer.request('POST', '/remote/desktop/automation/claim', {},
+                                             credential['control_token'])
+                if not current():
+                    return
+                if set(response) != {'message'}:
+                    raise ValueError('remote_mailbox_response_invalid')
+                if response['message'] is None:
+                    self.mailbox_code = None
+                    return
+                ack = self.mailbox_sink.receive(binding, response['message'])['ack']
+            if not current():
+                return
+            response = self.peer.request('POST', '/remote/desktop/automation/ack', ack,
+                                         credential['control_token'])
+            if not current():
+                return
+            if response != {'id': ack['message_id'], 'state': 'acknowledged'}:
+                raise ValueError('remote_mailbox_response_invalid')
+            self.mailbox_sink.acknowledge(binding, ack['message_id'], ack['lease_id'])
+            self.mailbox_code = None
+        except ConnectorError as error:
+            if error.status in (401, 403, 410):
+                raise
+            if error.status == 409 and ack is not None:
+                try:
+                    self.mailbox_sink.expire_lease(binding, ack['message_id'], ack['lease_id'])
+                except Exception:
+                    self.mailbox_code = 'remote_mailbox_receipt_failed'
+                    return
+            self.mailbox_code = 'remote_mailbox_transport_failed'
+        except Exception:
+            # Receipt failure must not tear down a healthy tunnel or expose message data.
+            self.mailbox_code = 'remote_mailbox_receipt_failed'
 
     def _tunnel_config(self, config):
         host, user, port = config["ssh"]["host"], config["ssh"]["user"], config["ssh"]["port"]

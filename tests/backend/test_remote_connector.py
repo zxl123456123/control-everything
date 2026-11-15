@@ -259,6 +259,161 @@ class DiscoveredEndpointTests(unittest.TestCase):
 
 
 class ConnectorTests(unittest.TestCase):
+    def test_inflight_identity_or_stop_changes_preserve_durable_pending(self):
+        from control_everything.workspace.store import WorkspaceStore
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        self.authorize()
+        self.connector.confirm()
+        original = self.peer.request
+        credential = self.store.read('credentials.bin', protected=True)
+        for phase, change in (('claim', 'credential'), ('ack', 'credential'), ('ack', 'stop'), ('ack', 'revoke')):
+            with self.subTest(phase=phase, change=change):
+                inbox = RemoteAutomationInbox(WorkspaceStore(self.store.root / (phase + change + '.db'), profile=True))
+                self.connector.mailbox_sink = inbox
+                def request(method, path, body=None, token=None, **kwargs):
+                    if path.endswith('/automation/' + phase):
+                        if change == 'credential':
+                            self.store.write('credentials.bin', {**credential, 'credential_revision': 2}, protected=True)
+                        elif change == 'stop':
+                            self.connector._stop.set()
+                        else:
+                            self.store.write('revocation_requested.json', {'pending': True})
+                    if path.endswith('/automation/claim'):
+                        return {'message': dict(id='m', source='s', event_id='e', payload={}, lease_id='l', lease_expires_at=0.)}
+                    if path.endswith('/automation/ack'):
+                        return {'id': 'm', 'state': 'acknowledged'}
+                    return original(method, path, body, token, **kwargs)
+                self.peer.request = request
+                self.connector.connect(8766, 12345)
+                with inbox.store.connection() as db:
+                    rows = db.execute('SELECT ack_state FROM automation_remote_inbox').fetchall()
+                    self.assertEqual([row[0] for row in rows], [] if phase == 'claim' else ['pending'])
+                self.connector._stop.clear()
+                self.store.clear('revocation_requested.json')
+                self.store.write('credentials.bin', credential, protected=True)
+
+    def test_connector_stale_lease_then_claims_new_lease_without_duplicate_row(self):
+        from control_everything.workspace.store import WorkspaceStore
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        self.authorize()
+        self.connector.confirm()
+        inbox = RemoteAutomationInbox(WorkspaceStore(self.store.root / 'stale.db', profile=True))
+        self.connector.mailbox_sink = inbox
+        original = self.peer.request
+        claims, acks = [], []
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/claim'):
+                lease = 'lease' + str(len(claims))
+                claims.append(lease)
+                return {'message': dict(id='m', source='s', event_id='e', payload={}, lease_id=lease, lease_expires_at=0.)}
+            if path.endswith('/automation/ack'):
+                acks.append(body['lease_id'])
+                if len(acks) == 1:
+                    raise ConnectorError('mailbox_lease_changed', 409)
+                return {'id': 'm', 'state': 'acknowledged'}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.connector.connect(8766, 12345)
+        with inbox.store.connection() as db:
+            self.assertEqual(db.execute('SELECT ack_state FROM automation_remote_inbox').fetchone()[0], 'lease_stale')
+        self.connector.connect(8766, 12345)
+        with inbox.store.connection() as db:
+            rows = db.execute('SELECT ack_state,lease_id FROM automation_remote_inbox').fetchall()
+            self.assertEqual([tuple(row) for row in rows], [('acknowledged', 'lease1')])
+        self.assertEqual(acks, ['lease0', 'lease1'])
+
+    def test_claim_stop_or_revocation_never_persists_or_acks(self):
+        self.authorize()
+        self.connector.confirm()
+        original = self.peer.request
+        for kind in ('stop', 'revoke'):
+            with self.subTest(kind=kind):
+                sink = Mock()
+                sink.pending_ack.return_value = None
+                self.connector.mailbox_sink = sink
+                calls = []
+                def request(method, path, body=None, token=None, **kwargs):
+                    if '/automation/' in path:
+                        calls.append(path)
+                        if kind == 'stop':
+                            self.connector._stop.set()
+                        else:
+                            self.store.write('revocation_requested.json', {'pending': True})
+                        return {'message': {'id': 'm'}}
+                    return original(method, path, body, token, **kwargs)
+                self.peer.request = request
+                self.connector.connect(8766, 12345)
+                sink.receive.assert_not_called()
+                self.assertEqual(calls, ['/remote/desktop/automation/claim'])
+                self.connector._stop.clear()
+                self.store.clear('revocation_requested.json')
+
+    def test_receive_failure_never_acknowledges(self):
+        self.authorize()
+        self.connector.confirm()
+        sink = Mock()
+        sink.pending_ack.return_value = None
+        sink.receive.side_effect = RuntimeError('synthetic persistence failure')
+        self.connector.mailbox_sink = sink
+        original = self.peer.request
+        calls = []
+        def request(method, path, body=None, token=None, **kwargs):
+            if '/automation/' in path:
+                calls.append(path)
+                return {'message': {'id': 'm'}}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        status = self.connector.connect(8766, 12345)
+        self.assertEqual(status['state'], 'online')
+        self.assertEqual(status['mailbox_code'], 'remote_mailbox_receipt_failed')
+        self.assertEqual(calls, ['/remote/desktop/automation/claim'])
+        sink.acknowledge.assert_not_called()
+
+    def test_stale_lease_storage_failure_preserves_online_connection(self):
+        self.authorize()
+        self.connector.confirm()
+        sink = Mock()
+        sink.pending_ack.return_value = {'message_id': 'm', 'lease_id': 'l'}
+        sink.expire_lease.side_effect = RuntimeError('synthetic locked database')
+        self.connector.mailbox_sink = sink
+        original = self.peer.request
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/ack'):
+                raise ConnectorError('mailbox_lease_changed', 409)
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.assertEqual(self.connector.connect(8766, 12345)['state'], 'online')
+        self.assertEqual(self.connector.mailbox_code, 'remote_mailbox_receipt_failed')
+        sink.acknowledge.assert_not_called()
+        self.assertEqual(self.connector.connect(8766, 12345)['state'], 'online')
+        self.assertEqual(sink.expire_lease.call_count, 2)
+
+    def test_connect_persists_before_ack(self):
+        from control_everything.workspace.store import WorkspaceStore
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        self.authorize()
+        self.connector.confirm()
+        inbox = RemoteAutomationInbox(WorkspaceStore(self.store.root / 'inbox-test.db', profile=True))
+        self.connector.mailbox_sink = inbox
+        original = self.peer.request
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/claim'):
+                return {'message': dict(id='m', source='s', event_id='e', payload={},
+                                        lease_id='lease', lease_expires_at=100.)}
+            if path.endswith('/automation/ack'):
+                with inbox.store.connection() as db:
+                    self.assertEqual(db.execute('SELECT state FROM automation_remote_inbox').fetchone()[0],
+                                     'pending_validation')
+                self.assertEqual(token, TOKEN)
+                return {'id': body['message_id'], 'state': 'acknowledged'}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.connector.connect(8766, 12345)
+        with inbox.store.connection() as db:
+            row = db.execute('SELECT ack_state FROM automation_remote_inbox').fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row[0], 'acknowledged')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
