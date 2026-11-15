@@ -36,7 +36,7 @@ diff --git a/extensions/feishu/src/automation-card-ingress.test.ts b/extensions/
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.test.ts
-@@ -0,0 +1,321 @@
+@@ -0,0 +1,417 @@
 +import "./lifecycle.test-support.js";
 +import fs from "node:fs/promises";
 +import os from "node:os";
@@ -140,6 +140,8 @@ new file mode 100644
 +
 +beforeEach(async () => {
 +  resetFeishuLifecycleTestMocks();
++  ingress.producerId = "father";
++  ingress.chatId = "oc-chat";
 +  stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "feishu-automation-"));
 +  process.env.OPENCLAW_STATE_DIR = stateDir;
 +  controller = new AbortController();
@@ -271,67 +273,78 @@ new file mode 100644
 +  expect(await queue.enqueue("stopped-event", {})).not.toMatchObject({ kind: "completed" });
 +});
 +
-+it.skipIf(!process.env.CE_CALLER_LOOPBACK)(
-+  "delivers through real Hub HTTP and SQLite",
-+  async () => {
-+    ingress.producerId = "producer-a";
-+    ingress.chatId = "chat-a";
-+    const syntheticProducerToken = "synthetic-producer-" + "a".repeat(43);
-+    const originalFetch = globalThis.fetch;
-+    const delivered = createDeferred<void>();
-+    const release = createDeferred<void>();
-+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
++for (const kind of ["decision", "binding"] as const) {
++  it.skipIf(!process.env.CE_CALLER_LOOPBACK)(
++    `delivers ${kind} through real Hub HTTP and SQLite`,
++    async () => {
++      ingress.producerId = "producer-a";
++      ingress.chatId = "chat-a";
++      const syntheticProducerToken = "synthetic-producer-" + "a".repeat(43);
++      const originalFetch = globalThis.fetch;
++      const delivered = createDeferred<void>();
++      const release = createDeferred<void>();
++      const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
++        try {
++          expect(url).toBe("https://hub.example.test/remote/producer/automation/receive");
++          const requestBody = JSON.parse(String(options?.body));
++          const headers = new Headers(options?.headers);
++          if (requestBody.producer_id !== "producer-a")
++            throw new Error("Synthetic Hub producer mismatch");
++          if (headers.get("Authorization") !== `Bearer ${syntheticProducerToken}`)
++            throw new Error("Synthetic Hub credential mismatch");
++          const response = await originalFetch(
++            `${process.env.CE_CALLER_LOOPBACK}/remote/producer/automation/receive`,
++            options,
++          );
++          if (response.status !== 200) throw new Error(`Synthetic Hub HTTP ${response.status}`);
++          delivered.resolve();
++          await release.promise;
++          return response;
++        } catch (error) {
++          delivered.reject(
++            new Error(
++              error instanceof Error &&
++                /^Synthetic Hub (HTTP \d+|producer mismatch|credential mismatch)$/.test(
++                  error.message,
++                )
++                ? error.message
++                : "Synthetic Hub transport or request assertion failed",
++            ),
++          );
++          throw error;
++        }
++      });
++      // Attach the rejection observer before admitting work to the asynchronous drain.
++      const deliveryResult = delivered.promise.then(
++        () => null,
++        (error: unknown) => error,
++      );
++      const { transport, queue } = await startMonitor(true, syntheticProducerToken);
++      const eventId = kind === "decision" ? "real-hub-event" : "real-hub-identity-event";
++      const data = envelope(eventId);
++      if (kind === "binding")
++        data.event.action.value = {
++          namespace: "control-everything.identity.v1",
++          challenge_id: "challenge",
++          nonce: "nonce",
++        } as unknown as typeof decision;
++      data.event.context.open_chat_id = "chat-a";
++      await transport.invoke(data, { needCheck: false });
 +      try {
-+        expect(url).toBe("https://hub.example.test/remote/producer/automation/receive");
-+        const requestBody = JSON.parse(String(options?.body));
-+        const headers = new Headers(options?.headers);
-+        if (requestBody.producer_id !== "producer-a")
-+          throw new Error("Synthetic Hub producer mismatch");
-+        if (headers.get("Authorization") !== `Bearer ${syntheticProducerToken}`)
-+          throw new Error("Synthetic Hub credential mismatch");
-+        const response = await originalFetch(
-+          `${process.env.CE_CALLER_LOOPBACK}/remote/producer/automation/receive`,
-+          options,
-+        );
-+        if (response.status !== 200) throw new Error(`Synthetic Hub HTTP ${response.status}`);
-+        delivered.resolve();
-+        await release.promise;
-+        return response;
-+      } catch (error) {
-+        delivered.reject(
-+          new Error(
-+            error instanceof Error &&
-+              /^Synthetic Hub (HTTP \d+|producer mismatch|credential mismatch)$/.test(error.message)
-+              ? error.message
-+              : "Synthetic Hub transport or request assertion failed",
-+          ),
-+        );
-+        throw error;
++        await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
++        const deliveryError = await deliveryResult;
++        if (deliveryError) throw deliveryError;
++        expect(await queue.listClaims()).toHaveLength(1);
++      } finally {
++        release.resolve();
 +      }
-+    });
-+    // Attach the rejection observer before admitting work to the asynchronous drain.
-+    const deliveryResult = delivered.promise.then(
-+      () => null,
-+      (error: unknown) => error,
-+    );
-+    const { transport, queue } = await startMonitor(true, syntheticProducerToken);
-+    const data = envelope("real-hub-event");
-+    data.event.context.open_chat_id = "chat-a";
-+    await transport.invoke(data, { needCheck: false });
-+    try {
-+      await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
-+      const deliveryError = await deliveryResult;
-+      if (deliveryError) throw deliveryError;
-+      expect(await queue.listClaims()).toHaveLength(1);
-+    } finally {
-+      release.resolve();
-+    }
-+    await vi.waitFor(async () =>
-+      expect(await queue.enqueue("real-hub-event", {})).toMatchObject({ kind: "completed" }),
-+    );
-+    await transport.invoke(data, { needCheck: false });
-+  },
-+);
++      await vi.waitFor(async () =>
++        expect(await queue.enqueue(eventId, {})).toMatchObject({ kind: "completed" }),
++      );
++      await transport.invoke(data, { needCheck: false });
++    },
++  );
++}
 +
 +it.each(["verdict", "state"])("rejects JSON array coercion for %s", async (field) => {
 +  vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -358,11 +371,94 @@ new file mode 100644
 +    "Invalid automation card ingress",
 +  );
 +});
++
++const binding = {
++  namespace: "control-everything.identity.v1",
++  challenge_id: "challenge",
++  nonce: "nonce",
++};
++it("durably receives identity through SDK monitor before adoption", async () => {
++  const response = createDeferred<Response>();
++  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => response.promise);
++  const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
++  const { transport, queue } = await startMonitor();
++  const data = envelope("identity-event");
++  data.event.action.value = binding as unknown as typeof decision;
++  await transport.invoke(data, { needCheck: false });
++  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++  expect(await queue.listClaims()).toHaveLength(1);
++  expect(JSON.parse(fetch.mock.calls[0]?.[1]?.body as string)).toEqual({
++    producer_id: "father",
++    event_id: "identity-event",
++    chat_id: "oc-chat",
++    message_id: "om-card",
++    actor_open_id: "ou-operator",
++    binding,
++  });
++  response.resolve(new Response(JSON.stringify({ id: "receipt", state: "acknowledged" })));
++  await vi.waitFor(async () =>
++    expect(await queue.enqueue("identity-event", {})).toMatchObject({ kind: "completed" }),
++  );
++  await transport.invoke(data, { needCheck: false });
++  expect(fetch).toHaveBeenCalledTimes(1);
++  expect(ordinary).not.toHaveBeenCalled();
++});
++it.each([
++  { ...binding, actor_open_id: "forged" },
++  { ...binding, ...decision },
++  { ...binding, nonce: "" },
++  { ...binding, nonce: ["nonce"] },
++  { ...binding, challenge_id: "x".repeat(257) },
++])("rejects malformed identity binding %j", async (value) => {
++  const fetch = vi.spyOn(globalThis, "fetch");
++  const data = { ...envelope().event, event_id: "identity-invalid" };
++  data.action.value = value as unknown as typeof decision;
++  await expect(
++    receiveAutomationCard({ data, config: { ...ingress, token: "fixture" }, active: () => true }),
++  ).rejects.toThrow("Invalid automation card ingress");
++  expect(fetch).not.toHaveBeenCalled();
++});
++
++it.each(["pending", "acknowledged", "bad", "stopped", "http", "transport"])(
++  "identity receipt boundary %s",
++  async (mode) => {
++    let active = true;
++    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
++      if (mode === "transport") throw new Error("private");
++      if (mode === "stopped") active = false;
++      return new Response(
++        JSON.stringify({
++          id: "receipt",
++          state: mode === "bad" ? ["pending"] : mode === "acknowledged" ? mode : "pending",
++        }),
++        { status: mode === "http" ? 500 : 200 },
++      );
++    });
++    const data = { ...envelope().event, event_id: "identity-receipt" };
++    data.action.value = binding as unknown as typeof decision;
++    const result = receiveAutomationCard({
++      data,
++      config: { ...ingress, token: "fixture" },
++      active: () => active,
++    });
++    if (["pending", "acknowledged"].includes(mode)) await expect(result).resolves.toBeUndefined();
++    else
++      await expect(result).rejects.toThrow(
++        mode === "bad"
++          ? "Invalid automation card ingress"
++          : mode === "stopped"
++            ? "Automation ingress account stopped"
++            : mode === "http"
++              ? "Automation ingress HTTP 500"
++              : "Automation ingress transport failed",
++      );
++  },
++);
 diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feishu/src/automation-card-ingress.ts
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,120 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
 +
@@ -371,7 +467,9 @@ new file mode 100644
 +    isRecord(data) &&
 +    isRecord(data.action) &&
 +    isRecord(data.action.value) &&
-+    data.action.value.namespace === "control-everything.automation.v1"
++    ["control-everything.automation.v1", "control-everything.identity.v1"].includes(
++      data.action.value.namespace as string,
++    )
 +  );
 +}
 +
@@ -406,24 +504,35 @@ new file mode 100644
 +  const message = text(data.context.open_message_id);
 +  const actor = text(data.operator.open_id);
 +  const decision = data.action.value;
-+  const keys = [
-+    "namespace",
-+    "decision_id",
-+    "task_id",
-+    "delivery_id",
-+    "expected_revision",
-+    "progress_revision",
-+    "verdict",
-+  ];
++  const identity = decision.namespace === "control-everything.identity.v1";
++  const keys = identity
++    ? ["namespace", "challenge_id", "nonce"]
++    : [
++        "namespace",
++        "decision_id",
++        "task_id",
++        "delivery_id",
++        "expected_revision",
++        "progress_revision",
++        "verdict",
++      ];
 +  if (
 +    Object.keys(decision).length !== keys.length ||
 +    keys.some((key) => !(key in decision)) ||
-+    !["decision_id", "task_id", "delivery_id"].every((key) => text(decision[key])) ||
-+    !["expected_revision", "progress_revision"].every(
-+      (key) => Number.isSafeInteger(decision[key]) && Number(decision[key]) >= 0,
-+    ) ||
-+    typeof decision.verdict !== "string" ||
-+    !["approved", "changes_requested", "rejected"].includes(decision.verdict) ||
++    (identity
++      ? !["challenge_id", "nonce"].every(
++          (key) =>
++            typeof decision[key] === "string" &&
++            text(decision[key]).length > 0 &&
++            text(decision[key]).length <= 256,
++        )
++      : decision.namespace !== "control-everything.automation.v1" ||
++        !["decision_id", "task_id", "delivery_id"].every((key) => text(decision[key])) ||
++        !["expected_revision", "progress_revision"].every(
++          (key) => Number.isSafeInteger(decision[key]) && Number(decision[key]) >= 0,
++        ) ||
++        typeof decision.verdict !== "string" ||
++        !["approved", "changes_requested", "rejected"].includes(decision.verdict)) ||
 +    !eventId ||
 +    !message ||
 +    !actor ||
@@ -448,7 +557,7 @@ new file mode 100644
 +        chat_id: chat,
 +        message_id: message,
 +        actor_open_id: actor,
-+        decision,
++        ...(identity ? { binding: decision } : { decision }),
 +      }),
 +    });
 +  } catch {
