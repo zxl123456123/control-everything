@@ -82,6 +82,17 @@ class HumanDecisionTests(unittest.TestCase):
         self.assertEqual(value['flow_id'], 'flow-1')
         self.assertNotIn('choice', value)
         self.assertIsNone(release_reply('需要说明', card))
+        several = dict(flow, attention={**flow['attention'], 'questions': ['Which scope?', 'Who exports?']})
+        listed = waiting_card(several)
+        self.assertIn('Which scope?', listed['body']['elements'][0]['content'])
+        self.assertIn('Who exports?', listed['body']['elements'][0]['content'])
+        self.assertNotIn('choice', listed['body']['elements'][1]['value'])
+        discuss = {'id': 'flow-2', 'task_id': 'task-1', 'status': 'waiting_user',
+                   'attention': {'requires_code_review': True, 'questions': [],
+                                 'versions': {'requirement_revision': 2}}}
+        held = waiting_card(discuss)
+        self.assertEqual(held['body']['elements'][1]['value']['reason'], 'human_decision_required')
+        self.assertNotIn('choice', held['body']['elements'][1]['value'])
 
     def test_explicit_choice_and_acceptance_execute_once_each(self):
         choice = classify_decision(message(), tasks=[task()])
@@ -119,7 +130,7 @@ class HumanDecisionTests(unittest.TestCase):
     def test_waiting_feature_plan_card_releases_only_the_same_flow(self):
         flow = {'id': 'flow-1', 'status': 'waiting_user', 'task_id': 'task-1',
                 'context': {'input': {'brief': {'task_id': 'task-1'}}},
-                'attention': {'requires_code_review': True, 'questions': [],
+                'attention': {'requires_code_review': True, 'release_ready': True, 'questions': [],
                               'versions': {'requirement_revision': 3}}}
         card = waiting_card(flow)
         value = card['body']['elements'][1]['value']

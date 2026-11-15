@@ -51,6 +51,7 @@ class PlanningPolicyTests(unittest.TestCase):
                     result = self.policy.planning_outcome(self.plan, self.review)
                     self.assertEqual(result['action'], 'wait_for_user')
                     self.assertTrue(result['requires_code_review'])
+                    self.assertIs(result['release_ready'], True)
 
     def test_explicit_questions_are_preserved_and_stop_dependent_implementation(self):
         self.plan_result(needs_human=True, questions=['Which retention period?'])

@@ -72,4 +72,6 @@ def planning_outcome(plan_step, review_step):
             result['reason'] = 'plan_revision_limit'
     elif not result['requires_code_review']:
         result['action'] = 'implement'
+    else:
+        result['release_ready'] = True
     return result

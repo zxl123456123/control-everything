@@ -560,9 +560,20 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(len(self.host.calls), calls)
 
     def test_discuss_does_not_dispatch_implementation(self):
+        self.host.kind = 'feature'
         self.host.verdict = 'discuss'
-        self.assertEqual(self.pump()['flow']['status'], 'waiting_user')
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        self.assertEqual(waiting['flow']['status'], 'waiting_user')
         self.assertEqual(len(self.host.calls), 2)
+        self.assertNotEqual(waiting['flow']['attention'].get('release_ready'), True)
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['reason'], 'human_decision_required')
+        self.assertNotIn('choice', cards[0]['body']['elements'][1]['value'])
+        calls = len(self.host.calls)
+        self._store_release(waiting['flow']['id'], cards[0]['body']['elements'][1]['value']['requirement_revision'])
+        self.pump()
+        self.assertEqual(len(self.host.calls), calls)
 
     def configure_verification(self, program="print('verified')", timeout=3):
         import sys

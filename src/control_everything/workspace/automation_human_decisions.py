@@ -119,15 +119,15 @@ def waiting_card(flow):
     revision = attention.get('versions', {}).get('requirement_revision')
     shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id,
               'flow_id': flow['id'], 'requirement_revision': revision}
-    if attention.get('requires_code_review') is True and not attention.get('questions'):
+    if attention.get('release_ready') is True and not attention.get('questions'):
         question = '已审方案可以开始实现吗？'
         label = PLAN_RELEASE
         value = {**shared, 'choice': PLAN_RELEASE}
     else:
         questions = attention.get('questions') or []
-        if len(questions) != 1 or type(revision) is not int or revision < 0:
+        if type(revision) is not int or revision < 0 or any(not isinstance(item, str) or not item.strip() for item in questions):
             raise ValueError('waiting_card_ambiguous')
-        question = questions[0]
+        question = '\n'.join(questions) if questions else '方案需要决定。这张卡片不会开始实现。'
         label = '需要说明'
         value = {**shared, 'reason': 'human_decision_required'}
     button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary', 'value': value}
@@ -242,7 +242,7 @@ def _waiting_release(store, flow_id, revision):
     versions = attention.get('versions') or {}
     return (flow is not None and step is not None and flow.get('status') == 'waiting_user'
             and step.get('kind') == 'plan_review' and step.get('status') == 'completed'
-            and attention.get('requires_code_review') is True and not attention.get('questions')
+            and attention.get('release_ready') is True and not attention.get('questions')
             and versions.get('requirement_revision') == revision)
 
 
