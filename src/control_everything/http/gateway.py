@@ -32,7 +32,7 @@ from control_everything.execution.service import dispatch_execution_context
 from control_everything.workspace import project_dirs
 from control_everything.workspace.news_source import NewsSource
 from control_everything.http import news_reader
-from control_everything.http import project_progress_routes
+from control_everything.http import project_progress_routes, automation_identity_routes
 from control_everything.paths import default_profile_dir
 from control_everything.workspace.store import WorkspaceError
 from control_everything.profiles.profile import Profile, ProfileError, strict_json
@@ -343,6 +343,8 @@ class PanelHandler(BaseHTTPRequestHandler):
             return
         if workbench.handle_get(self, path):
             return
+        if automation_identity_routes.handle(self, path):
+            return
         if project_progress_routes.handle(self, path):
             return
         if path.path == "/health" and not path.query:
@@ -457,6 +459,8 @@ class PanelHandler(BaseHTTPRequestHandler):
         if workbench.handle_post(self, path):
             return
         try:
+            if automation_identity_routes.handle(self, path, write=True):
+                return
             if project_progress_routes.handle(self, path, write=True):
                 return
         except BodyTooLarge:

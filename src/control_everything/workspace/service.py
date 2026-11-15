@@ -10,6 +10,7 @@ import time
 from datetime import date, datetime, timedelta, timezone
 
 from control_everything.workspace import progress
+from control_everything.workspace.automation_identities import IdentityService
 from control_everything.sessions.codex_index import list_threads, unavailable
 from control_everything.sessions.source import canonical_uuid
 from control_everything.workspace.sources import CodexQuotaSource, NewsSource
@@ -76,6 +77,9 @@ def discover_providers(installations=None):
 
 
 class WorkspaceService:
+    def identity_service(self, current_binding):
+        return IdentityService(self.store, current_binding)
+
     def __init__(self, db_path=DEFAULT_DB, *, registry_path=progress.REGISTRY,
                  manual_path=progress.MANUAL, todos_path=progress.TODOS,
                  session_reader=None, quota_source=None, news_source=None, profile=None, observer=None,
