@@ -22,6 +22,21 @@ def integration_failure_card(flow, step):
             'body': {'elements': [{'tag': 'markdown', 'content': 'develop 复测没有通过。这不是成功，也不会自动重试。'}, button]}}
 
 
+def repair_budget_card(flow):
+    """The repair budget is exhausted. The button does not grant another round."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (not task_id or attention.get('reason') != 'repair_budget_exhausted' or attention.get('repair_rounds') != 2
+            or type(revision) is not int or revision < 0):
+        raise ValueError('repair_budget_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '两轮返修已用尽'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'repair_budget_exhausted'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '需要人处理'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '测试和审查共用的两轮返修已经用尽。不会再自动修改。'}, button]}}
+
+
 def target_wait_card(flow):
     """A blocked integration wait. The button does not register a target or start integration."""
     attention = (flow or {}).get('attention') or {}

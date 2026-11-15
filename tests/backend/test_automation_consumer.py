@@ -469,6 +469,9 @@ class ConsumerTests(AutomationQueueFixture):
         apply_waiting_reply(self.consumer, waiting['flow'], cards[0]['body']['elements'][1]['value'], 'owner')
         result = self.pump()
         self.assertEqual(result['flow']['attention']['reason'], 'repair_budget_exhausted')
+        budget = [card for card in cards if card['body']['elements'][1]['value'].get('reason') == 'repair_budget_exhausted']
+        self.assertEqual(budget[0]['body']['elements'][1]['value']['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', budget[0]['body']['elements'][1]['value'])
         with self.profile.store.connection() as connection:
             repairs = [row for row in connection.execute("SELECT request_json FROM automation_steps WHERE kind='implement'")]
         self.assertEqual(sum(1 for row in repairs if json.loads(row['request_json']).get('repair_of')), 2)

@@ -8,7 +8,8 @@ from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
-    acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release, target_wait_card, waiting_card)
+    acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
+    repair_budget_card, target_wait_card, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -173,11 +174,17 @@ class AutomationConsumer:
     def _wait(self, lease, step, attention, *, status='waiting_external', phase=None):
         view = self.queue.wait(lease, step, status, phase or step['kind'],
             {'step_id': step['id'], **attention})
-        if status == 'waiting_user' and self.on_wait is not None:
-            try:
-                self.on_wait(waiting_card(view['flow']))
-            except Exception as error:
-                logging.getLogger(__name__).error('Automation wait card failed: %s', type(error).__name__)
+        if self.on_wait is not None:
+            card = None
+            if status == 'waiting_user':
+                card = waiting_card(view['flow'])
+            elif (view['flow'].get('attention') or {}).get('reason') == 'repair_budget_exhausted':
+                card = repair_budget_card(view['flow'])
+            if card is not None:
+                try:
+                    self.on_wait(card)
+                except Exception as error:
+                    logging.getLogger(__name__).error('Automation wait card failed: %s', type(error).__name__)
         return view
 
     def _verify(self, lease, view, step, *, cancel_event=None):
