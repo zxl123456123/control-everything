@@ -117,18 +117,20 @@ def waiting_card(flow):
     if flow.get('status') != 'waiting_user' or not task_id:
         raise ValueError('waiting_card_unavailable')
     revision = attention.get('versions', {}).get('requirement_revision')
+    shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id,
+              'flow_id': flow['id'], 'requirement_revision': revision}
     if attention.get('requires_code_review') is True and not attention.get('questions'):
-        choice = PLAN_RELEASE
         question = '已审方案可以开始实现吗？'
+        label = PLAN_RELEASE
+        value = {**shared, 'choice': PLAN_RELEASE}
     else:
         questions = attention.get('questions') or []
-        if len(questions) != 1:
+        if len(questions) != 1 or type(revision) is not int or revision < 0:
             raise ValueError('waiting_card_ambiguous')
         question = questions[0]
-        choice = None
-    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': choice or '需要说明'}, 'type': 'primary',
-              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id,
-                        'flow_id': flow['id'], 'requirement_revision': revision, 'choice': choice}}
+        label = '需要说明'
+        value = {**shared, 'reason': 'human_decision_required'}
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary', 'value': value}
     return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '需要决定'}},
             'body': {'elements': [{'tag': 'markdown', 'content': question}, button]}}
 

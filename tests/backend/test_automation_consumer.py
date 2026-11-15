@@ -78,7 +78,14 @@ class ConsumerTests(AutomationQueueFixture):
 
     def test_questions_wait_for_user(self):
         self.host.questions = ['Which scope?']
-        self.assertEqual(self.pump()['flow']['attention']['questions'], ['Which scope?'])
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        self.assertEqual(waiting['flow']['attention']['questions'], ['Which scope?'])
+        value = cards[0]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'human_decision_required')
+        self.assertEqual(value['flow_id'], waiting['flow']['id'])
+        self.assertNotIn('choice', value)
 
     def test_revisions_preserve_two_round_budget(self):
         self.host.verdict = 'revise'

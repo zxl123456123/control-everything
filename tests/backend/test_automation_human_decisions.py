@@ -2,7 +2,7 @@
 import unittest
 
 from control_everything.workspace.automation_human_decisions import (
-    PLAN_RELEASE, apply_plan_releases, classify_decision, question_card, reply_from_card, waiting_card)
+    PLAN_RELEASE, apply_plan_releases, classify_decision, question_card, release_reply, reply_from_card, waiting_card)
 
 
 def message(**changes):
@@ -70,6 +70,18 @@ class HumanDecisionTests(unittest.TestCase):
                                                        'decision_id': 'x', 'task_id': 'task-1', 'delivery_id': 'delivery-1',
                                                        'expected_revision': 2, 'progress_revision': 3}}]}}
         self.assertIsNone(acceptance_reply('这个版本通过，集成 develop', mismatched))
+
+    def test_question_wait_card_does_not_release_the_plan(self):
+        flow = {'id': 'flow-1', 'task_id': 'task-1', 'status': 'waiting_user',
+                'attention': {'questions': ['Which scope?'], 'requires_code_review': True,
+                              'versions': {'requirement_revision': 2}}}
+        card = waiting_card(flow)
+        value = card['body']['elements'][1]['value']
+        self.assertEqual(card['body']['elements'][0]['content'], 'Which scope?')
+        self.assertEqual(value['reason'], 'human_decision_required')
+        self.assertEqual(value['flow_id'], 'flow-1')
+        self.assertNotIn('choice', value)
+        self.assertIsNone(release_reply('需要说明', card))
 
     def test_explicit_choice_and_acceptance_execute_once_each(self):
         choice = classify_decision(message(), tasks=[task()])
