@@ -1,10 +1,12 @@
 """Advance one explicitly authorized planning stage, stopping at a durable wait."""
 
+import json
 import logging
 import threading
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
+from control_everything.workspace.automation_human_decisions import is_plan_release
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -66,7 +68,7 @@ class AutomationConsumer:
                     if reason not in ('automation_requirement_changed', 'project_unavailable', 'project_directory_changed'):
                         raise
                     return self._wait(lease, step, {'reason': 'requirement_changed' if reason == 'automation_requirement_changed' else reason})
-            if step['kind'] in ('plan', 'plan_review'):
+            if step['kind'] in ('plan', 'plan_review', 'code_review'):
                 if step['status'] == 'failed' and step['result'].get('reason') in READ_ONLY_REFUSALS:
                     return self._wait(lease, step, {'reason': step['result']['reason']})
                 if step['request']['params'].get('readOnly') is not True:
@@ -169,6 +171,8 @@ class AutomationConsumer:
                     raise ValueError('verification_receipt_changed')
             except Exception:
                 return self._wait(lease, step, {'reason': 'verification_evidence_invalid'})
+            if step['request'].get('requires_code_review') is True:
+                return self._reserve_code_review(lease, view, step, checked)
             try:
                 return self.queue.publish_delivery(lease, step, checked)
             except ProfileError as error:
@@ -210,6 +214,57 @@ class AutomationConsumer:
         return self._wait(lease, step, {'reason': 'repair_budget_exhausted', 'repair_rounds': 2,
             'verify_step_id': step['id'], 'implement_step_id': step['request'].get('implement_step_id'),
             'output_dir': step.get('result', {}).get('output_dir')})
+
+    def release_plan(self, flow_id, message):
+        if not is_plan_release(message):
+            fail('not_a_human_decision')
+        with self.queue.store.connection() as connection:
+            flow = self.queue._view(connection, flow_id)['flow']
+            step = self.queue._view(connection, flow_id)['step']
+        plan = self.queue.get_step(step['request']['review_of']['step_id'])
+        scope = {key: step['request']['params'][key] for key in
+                 ('runtimeId', 'environmentId', 'repoId', 'worktreeId', 'cwd')}
+        prompt = ('IMPLEMENT\nThe platform exclusively schedules stages, models and revision budgets. '
+                  'A person released this reviewed plan. Implement that frozen scope only. '
+                  'Do not approve your own work.\n' + packed({
+                      'requirement': flow['context']['input'], 'plan': plan['result']['text'],
+                      'review': step['result']['text']}))
+        references = {'plan_step_id': plan['id'], 'review_step_id': step['id'],
+                      'plan_hash': digest(plan['result']['text']), 'review_hash': digest(step['result']['text']),
+                      'versions': {key: flow['context'][key] for key in
+                                   ('requirement_revision', 'brief_revision', 'policy_version')}}
+        return self.queue.release_reviewed_plan(self.lease, flow_id, {**references, 'params': {**scope,
+            'contractVersion': 1, 'agent': 'codex', 'model': 'gpt-6.1-sol', 'prompt': prompt}})
+
+    def _reserve_code_review(self, lease, view, step, checked):
+        implement = self.queue.get_step(step['request']['implement_step_id'])
+        prompt = ('CODE_REVIEW\nRead only. Review the completed implementation against the frozen plan. '
+                  'Return only JSON: {"verdict":"approve|revise","rationale":"nonempty"}\n'
+                  + packed({'plan_step_id': step['request'].get('plan_step_id'),
+                            'implement_step_id': implement['id'],
+                            'implement_hash': digest(implement['result']['text'])}))
+        scope = step['request']['scope']
+        return self.queue.reserve_next(lease, step, 'code_review', {
+            'params': {**scope, 'contractVersion': 1, 'agent': 'codex', 'model': 'gpt-6-astra',
+                       'readOnly': True, 'prompt': prompt},
+            'verify_step_id': step['id'], 'implement_step_id': implement['id'],
+            'implement_hash': digest(implement['result']['text']),
+            'checked_output_dir': checked['output_dir']}, writes_project=False)
+
+    def _finish_code_review(self, lease, view, step):
+        implement = self.queue.get_step(step['request']['implement_step_id'])
+        try:
+            verdict = json.loads(step['result']['text'])
+        except (TypeError, ValueError):
+            return self._wait(lease, step, {'reason': 'invalid_code_review'})
+        same_session = (step.get('binding') or {}).get('providerSession') == (implement.get('binding') or {}).get('providerSession')
+        if same_session or not isinstance(verdict, dict) or verdict.get('verdict') not in ('approve', 'revise'):
+            return self._wait(lease, step, {'reason': 'independent_review_required'})
+        if verdict['verdict'] == 'revise':
+            return self._wait(lease, step, {'reason': 'code_review_revise', 'implement_step_id': implement['id']})
+        verify = self.queue.get_step(step['request']['verify_step_id'])
+        return self.queue.publish_delivery(lease, step, {'receipt': verify['result']['receipt'],
+            'output_dir': step['request']['checked_output_dir'], 'verify_step_id': verify['id']})
 
     def _reserve(self, lease, step, context, scope, kind, attempt, extra=None, *, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set():
@@ -257,9 +312,11 @@ class AutomationConsumer:
                 return None
             scope = {key: step['request']['params'][key] for key in
                      ('runtimeId', 'environmentId', 'repoId', 'worktreeId', 'cwd')}
-            return self.queue.reserve_next(lease, step, 'verify', {**references, 'scope': scope,
-                'verification': spec, 'implement_step_id': step['id'],
-                'implement_hash': digest(step['result']['text'])}, writes_project=True)
+            request = {**references, 'scope': scope, 'verification': spec, 'implement_step_id': step['id'],
+                       'implement_hash': digest(step['result']['text'])}
+            if step['request'].get('requires_code_review') is True:
+                request['requires_code_review'] = True
+            return self.queue.reserve_next(lease, step, 'verify', request, writes_project=True)
         if step['kind'] == 'prepare':
             return self._reserve(lease, step, context, step['result']['scope'], 'plan', 0, cancel_event=cancel_event)
         scope = {key: step['request']['params'][key] for key in
@@ -268,6 +325,8 @@ class AutomationConsumer:
             read_plan(step)
             return self._reserve(lease, step, context, scope, 'plan_review', step['request']['plan_attempt'],
                                  {'plan': step['result']['text']}, cancel_event=cancel_event)
+        if step['kind'] == 'code_review':
+            return self._finish_code_review(lease, view, step)
         if step['kind'] != 'plan_review':
             fail('automation_step_changed')
         plan = self.queue.get_step(step['request']['review_of']['step_id'])

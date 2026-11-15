@@ -240,6 +240,40 @@ class AutomationQueue:
                                ('implement', stamp, flow['id']))
             return row_view(self._step(connection, identity))
 
+    def release_reviewed_plan(self, lease, flow_id, request):
+        """A human release starts implementation. It does not accept the delivery."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (flow_id,)).fetchone()
+            view = self._view(connection, flow_id)
+            current = view['step']
+            attention = view['flow']['attention'] or {}
+            if (flow['status'] != 'waiting_user' or not current or current['kind'] != 'plan_review'
+                    or current['status'] != 'completed' or attention.get('requires_code_review') is not True
+                    or attention.get('questions')):
+                fail('automation_step_changed')
+            existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
+                                          (flow_id, current['ordinal'] + 1)).fetchone()
+            if existing:
+                body = json.loads(existing['request_json'])
+                if existing['kind'] != 'implement' or body.get('requires_code_review') is not True:
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            context = json.loads(flow['context_json'])
+            problem = self._input_problem(connection, flow['task_id'], context)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            frozen = packed({'context': context, **request, 'requires_code_review': True})
+            identity, stamp = str(uuid4()), now_utc()
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow_id, current['ordinal'] + 1, 'implement', 0, lease.generation, 1, 'reserved',
+                 f'{int(self.clock() * 1000)}-{uuid4().hex}', frozen, stamp, stamp))
+            connection.execute("UPDATE automation_flows SET status='running',phase='implement',attention_json='{}',"
+                               'revision=revision+1,updated_at=? WHERE id=?', (stamp, flow_id))
+            return row_view(self._step(connection, identity))
+
     def publish_delivery(self, lease, step, checked_result):
         """Publish one current checked verification, without granting human acceptance."""
         with self.store.connection() as connection:
@@ -247,9 +281,16 @@ class AutomationQueue:
             self._guard(connection, lease)
             view = self._view(connection, step['flow_id'])
             flow, current = view['flow'], view['step']
-            if (not flow or not current or current['id'] != step['id']
-                    or current['kind'] != 'verify' or current['status'] != 'completed'
-                    or current['request'] != step['request'] or current['result'] != step['result']):
+            review_gate = None
+            if current and current['kind'] == 'code_review':
+                if (current['id'] != step['id'] or current['status'] != 'completed'
+                        or current['request'].get('verify_step_id') != checked_result.get('verify_step_id')):
+                    fail('automation_step_changed')
+                review_gate = current
+                current = row_view(self._step(connection, current['request']['verify_step_id']))
+            if (not flow or not current or current['kind'] != 'verify' or current['status'] != 'completed'
+                    or (review_gate is None and (current['id'] != step['id']
+                        or current['request'] != step['request'] or current['result'] != step['result']))):
                 fail('automation_step_changed')
             receipt = checked_result['receipt']
             if (receipt != current['result'].get('receipt') or receipt['status'] != 'passed'
@@ -285,7 +326,9 @@ class AutomationQueue:
                     or request['verification'] != context['input']['request'].get('verification')
                     or any(request['scope'] != {key: record['request']['params'].get(key) for key in
                            ('runtimeId','environmentId','repoId','worktreeId','cwd')} for record in records.values())
-                    or planning_outcome(plan, review)['action'] != 'implement'):
+                    or (planning_outcome(plan, review)['action'] != 'implement' and not (
+                        review_gate and planning_outcome(plan, review).get('requires_code_review')
+                        and review_gate['request'].get('implement_hash') == digest(implement['result']['text'])))):
                 fail('automation_delivery_unverified')
             for record, model in ((plan,'gpt-6-astra'),(review,'gpt-6-astra'),(implement,'gpt-6.1-sol')):
                 if (record['request']['params'].get('model') != model

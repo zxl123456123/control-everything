@@ -11,7 +11,7 @@ class PlanningHost(FakeHost):
     def __init__(self):
         super().__init__()
         self.calls = []
-        self.kind, self.verdict, self.model = 'small', 'approve', 'requested'
+        self.kind, self.verdict, self.code_verdict, self.model = 'small', 'approve', 'approve', 'requested'
         self.questions = []
 
     def create(self, params, *, cancel_event=None):
@@ -20,8 +20,11 @@ class PlanningHost(FakeHost):
         return super().create(params)
 
     def observe(self, binding, **kwargs):
-        value = ({'kind': self.kind, 'plan': 'Read code and verify.', 'needs_human': False, 'questions': self.questions}
-                 if 'PLAN_REVIEW' not in self.calls[-1]['prompt'] else
+        prompt = self.calls[-1]['prompt']
+        value = ({'verdict': self.code_verdict, 'rationale': 'Implementation checked.'}
+                 if prompt.startswith('CODE_REVIEW') else
+                 {'kind': self.kind, 'plan': 'Read code and verify.', 'needs_human': False, 'questions': self.questions}
+                 if 'PLAN_REVIEW' not in prompt else
                  {'kind': self.kind, 'verdict': self.verdict, 'rationale': 'Scope checked.', 'questions': self.questions})
         reply = copy.deepcopy(self.reply)
         reply['binding'] = copy.deepcopy(binding)
@@ -428,6 +431,21 @@ class ConsumerTests(AutomationQueueFixture):
         result = self.pump()
         self.assertEqual(result['flow']['attention']['reason'], 'requirement_changed')
         self.assertEqual(len(self.host.calls), 2)
+
+    def test_feature_waits_for_a_person_then_needs_independent_code_review(self):
+        self.host.kind = 'feature'
+        self.configure_verification()
+        waiting = self.pump()
+        self.assertEqual(waiting['flow']['status'], 'waiting_user')
+        self.assertTrue(waiting['flow']['attention']['requires_code_review'])
+        self.consumer.release_plan(waiting['flow']['id'], {
+            'source': 'human', 'quoted': False, 'actor_id': 'owner', 'text': '按已审方案实现'})
+        result = self.pump()
+        self.assertEqual(result['flow']['status'], 'awaiting_acceptance', result['flow'])
+        with self.profile.store.connection() as connection:
+            kinds = [row['kind'] for row in connection.execute(
+                'SELECT kind FROM automation_steps ORDER BY ordinal')]
+        self.assertIn('code_review', kinds)
 
     def test_discuss_does_not_dispatch_implementation(self):
         self.host.verdict = 'discuss'

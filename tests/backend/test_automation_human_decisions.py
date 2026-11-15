@@ -1,7 +1,7 @@
 """Trusted human replies become decisions; vague or model text does not."""
 import unittest
 
-from control_everything.workspace.automation_human_decisions import classify_decision
+from control_everything.workspace.automation_human_decisions import classify_decision, question_card, reply_from_card
 
 
 def message(**changes):
@@ -38,6 +38,19 @@ class HumanDecisionTests(unittest.TestCase):
                 message(requirement_revision=0)):
             with self.subTest(sample=sample):
                 self.assertNotEqual(classify_decision(sample, tasks=current)['action'], 'execute')
+
+    def test_uncertain_step_sends_one_choice_card_and_only_that_reply_continues(self):
+        waiting = {'task_id': 'tank', 'title': '坦克游戏', 'questions': ['操作方式用哪一种？'],
+                   'choices': ['键盘', '触屏'], 'requirement_revision': 1}
+        card = question_card(waiting)
+        buttons = [item for item in card['body']['elements'] if item['tag'] == 'button']
+        self.assertEqual([item['value']['choice'] for item in buttons], ['键盘', '触屏'])
+        chosen = reply_from_card(buttons[0]['value'], waiting)
+        self.assertEqual(chosen['choice'], '键盘')
+        stale = dict(buttons[0]['value'], requirement_revision=0)
+        self.assertEqual(reply_from_card(stale, waiting)['action'], 'reject')
+        with self.assertRaises(ValueError):
+            question_card({**waiting, 'questions': ['甲？', '乙？']})
 
     def test_two_open_tasks_ask_instead_of_guessing(self):
         result = classify_decision(message(text='这个版本通过，集成 develop'), tasks=[task(), task(id='task-2')])
