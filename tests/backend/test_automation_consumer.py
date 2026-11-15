@@ -457,6 +457,10 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(accepted[0]['body']['elements'][1]['value']['delivery_id'],
                          result['flow']['attention']['delivery_id'])
         self.assertEqual(accepted[0]['body']['elements'][1]['text']['content'], '这个版本通过，集成 develop')
+        verdicts = [item['value']['verdict'] for item in accepted[0]['body']['elements'] if item.get('tag') == 'button']
+        self.assertEqual(verdicts, ['approved', 'changes_requested', 'rejected'])
+        self.assertEqual({item['value']['delivery_id'] for item in accepted[0]['body']['elements'] if item.get('tag') == 'button'},
+                         {result['flow']['attention']['delivery_id']})
         with self.profile.store.connection() as connection:
             kinds = [row['kind'] for row in connection.execute(
                 'SELECT kind FROM automation_steps ORDER BY ordinal')]

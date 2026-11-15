@@ -91,14 +91,17 @@ def acceptance_card(flow):
     if (flow.get('status') != 'awaiting_acceptance' or not task_id or not isinstance(delivery_id, str) or not delivery_id
             or type(attention.get('expected_revision')) is not int or type(attention.get('progress_revision')) is not int):
         raise ValueError('acceptance_card_unavailable')
-    decision = {'namespace': 'control-everything.automation.v1', 'decision_id': 'accept-' + delivery_id,
-                'task_id': task_id, 'delivery_id': delivery_id, 'flow_id': flow['id'],
-                'expected_revision': attention['expected_revision'], 'progress_revision': attention['progress_revision'],
-                'verdict': 'approved'}
-    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '这个版本通过，集成 develop'}, 'type': 'primary',
-              'value': decision}
+    shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'delivery_id': delivery_id,
+              'flow_id': flow['id'], 'expected_revision': attention['expected_revision'],
+              'progress_revision': attention['progress_revision']}
+    buttons = [{'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary',
+                'value': {**shared, 'decision_id': prefix + delivery_id, 'verdict': verdict}}
+               for prefix, verdict, label in (
+                   ('accept-', 'approved', '这个版本通过，集成 develop'),
+                   ('change-', 'changes_requested', '这一版要修改'),
+                   ('reject-', 'rejected', '这一版不通过'))]
     return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '待验收'}},
-            'body': {'elements': [{'tag': 'markdown', 'content': '当前交付可以验收。通过后只集成 develop。'}, button]}}
+            'body': {'elements': [{'tag': 'markdown', 'content': '当前交付可以验收。通过后只集成 develop。'}, *buttons]}}
 
 
 def waiting_card(flow):
