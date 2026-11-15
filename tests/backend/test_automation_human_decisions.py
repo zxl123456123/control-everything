@@ -1,7 +1,7 @@
 """Trusted human replies become decisions; vague or model text does not."""
 import unittest
 
-from control_everything.workspace.automation_human_decisions import classify_decision, question_card, reply_from_card
+from control_everything.workspace.automation_human_decisions import classify_decision, question_card, reply_from_card, waiting_card
 
 
 def message(**changes):
@@ -51,6 +51,21 @@ class HumanDecisionTests(unittest.TestCase):
         self.assertEqual(reply_from_card(stale, waiting)['action'], 'reject')
         with self.assertRaises(ValueError):
             question_card({**waiting, 'questions': ['甲？', '乙？']})
+
+    def test_waiting_feature_plan_card_releases_only_the_same_flow(self):
+        flow = {'id': 'flow-1', 'status': 'waiting_user', 'task_id': 'task-1',
+                'context': {'input': {'brief': {'task_id': 'task-1'}}},
+                'attention': {'requires_code_review': True, 'questions': [],
+                              'versions': {'requirement_revision': 3}}}
+        card = waiting_card(flow)
+        value = card['body']['elements'][1]['value']
+        self.assertEqual(value['choice'], '按已审方案实现')
+        self.assertEqual(value['flow_id'], 'flow-1')
+        self.assertEqual(reply_from_card(value, {'task_id': 'task-1', 'requirement_revision': 3,
+                                                 'choices': ['按已审方案实现']})['action'], 'execute')
+        self.assertEqual(reply_from_card(dict(value, flow_id='other'), {
+            'task_id': 'task-1', 'flow_id': 'flow-1', 'requirement_revision': 3,
+            'choices': ['按已审方案实现']})['action'], 'reject')
 
     def test_two_open_tasks_ask_instead_of_guessing(self):
         result = classify_decision(message(text='这个版本通过，集成 develop'), tasks=[task(), task(id='task-2')])

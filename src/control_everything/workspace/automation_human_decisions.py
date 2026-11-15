@@ -4,6 +4,29 @@ VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
 
 
+def waiting_card(flow):
+    """A card for the current wait. It does not grant acceptance or start work by itself."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = (flow.get('context') or {}).get('input', {}).get('brief', {}).get('task_id') or flow.get('task_id')
+    if flow.get('status') != 'waiting_user' or not task_id:
+        raise ValueError('waiting_card_unavailable')
+    revision = attention.get('versions', {}).get('requirement_revision')
+    if attention.get('requires_code_review') is True and not attention.get('questions'):
+        choice = PLAN_RELEASE
+        question = '已审方案可以开始实现吗？'
+    else:
+        questions = attention.get('questions') or []
+        if len(questions) != 1:
+            raise ValueError('waiting_card_ambiguous')
+        question = questions[0]
+        choice = None
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': choice or '需要说明'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id,
+                        'flow_id': flow['id'], 'requirement_revision': revision, 'choice': choice}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '需要决定'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': question}, button]}}
+
+
 def is_plan_release(message):
     return (isinstance(message, dict) and message.get('source') == 'human' and message.get('quoted') is not True
             and message.get('text') == PLAN_RELEASE and isinstance(message.get('actor_id'), str) and message.get('actor_id'))
@@ -58,6 +81,7 @@ def question_card(waiting):
 def reply_from_card(value, waiting):
     if (not isinstance(value, dict) or value.get('namespace') != 'control-everything.automation.v1'
             or value.get('task_id') != waiting.get('task_id')
+            or ('flow_id' in waiting and value.get('flow_id') != waiting.get('flow_id'))
             or value.get('requirement_revision') != waiting.get('requirement_revision')
             or value.get('choice') not in (waiting.get('choices') or [])):
         return {'action': 'reject', 'reason': 'stale_or_foreign_card'}
