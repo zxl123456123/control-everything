@@ -621,7 +621,7 @@ class RemoteConnector:
         return config
 
     def _identity_credential(self):
-        if (self._stop.is_set() or any(self.store.read(name) for name in
+        if (self._state == 'revoked' or self._stop.is_set() or any(self.store.read(name) for name in
                 ('pending.json', 'revocation.json', 'revocation_requested.json'))):
             return None
         return self.store.read('credentials.bin', protected=True)
@@ -635,7 +635,7 @@ class RemoteConnector:
             first = self._identity_credential()
             second = self._identity_credential()
             if (not first or first != second or self.config != config
-                    or self._stop.is_set() or any(self.store.read(name) for name in
+                    or self._state == 'revoked' or self._stop.is_set() or any(self.store.read(name) for name in
                         ('pending.json', 'revocation.json', 'revocation_requested.json'))):
                 return None
             return dict(hub_origin=config.hub_origin, **{key: first[key]

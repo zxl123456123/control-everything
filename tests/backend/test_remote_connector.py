@@ -832,6 +832,19 @@ class ConnectorTests(unittest.TestCase):
         with self.assertRaisesRegex(ConnectorError,'revision_mismatch'): self.connector.confirm()
         self.assertIsNone(self.store.read('credentials.bin',protected=True))
 
+    def test_auth_failure_cleanup_cannot_publish_identity_binding(self):
+        self.authorize(); self.connector.confirm()
+        self.connector._on_revoked = Mock()
+        self.peer.config_error = ConnectorError('control_token_invalid', 401)
+        self.connector.connect(8766, 12345)
+        self.assertEqual(self.connector.status()['state'], 'revoked')
+        self.assertIsNotNone(self.store.read('credentials.bin', protected=True))
+        for name in ('revocation.json', 'revocation_requested.json', 'pending.json'):
+            self.assertFalse(self.store.read(name))
+        self.assertIsNone(self.connector.current_binding())
+        self.assertEqual(self.connector.list_identity_contexts(), [])
+        with self.assertRaises(ConnectorError): self.connector.identity_context('p', 'project')
+
     def test_revoked_status_cannot_recover(self):
         self.peer.match={'device_id':'device-1','generation':1,'credential_revision':1,'recoverable':False}
         self.authorize()
