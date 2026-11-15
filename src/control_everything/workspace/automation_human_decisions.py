@@ -8,6 +8,11 @@ from control_everything.workspace.native_progress import row_view
 
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
+ACCEPTANCE_REPLIES = {
+    '这个版本通过，集成 develop': 'approved',
+    '这一版要修改': 'changes_requested',
+    '这一版不通过': 'rejected',
+}
 
 
 def integration_failure_card(flow, step):
@@ -261,6 +266,28 @@ def apply_waiting_reply(consumer, flow, value, actor_id):
         return {'action': 'ask', 'reason': 'decision_unclear'}
     return consumer.release_plan(flow['id'], {
         'source': 'human', 'quoted': False, 'actor_id': actor_id, 'text': PLAN_RELEASE})
+
+
+def acceptance_reply(text, card):
+    """A reply decides only the acceptance button it answers. Another card is not a choice."""
+    verdict = ACCEPTANCE_REPLIES.get(text)
+    elements = ((card or {}).get('body') or {}).get('elements')
+    if verdict is None or not isinstance(elements, list):
+        return None
+    fields = ('namespace', 'decision_id', 'task_id', 'delivery_id', 'expected_revision', 'progress_revision', 'verdict')
+    matches = []
+    for element in elements:
+        if not isinstance(element, dict) or element.get('tag') != 'button':
+            continue
+        content = element.get('text').get('content') if isinstance(element.get('text'), dict) else None
+        value = element.get('value')
+        if (content != text or not isinstance(value, dict) or value.get('verdict') != verdict
+                or value.get('namespace') != 'control-everything.automation.v1'
+                or any(not isinstance(value.get(key), str) or not value[key] for key in ('decision_id', 'task_id', 'delivery_id'))
+                or any(type(value.get(key)) is not int or value[key] < 0 for key in ('expected_revision', 'progress_revision'))):
+            continue
+        matches.append({key: value[key] for key in fields})
+    return matches[0] if len(matches) == 1 else None
 
 
 def release_reply(text, card):

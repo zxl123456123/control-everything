@@ -48,6 +48,29 @@ class HumanDecisionTests(unittest.TestCase):
         self.assertIsNone(release_reply('不错', card))
         self.assertIsNone(release_reply('按已审方案实现', {'body': {'elements': [{}, {'value': {'choice': '其他'}}]}}))
 
+    def test_acceptance_reply_decides_only_the_button_it_answers(self):
+        from control_everything.workspace.automation_human_decisions import acceptance_card, acceptance_reply
+        flow = {'id': 'flow-1', 'task_id': 'task-1', 'status': 'awaiting_acceptance',
+                'attention': {'delivery_id': 'delivery-1', 'expected_revision': 2, 'progress_revision': 3}}
+        card = acceptance_card(flow)
+        approved = acceptance_reply('这个版本通过，集成 develop', card)
+        self.assertEqual(approved['verdict'], 'approved')
+        self.assertEqual(approved['delivery_id'], 'delivery-1')
+        self.assertNotIn('flow_id', approved)
+        self.assertEqual(acceptance_reply('这一版要修改', card)['verdict'], 'changes_requested')
+        self.assertEqual(acceptance_reply('这一版不通过', card)['decision_id'], 'reject-delivery-1')
+        self.assertIsNone(acceptance_reply('不错', card))
+        self.assertIsNone(acceptance_reply('按已审方案实现', card))
+        plan = {'body': {'elements': [{}, {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '按已审方案实现'},
+                                        'value': {'namespace': 'control-everything.automation.v1', 'choice': '按已审方案实现',
+                                                  'flow_id': 'flow-1', 'requirement_revision': 1, 'task_id': 'task-1'}}]}}
+        self.assertIsNone(acceptance_reply('这个版本通过，集成 develop', plan))
+        mismatched = {'body': {'elements': [{'tag': 'button', 'text': {'content': '这个版本通过，集成 develop'},
+                                             'value': {'namespace': 'control-everything.automation.v1', 'verdict': 'rejected',
+                                                       'decision_id': 'x', 'task_id': 'task-1', 'delivery_id': 'delivery-1',
+                                                       'expected_revision': 2, 'progress_revision': 3}}]}}
+        self.assertIsNone(acceptance_reply('这个版本通过，集成 develop', mismatched))
+
     def test_explicit_choice_and_acceptance_execute_once_each(self):
         choice = classify_decision(message(), tasks=[task()])
         self.assertEqual(choice['action'], 'execute')
