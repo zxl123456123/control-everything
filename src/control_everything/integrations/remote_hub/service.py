@@ -42,12 +42,14 @@ def _card_identity(card):
     if (set(value) == blocked and value['namespace'] == 'control-everything.automation.v1'
             and value['reason'] in ('integration_target_required', 'integration_retest_failed',
                                     'repair_budget_exhausted', 'verification_not_configured',
-                                    'acceptance_rejected', 'human_decision_required', 'plan_revision_limit')
+                                    'acceptance_rejected', 'human_decision_required', 'plan_revision_limit',
+                                    'requirement_changed')
             and text('task_id') and text('flow_id')
             and type(value['requirement_revision']) is int and value['requirement_revision'] >= 0):
         prefix = {'integration_retest_failed': 'failure', 'repair_budget_exhausted': 'budget',
                   'verification_not_configured': 'verify', 'acceptance_rejected': 'rejected',
-                  'human_decision_required': 'decision', 'plan_revision_limit': 'revision'}.get(value['reason'], 'target')
+                  'human_decision_required': 'decision', 'plan_revision_limit': 'revision',
+                  'requirement_changed': 'changed'}.get(value['reason'], 'target')
         return prefix + ':' + value['flow_id'], value['requirement_revision']
     raise HubError('invalid_waiting_card', 400)
 

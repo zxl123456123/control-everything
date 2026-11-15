@@ -112,11 +112,19 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(self.pump()['flow']['attention']['reason'], 'model_mismatch')
 
     def test_requirement_change_before_dispatch_waits(self):
+        cards = []
+        self.consumer.on_wait = cards.append
         self.consumer.run_once()
         with self.profile.store.connection() as connection:
             connection.execute('UPDATE task_items SET revision=revision+1 WHERE id=?', (self.item['id'],))
-        self.assertEqual(self.pump()['flow']['attention']['reason'], 'requirement_changed')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'requirement_changed')
         self.assertEqual(len(self.host.calls), 0)
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'requirement_changed')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertEqual(value['requirement_revision'], result['flow']['context']['requirement_revision'])
+        self.assertNotIn('choice', value)
 
     def test_offline_keeps_event_unclaimed(self):
         self.host.available = False
