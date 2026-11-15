@@ -55,6 +55,26 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         self.assertNotIn(self.producer_token, json.dumps(contexts))
         self.assertNotIn('token', json.dumps(contexts))
 
+    def test_binding_transport_is_strict_and_persistent(self):
+        body = {key: value for key, value in self.body.items() if key != 'decision'}
+        body['binding'] = dict(namespace='control-everything.identity.v1', challenge_id='challenge', nonce='nonce')
+        self.assertEqual(self.receive(body)[0], 200)
+        with self.hub.store.transaction() as db:
+            db.execute('DELETE FROM automation_inbox WHERE id=?', (self.received['id'],))
+        payload = self.request(CLAIM)[1]['message']['payload']
+        self.assertEqual(payload, dict(kind='feishu_identity_binding', producer_id='producer-a',
+            project_id='project-a', channel_account_id='channel-a', app_id='app-a', chat_id='chat-a',
+            message_id=body['message_id'], actor_open_id=body['actor_open_id'], binding=body['binding']))
+        changed = dict(body, binding=dict(body['binding'], nonce='different'))
+        self.assertEqual(self.receive(changed)[0], 409)
+        for extra in ('app_id', 'project_id', 'actor_role'):
+            self.assertEqual(self.receive(dict(body, **{extra: 'forged'}))[0], 400)
+        self.assertEqual(self.receive(dict(body, decision=self.body['decision']))[0], 400)
+        for extra in ('actor_open_id', 'app_id', 'role'):
+            self.assertEqual(self.receive(dict(body, binding=dict(body['binding'], **{extra: 'forged'})))[0], 400)
+        for change in ({'namespace': 'wrong'}, {'nonce': ''}, {'challenge_id': 1}):
+            self.assertEqual(self.receive(dict(body, binding=dict(body['binding'], **change)))[0], 400)
+
     def test_producer_replay_and_context(self):
         first = self.receive()
         self.assertEqual(first[0], 200)

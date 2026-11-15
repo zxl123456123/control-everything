@@ -38,30 +38,42 @@ class AutomationProducers:
                 if config['device_id'] == device_id and config['generation'] == generation]
 
     def receive(self, mailbox, token, body):
-        fields = {'producer_id', 'event_id', 'chat_id', 'message_id', 'actor_open_id', 'decision'}
-        if type(body) is not dict or set(body) != fields or not _text(body['producer_id']):
+        fields = {'producer_id', 'event_id', 'chat_id', 'message_id', 'actor_open_id'}
+        if (type(body) is not dict or set(body) not in (fields | {'decision'}, fields | {'binding'})
+                or not _text(body['producer_id'])):
             raise HubError('invalid_request_fields', 400)
         config = self._producers.get(body['producer_id'])
         digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
         matches = hmac.compare_digest(digest, config['token_sha256'] if config else '0' * 64)
         if config is None or not matches:
             raise HubError('invalid_producer_token', 401)
-        if any(not _text(body[k]) for k in fields - {'decision'}):
+        if any(not _text(body[k]) for k in fields):
             raise HubError('invalid_request_fields', 400)
         if body['chat_id'] != config['chat_id']:
             raise HubError('producer_chat_forbidden', 403)
-        decision = body['decision']
-        decision_fields = {'namespace', 'decision_id', 'task_id', 'delivery_id', 'expected_revision',
-                           'progress_revision', 'verdict'}
-        if (type(decision) is not dict or set(decision) != decision_fields
-                or any(not _text(decision[k]) for k in decision_fields - {'expected_revision', 'progress_revision'})
-                or any(type(decision[k]) is not int or decision[k] < 0 for k in ('expected_revision', 'progress_revision'))
-                or decision['namespace'] != 'control-everything.automation.v1'
-                or decision['verdict'] not in ('approved', 'changes_requested', 'rejected')):
-            raise HubError('invalid_producer_decision', 400)
+        if 'binding' in body:
+            binding = body['binding']
+            if (type(binding) is not dict or set(binding) != {'namespace', 'challenge_id', 'nonce'}
+                    or any(not _text(value) for value in binding.values())
+                    or binding['namespace'] != 'control-everything.identity.v1'):
+                raise HubError('invalid_producer_binding', 400)
+        else:
+            decision = body['decision']
+            decision_fields = {'namespace', 'decision_id', 'task_id', 'delivery_id', 'expected_revision',
+                               'progress_revision', 'verdict'}
+            if (type(decision) is not dict or set(decision) != decision_fields
+                    or any(not _text(decision[k]) for k in decision_fields - {'expected_revision', 'progress_revision'})
+                    or any(type(decision[k]) is not int or decision[k] < 0 for k in ('expected_revision', 'progress_revision'))
+                    or decision['namespace'] != 'control-everything.automation.v1'
+                    or decision['verdict'] not in ('approved', 'changes_requested', 'rejected')):
+                raise HubError('invalid_producer_decision', 400)
         namespace = json.dumps([config['channel_account_id'], config['app_id']], ensure_ascii=True, separators=(',', ':'))
         source = 'feishu:' + hashlib.sha256(namespace.encode('utf-8')).hexdigest()
         payload = {k: config[k] for k in ('project_id', 'channel_account_id', 'app_id', 'chat_id')}
-        payload.update(kind='feishu_card_decision', message_id=body['message_id'],
-                       actor_open_id=body['actor_open_id'], decision=dict(decision))
+        payload.update(message_id=body['message_id'], actor_open_id=body['actor_open_id'])
+        if 'binding' in body:
+            payload.update(kind='feishu_identity_binding', producer_id=config['producer_id'],
+                           binding=dict(binding))
+        else:
+            payload.update(kind='feishu_card_decision', decision=dict(decision))
         return mailbox.receive(config['device_id'], config['generation'], source, body['event_id'], payload)
