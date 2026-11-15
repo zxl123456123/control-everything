@@ -477,12 +477,36 @@ class ConsumerTests(AutomationQueueFixture):
         self.pump()
         self.assertEqual(len(self.verification_calls), 1)
 
+    def test_one_failed_verification_repairs_once_then_can_pass(self):
+        import sys
+        self.configure_verification("print('verified')")
+        original = self.consumer.verification
+        calls = []
+        def verify(step, flow):
+            calls.append(step['id'])
+            if len(calls) == 1:
+                step = {**step, 'request': {**step['request'], 'verification': {
+                    **step['request']['verification'], 'argv': [sys.executable, '-B', '-c', 'import sys; sys.exit(7)']}}}
+            return original(step, flow)
+        self.consumer.verification = verify
+        result = self.pump()
+        self.assertEqual(result['flow']['status'], 'awaiting_acceptance', result['flow'])
+        self.assertEqual(len(calls), 2)
+        with self.profile.store.connection() as connection:
+            repairs = [json.loads(row['request_json']).get('repair_of') for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE kind='implement'")]
+        self.assertEqual([item['round'] for item in repairs if item], [1])
+
     def test_verification_real_nonzero_overrides_model_passed_claim(self):
         self.configure_verification("import sys; print('FAILED'); sys.exit(7)")
         result = self.pump()
-        self.assertEqual(result['flow']['attention']['reason'], 'verification_failed')
+        self.assertEqual(result['flow']['attention']['reason'], 'repair_budget_exhausted')
         self.assertEqual(result['step']['result']['receipt']['exit_code'], 7)
         self.assertEqual(result['step']['status'], 'failed')
+        with self.profile.store.connection() as connection:
+            repairs = [json.loads(row['request_json']).get('repair_of') for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE kind='implement'")]
+        self.assertEqual([item['round'] for item in repairs if item], [1, 2])
 
     def test_verification_source_identity_is_actual_tested_gap_version(self):
         import hashlib
@@ -595,7 +619,7 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertFalse(service.thread.is_alive())
 
     def test_verification_modifying_declared_input_is_failed(self):
-        self.configure_verification("from pathlib import Path; Path('input.txt').write_text('changed')")
+        self.configure_verification("from pathlib import Path; p=Path('input.txt'); p.write_text(p.read_text()+'x')")
         result = self.pump()
-        self.assertEqual(result['flow']['attention']['reason'], 'verification_failed')
+        self.assertEqual(result['flow'].get('attention', {}).get('reason'), 'repair_budget_exhausted', result['flow'])
         self.assertTrue(result['step']['result']['receipt']['source_changed'])

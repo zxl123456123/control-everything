@@ -198,6 +198,48 @@ class AutomationQueue:
                                (kind, stamp, flow['id']))
             return row_view(self._step(connection, identity))
 
+    def reserve_repair(self, lease, previous, request):
+        """Reserve one shared repair after a failed verify. The original implement is not a repair."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (previous['flow_id'],)).fetchone()
+            current = self._step(connection, previous['id'])
+            if (not current or current['kind'] != 'verify' or current['status'] != 'failed'
+                    or flow['status'] != 'running' or current['flow_revision'] != previous['flow_revision']):
+                fail('automation_step_changed')
+            existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
+                                          (flow['id'], current['ordinal'] + 1)).fetchone()
+            if existing:
+                repair = json.loads(existing['request_json']).get('repair_of') or {}
+                if existing['kind'] != 'implement' or repair.get('verify_step_id') != current['id']:
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            used = sum(1 for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE flow_id=? AND kind='implement'", (flow['id'],))
+                       if json.loads(row['request_json']).get('repair_of'))
+            if used >= 2:
+                fail('repair_budget_exhausted')
+            context = json.loads(flow['context_json'])
+            problem = self._input_problem(connection, flow['task_id'], context)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            if connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
+                                  'WHERE f.project_id=? AND s.writes_project=1 AND s.status IN '
+                                  "('reserved','dispatching','running','unknown','cancelling')",
+                                  (flow['project_id'],)).fetchone():
+                return None
+            frozen = packed({'context': context, **request, 'repair_of': {
+                'verify_step_id': current['id'], 'round': used + 1}})
+            identity, stamp = str(uuid4()), now_utc()
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow['id'], current['ordinal'] + 1, 'implement', 0, lease.generation, 1, 'reserved',
+                 f'{int(self.clock() * 1000)}-{uuid4().hex}', frozen, stamp, stamp))
+            connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
+                               ('implement', stamp, flow['id']))
+            return row_view(self._step(connection, identity))
+
     def publish_delivery(self, lease, step, checked_result):
         """Publish one current checked verification, without granting human acceptance."""
         with self.store.connection() as connection:
