@@ -61,6 +61,14 @@ class AutomationProducerHTTPTests(unittest.TestCase):
                                        token=self.producer_token)[1]['card'])
         vague = {'schema': '2.0', 'body': {'elements': [{}, {'value': dict(value, choice='不错')}]}}
         self.assertEqual(self.request('/remote/desktop/automation/card', vague)[0], 400)
+        acceptance = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'decision_id': 'accept-delivery', 'task_id': 'task',
+            'delivery_id': 'delivery', 'flow_id': 'flow-1', 'expected_revision': 4, 'progress_revision': 5,
+            'verdict': 'approved'}}]}}
+        stored = self.request('/remote/desktop/automation/card', acceptance)
+        self.assertEqual(stored[0], 200)
+        self.assertNotEqual(stored[1]['id'], first[1]['id'])
+        self.assertTrue(self.request('/remote/desktop/automation/card', acceptance)[1]['duplicate'])
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers

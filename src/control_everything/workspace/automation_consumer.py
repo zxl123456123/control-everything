@@ -7,7 +7,7 @@ import threading
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_launch import AutomationLaunch, READ_ONLY_REFUSALS
 from control_everything.workspace.automation_human_decisions import (
-    apply_acceptance_decisions, apply_plan_releases, is_plan_release, waiting_card)
+    acceptance_card, apply_acceptance_decisions, apply_plan_releases, is_plan_release, waiting_card)
 from control_everything.workspace.automation_planning import read_plan, planning_outcome
 from control_everything.workspace.native_progress import digest, fail, packed
 
@@ -146,6 +146,14 @@ class AutomationConsumer:
             return self.queue.record(lease, step, 'unknown', result={
                 'reason': 'integration_incomplete', 'error_type': type(error).__name__})
 
+    def _emit_acceptance(self, view):
+        if self.on_wait is not None and view['flow']['status'] == 'awaiting_acceptance':
+            try:
+                self.on_wait(acceptance_card(view['flow']))
+            except Exception as error:
+                logging.getLogger(__name__).error('Automation acceptance card failed: %s', type(error).__name__)
+        return view
+
     def _wait(self, lease, step, attention, *, status='waiting_external', phase=None):
         view = self.queue.wait(lease, step, status, phase or step['kind'],
             {'step_id': step['id'], **attention})
@@ -186,7 +194,7 @@ class AutomationConsumer:
             if step['request'].get('requires_code_review') is True:
                 return self._reserve_code_review(lease, view, step, checked)
             try:
-                return self.queue.publish_delivery(lease, step, checked)
+                return self._emit_acceptance(self.queue.publish_delivery(lease, step, checked))
             except ProfileError as error:
                 if str(error) not in ('automation_delivery_unverified', 'automation_project_busy',
                                      'invalid_planning_result', 'automation_plan_changed', 'independent_review_required'):
@@ -275,8 +283,8 @@ class AutomationConsumer:
         if verdict['verdict'] == 'revise':
             return self._wait(lease, step, {'reason': 'code_review_revise', 'implement_step_id': implement['id']})
         verify = self.queue.get_step(step['request']['verify_step_id'])
-        return self.queue.publish_delivery(lease, step, {'receipt': verify['result']['receipt'],
-            'output_dir': step['request']['checked_output_dir'], 'verify_step_id': verify['id']})
+        return self._emit_acceptance(self.queue.publish_delivery(lease, step, {'receipt': verify['result']['receipt'],
+            'output_dir': step['request']['checked_output_dir'], 'verify_step_id': verify['id']}))
 
     def _reserve(self, lease, step, context, scope, kind, attempt, extra=None, *, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set():

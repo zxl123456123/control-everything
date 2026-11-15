@@ -449,6 +449,10 @@ class ConsumerTests(AutomationQueueFixture):
         apply_waiting_reply(self.consumer, waiting['flow'], cards[0]['body']['elements'][1]['value'], 'owner')
         result = self.pump()
         self.assertEqual(result['flow']['status'], 'awaiting_acceptance', result['flow'])
+        accepted = [card for card in cards if card['body']['elements'][1]['value'].get('verdict') == 'approved']
+        self.assertEqual(accepted[0]['body']['elements'][1]['value']['delivery_id'],
+                         result['flow']['attention']['delivery_id'])
+        self.assertEqual(accepted[0]['body']['elements'][1]['text']['content'], '这个版本通过，集成 develop')
         with self.profile.store.connection() as connection:
             kinds = [row['kind'] for row in connection.execute(
                 'SELECT kind FROM automation_steps ORDER BY ordinal')]

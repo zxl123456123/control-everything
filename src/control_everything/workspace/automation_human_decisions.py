@@ -9,6 +9,24 @@ VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
 
 
+def acceptance_card(flow):
+    """A card for the current delivery. It does not accept by being sent."""
+    attention = (flow or {}).get('attention') or {}
+    delivery_id = attention.get('delivery_id')
+    task_id = flow.get('task_id')
+    if (flow.get('status') != 'awaiting_acceptance' or not task_id or not isinstance(delivery_id, str) or not delivery_id
+            or type(attention.get('expected_revision')) is not int or type(attention.get('progress_revision')) is not int):
+        raise ValueError('acceptance_card_unavailable')
+    decision = {'namespace': 'control-everything.automation.v1', 'decision_id': 'accept-' + delivery_id,
+                'task_id': task_id, 'delivery_id': delivery_id, 'flow_id': flow['id'],
+                'expected_revision': attention['expected_revision'], 'progress_revision': attention['progress_revision'],
+                'verdict': 'approved'}
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '这个版本通过，集成 develop'}, 'type': 'primary',
+              'value': decision}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '待验收'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '当前交付可以验收。通过后只集成 develop。'}, button]}}
+
+
 def waiting_card(flow):
     """A card for the current wait. It does not grant acceptance or start work by itself."""
     attention = (flow or {}).get('attention') or {}

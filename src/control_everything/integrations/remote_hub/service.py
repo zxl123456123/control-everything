@@ -19,18 +19,26 @@ from .sessions import BrowserSessions
 from .store import ONLINE_WINDOW, RECOVERABLE, public_device
 
 
-def _waiting_release_value(card):
+def _card_identity(card):
     elements = ((card or {}).get('body') or {}).get('elements') if type(card) is dict else None
     button = elements[1] if isinstance(elements, list) and len(elements) > 1 else None
     value = button.get('value') if type(button) is dict else None
-    if (type(card) is not dict or card.get('schema') != '2.0' or type(value) is not dict
-            or set(value) != {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'choice'}
-            or value['namespace'] != 'control-everything.automation.v1' or value['choice'] != '按已审方案实现'
-            or any(not isinstance(value[key], str) or not value[key] or len(value[key]) > 256
-                   for key in ('task_id', 'flow_id'))
-            or type(value['requirement_revision']) is not int or value['requirement_revision'] < 0):
+    text = lambda key: isinstance(value.get(key), str) and 1 <= len(value[key]) <= 256
+    plan = {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'choice'}
+    acceptance = {'namespace', 'decision_id', 'task_id', 'delivery_id', 'flow_id',
+                  'expected_revision', 'progress_revision', 'verdict'}
+    if type(card) is not dict or card.get('schema') != '2.0' or type(value) is not dict:
         raise HubError('invalid_waiting_card', 400)
-    return value
+    if (set(value) == plan and value['namespace'] == 'control-everything.automation.v1'
+            and value['choice'] == '按已审方案实现' and text('task_id') and text('flow_id')
+            and type(value['requirement_revision']) is int and value['requirement_revision'] >= 0):
+        return value['flow_id'], value['requirement_revision']
+    if (set(value) == acceptance and value['namespace'] == 'control-everything.automation.v1'
+            and value['verdict'] == 'approved' and all(text(key) for key in ('decision_id', 'task_id', 'delivery_id', 'flow_id'))
+            and type(value['expected_revision']) is int and value['expected_revision'] >= 0
+            and type(value['progress_revision']) is int and value['progress_revision'] >= 0):
+        return 'acceptance:' + value['flow_id'], value['expected_revision']
+    raise HubError('invalid_waiting_card', 400)
 
 
 class RemoteHubService:
@@ -332,7 +340,7 @@ class RemoteHubService:
 
     def enqueue_waiting_card(self, token, card):
         device = self.store.authenticate_control(token)
-        value = _waiting_release_value(card)
+        flow_id, revision = _card_identity(card)
         matches = self.automation_producers.for_device(device['device_id'], device['generation'])
         if len(matches) != 1:
             raise HubError('producer_unavailable', 409)
@@ -340,14 +348,14 @@ class RemoteHubService:
         encoded = json.dumps(card, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
         with self.store.transaction() as db:
             existing = db.execute('SELECT id, message_id FROM automation_outbound_cards WHERE device_id=? AND flow_id=? AND requirement_revision=?',
-                                  (device['device_id'], value['flow_id'], value['requirement_revision'])).fetchone()
+                                  (device['device_id'], flow_id, revision)).fetchone()
             if existing:
                 return {'id': existing['id'], 'duplicate': True,
                         'state': 'sent' if existing['message_id'] else 'pending'}
             identity = uuid.uuid4().hex
             db.execute('INSERT INTO automation_outbound_cards(id,device_id,producer_id,flow_id,requirement_revision,card_json,created_at) VALUES(?,?,?,?,?,?,?)',
-                       (identity, device['device_id'], producer['producer_id'], value['flow_id'],
-                        value['requirement_revision'], encoded, self.store.clock()))
+                       (identity, device['device_id'], producer['producer_id'], flow_id,
+                        revision, encoded, self.store.clock()))
             return {'id': identity, 'duplicate': False, 'state': 'pending'}
 
     def claim_outbound_card(self, token, body):
