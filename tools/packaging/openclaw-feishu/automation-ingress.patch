@@ -32,9 +32,446 @@ index 38b57a45..b16de524 100644
 +  }
 @@ -236,0 +263 @@ function buildResolvedFeishuAccount(params: {
 +    automationIngress,
+diff --git a/extensions/feishu/src/automation-card-ingress.test.ts b/extensions/feishu/src/automation-card-ingress.test.ts
+new file mode 100644
+--- /dev/null
++++ b/extensions/feishu/src/automation-card-ingress.test.ts
+@@ -0,0 +1,321 @@
++import "./lifecycle.test-support.js";
++import fs from "node:fs/promises";
++import os from "node:os";
++import path from "node:path";
++import { EventDispatcher } from "@larksuiteoapi/node-sdk";
++import { createDeferred } from "openclaw/plugin-sdk/extension-shared";
++import { createRuntimeEnv } from "openclaw/plugin-sdk/plugin-test-runtime";
++import { closeOpenClawStateDatabaseAsync } from "openclaw/plugin-sdk/sqlite-runtime-testing";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
++import { resolveFeishuRuntimeAccount } from "./accounts.js";
++import * as cardAction from "./card-action.js";
++import { FeishuConfigSchema } from "./config-schema.js";
++import {
++  getFeishuLifecycleTestMocks,
++  resetFeishuLifecycleTestMocks,
++} from "./lifecycle.test-support.js";
++import { monitorSingleAccount } from "./monitor.account.js";
++import { getFeishuRuntime } from "./runtime.js";
++import {
++  createFeishuLifecycleConfig,
++  installFeishuLifecycleReplyRuntime,
++} from "./test-support/lifecycle-test-support.js";
++
++const mocks = getFeishuLifecycleTestMocks();
++const decision = {
++  namespace: "control-everything.automation.v1",
++  decision_id: "decision",
++  task_id: "task",
++  delivery_id: "delivery",
++  expected_revision: 1,
++  progress_revision: 2,
++  verdict: "approved",
++};
++const ingress = { hubOrigin: "https://hub.example.test", producerId: "father", chatId: "oc-chat" };
++const originalStateDir = process.env.OPENCLAW_STATE_DIR;
++let stateDir: string;
++let controller: AbortController;
++let monitoring: Promise<void> | undefined;
++
++function envelope(eventId = "evt-card") {
++  return {
++    schema: "2.0",
++    header: { event_id: eventId, event_type: "card.action.trigger" },
++    event: {
++      token: "card-token-is-not-the-event-id",
++      operator: { open_id: "ou-operator" },
++      context: { open_chat_id: "oc-chat", open_message_id: "om-card" },
++      action: { tag: "button", value: { ...decision } },
++    },
++  };
++}
++
++async function startMonitor(configured = true, producerToken = "producer-fixture") {
++  const cfg = createFeishuLifecycleConfig({
++    accountId: "father",
++    appId: "app",
++    appSecret: "fixture",
++    accountConfig: configured
++      ? {
++          automationIngress: ingress,
++          automationProducerToken: producerToken,
++        }
++      : {},
++  });
++  cfg.channels!.feishu = FeishuConfigSchema.parse(cfg.channels!.feishu);
++  const account = resolveFeishuRuntimeAccount({ cfg, accountId: "father" });
++  const runtime = installFeishuLifecycleReplyRuntime({
++    resolveAgentRouteMock: mocks.resolveAgentRouteMock,
++    dispatchReplyFromConfigMock: mocks.dispatchReplyFromConfigMock,
++    withReplyDispatcherMock: mocks.withReplyDispatcherMock,
++    storePath: path.join(stateDir, "sessions.json"),
++  });
++  runtime.config.current = vi.fn(() => cfg);
++  const sdk = new EventDispatcher({});
++  mocks.createEventDispatcherMock.mockReturnValue(sdk);
++  const started = createDeferred<EventDispatcher>();
++  mocks.monitorWebSocketMock.mockImplementationOnce(
++    async (params: { eventDispatcher: EventDispatcher }) => {
++      started.resolve(params.eventDispatcher);
++      if (!controller.signal.aborted) {
++        await new Promise<void>((resolve) =>
++          controller.signal.addEventListener("abort", () => resolve(), { once: true }),
++        );
++      }
++    },
++  );
++  monitoring = monitorSingleAccount({
++    cfg,
++    account,
++    runtime: createRuntimeEnv(),
++    abortSignal: controller.signal,
++    botOpenIdSource: { kind: "prefetched", botOpenId: "ou-bot" },
++  });
++  void monitoring.catch(started.reject);
++  return {
++    sdk,
++    transport: await started.promise,
++    queue: runtime.state.openChannelIngressQueue({ accountId: "father" }),
++  };
++}
++
++beforeEach(async () => {
++  resetFeishuLifecycleTestMocks();
++  stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "feishu-automation-"));
++  process.env.OPENCLAW_STATE_DIR = stateDir;
++  controller = new AbortController();
++});
++
++afterEach(async () => {
++  controller.abort();
++  await monitoring;
++  monitoring = undefined;
++  await closeOpenClawStateDatabaseAsync();
++  vi.restoreAllMocks();
++  if (originalStateDir === undefined) delete process.env.OPENCLAW_STATE_DIR;
++  else process.env.OPENCLAW_STATE_DIR = originalStateDir;
++  await fs.rm(stateDir, { recursive: true, force: true });
++});
++
++describe("automation cards through the account monitor", () => {
++  it("awaits the Hub receipt before completing the real durable SDK event", async () => {
++    const received = createDeferred<void>();
++    const response = createDeferred<Response>();
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
++      received.resolve();
++      return response.promise;
++    });
++    const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
++    const { transport, queue } = await startMonitor();
++    const data = envelope();
++    await transport.invoke(data, { needCheck: false });
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    await received.promise;
++    expect(await queue.listClaims()).toHaveLength(1);
++    expect(fetch.mock.calls[0]?.[0]).toBe(
++      "https://hub.example.test/remote/producer/automation/receive",
++    );
++    const options = fetch.mock.calls[0]?.[1];
++    expect(options?.redirect).toBe("error");
++    expect(JSON.parse(options?.body as string)).toEqual({
++      producer_id: "father",
++      event_id: "evt-card",
++      chat_id: "oc-chat",
++      message_id: "om-card",
++      actor_open_id: "ou-operator",
++      decision,
++    });
++    expect(ordinary).not.toHaveBeenCalled();
++    response.resolve(
++      new Response(JSON.stringify({ id: "receipt", state: "pending" }), { status: 200 }),
++    );
++    await vi.waitFor(async () =>
++      expect(await queue.enqueue("evt-card", {})).toMatchObject({ kind: "completed" }),
++    );
++    await transport.invoke(data, { needCheck: false });
++    expect(fetch).toHaveBeenCalledTimes(1);
++  });
++
++  it("propagates CE failure through real SDK invoke even with default fire-and-forget", async () => {
++    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("synthetic transport unavailable"));
++    const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
++    const { sdk } = await startMonitor();
++    await expect(sdk.invoke(envelope(), { needCheck: false })).rejects.toThrow();
++    expect(ordinary).not.toHaveBeenCalled();
++  });
++});
++
++import { receiveAutomationCard } from "./automation-card-ingress.js";
++
++describe("automation receipt boundary", () => {
++  it.each(["pending", "acknowledged"])("accepts durable %s receipts", async (state) => {
++    vi.spyOn(globalThis, "fetch").mockResolvedValue(
++      new Response(JSON.stringify({ id: "receipt", state })),
++    );
++    const sdk = new EventDispatcher({});
++    sdk.register({
++      "card.action.trigger": (data) =>
++        receiveAutomationCard({
++          data,
++          config: { ...ingress, token: "fixture" },
++          active: () => true,
++          signal: controller.signal,
++        }),
++    });
++    await expect(sdk.invoke(envelope(), { needCheck: false })).resolves.toBeUndefined();
++  });
++  it.each(["approved", "", "unknown"])("rejects nondurable receipt %s", async (state) => {
++    vi.spyOn(globalThis, "fetch").mockResolvedValue(
++      new Response(JSON.stringify({ id: "receipt", state })),
++    );
++    const sdk = new EventDispatcher({});
++    sdk.register({
++      "card.action.trigger": (data) =>
++        receiveAutomationCard({
++          data,
++          config: { ...ingress, token: "fixture" },
++          active: () => true,
++          signal: controller.signal,
++        }),
++    });
++    await expect(sdk.invoke(envelope(), { needCheck: false })).rejects.toThrow(
++      "Invalid automation card ingress",
++    );
++  });
++  it("sanitizes malformed response JSON", async () => {
++    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("private-response-secret"));
++    const sdk = new EventDispatcher({});
++    sdk.register({
++      "card.action.trigger": (data) =>
++        receiveAutomationCard({
++          data,
++          config: { ...ingress, token: "fixture" },
++          active: () => true,
++          signal: controller.signal,
++        }),
++    });
++    await expect(sdk.invoke(envelope(), { needCheck: false })).rejects.toThrow(
++      "Invalid automation card ingress",
++    );
++  });
++});
++
++it("does not adopt an in-flight durable card after account stop", async () => {
++  const response = createDeferred<Response>();
++  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => response.promise);
++  const { transport, queue } = await startMonitor();
++  await transport.invoke(envelope("stopped-event"), { needCheck: false });
++  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++  controller.abort();
++  response.resolve(new Response(JSON.stringify({ id: "receipt", state: "pending" })));
++  await monitoring;
++  expect(await queue.enqueue("stopped-event", {})).not.toMatchObject({ kind: "completed" });
++});
++
++it.skipIf(!process.env.CE_CALLER_LOOPBACK)(
++  "delivers through real Hub HTTP and SQLite",
++  async () => {
++    ingress.producerId = "producer-a";
++    ingress.chatId = "chat-a";
++    const syntheticProducerToken = "synthetic-producer-" + "a".repeat(43);
++    const originalFetch = globalThis.fetch;
++    const delivered = createDeferred<void>();
++    const release = createDeferred<void>();
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
++      try {
++        expect(url).toBe("https://hub.example.test/remote/producer/automation/receive");
++        const requestBody = JSON.parse(String(options?.body));
++        const headers = new Headers(options?.headers);
++        if (requestBody.producer_id !== "producer-a")
++          throw new Error("Synthetic Hub producer mismatch");
++        if (headers.get("Authorization") !== `Bearer ${syntheticProducerToken}`)
++          throw new Error("Synthetic Hub credential mismatch");
++        const response = await originalFetch(
++          `${process.env.CE_CALLER_LOOPBACK}/remote/producer/automation/receive`,
++          options,
++        );
++        if (response.status !== 200) throw new Error(`Synthetic Hub HTTP ${response.status}`);
++        delivered.resolve();
++        await release.promise;
++        return response;
++      } catch (error) {
++        delivered.reject(
++          new Error(
++            error instanceof Error &&
++              /^Synthetic Hub (HTTP \d+|producer mismatch|credential mismatch)$/.test(error.message)
++              ? error.message
++              : "Synthetic Hub transport or request assertion failed",
++          ),
++        );
++        throw error;
++      }
++    });
++    // Attach the rejection observer before admitting work to the asynchronous drain.
++    const deliveryResult = delivered.promise.then(
++      () => null,
++      (error: unknown) => error,
++    );
++    const { transport, queue } = await startMonitor(true, syntheticProducerToken);
++    const data = envelope("real-hub-event");
++    data.event.context.open_chat_id = "chat-a";
++    await transport.invoke(data, { needCheck: false });
++    try {
++      await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
++      const deliveryError = await deliveryResult;
++      if (deliveryError) throw deliveryError;
++      expect(await queue.listClaims()).toHaveLength(1);
++    } finally {
++      release.resolve();
++    }
++    await vi.waitFor(async () =>
++      expect(await queue.enqueue("real-hub-event", {})).toMatchObject({ kind: "completed" }),
++    );
++    await transport.invoke(data, { needCheck: false });
++  },
++);
++
++it.each(["verdict", "state"])("rejects JSON array coercion for %s", async (field) => {
++  vi.spyOn(globalThis, "fetch").mockResolvedValue(
++    new Response(
++      JSON.stringify({
++        id: "receipt",
++        state: field === "state" ? ["pending"] : "pending",
++      }),
++    ),
++  );
++  const sdk = new EventDispatcher({});
++  sdk.register({
++    "card.action.trigger": (data) =>
++      receiveAutomationCard({
++        data,
++        config: { ...ingress, token: "fixture" },
++        active: () => true,
++        signal: controller.signal,
++      }),
++  });
++  const data = JSON.parse(JSON.stringify(envelope()));
++  if (field === "verdict") data.event.action.value.verdict = ["approved"];
++  await expect(sdk.invoke(data, { needCheck: false })).rejects.toThrow(
++    "Invalid automation card ingress",
++  );
++});
+diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feishu/src/automation-card-ingress.ts
+new file mode 100644
+--- /dev/null
++++ b/extensions/feishu/src/automation-card-ingress.ts
+@@ -0,0 +1,107 @@
++import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
++import type { ResolvedFeishuAccount } from "./types.js";
++
++export function isAutomationCard(data: unknown): boolean {
++  return (
++    isRecord(data) &&
++    isRecord(data.action) &&
++    isRecord(data.action.value) &&
++    data.action.value.namespace === "control-everything.automation.v1"
++  );
++}
++
++export async function receiveAutomationCard(params: {
++  data: unknown;
++  config: ResolvedFeishuAccount["automationIngress"];
++  active: () => boolean;
++  signal?: AbortSignal;
++}): Promise<void> {
++  const { data, config, active, signal } = params;
++  const fail = () => {
++    throw new Error("Invalid automation card ingress");
++  };
++  if (
++    !config ||
++    !isRecord(data) ||
++    !isRecord(data.context) ||
++    !isRecord(data.operator) ||
++    !isRecord(data.action) ||
++    !isRecord(data.action.value)
++  )
++    return fail();
++  const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
++  const chat = text(data.context.open_chat_id) || text(data.context.chat_id);
++  if (
++    text(data.context.open_chat_id) &&
++    text(data.context.chat_id) &&
++    text(data.context.open_chat_id) !== text(data.context.chat_id)
++  )
++    return fail();
++  const eventId = text(data.event_id);
++  const message = text(data.context.open_message_id);
++  const actor = text(data.operator.open_id);
++  const decision = data.action.value;
++  const keys = [
++    "namespace",
++    "decision_id",
++    "task_id",
++    "delivery_id",
++    "expected_revision",
++    "progress_revision",
++    "verdict",
++  ];
++  if (
++    Object.keys(decision).length !== keys.length ||
++    keys.some((key) => !(key in decision)) ||
++    !["decision_id", "task_id", "delivery_id"].every((key) => text(decision[key])) ||
++    !["expected_revision", "progress_revision"].every(
++      (key) => Number.isSafeInteger(decision[key]) && Number(decision[key]) >= 0,
++    ) ||
++    typeof decision.verdict !== "string" ||
++    !["approved", "changes_requested", "rejected"].includes(decision.verdict) ||
++    !eventId ||
++    !message ||
++    !actor ||
++    chat !== config.chatId
++  )
++    return fail();
++  const origin = new URL(config.hubOrigin);
++  if (origin.protocol !== "https:" || origin.origin !== config.hubOrigin) return fail();
++  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
++  let response: Response;
++  try {
++    response = await fetch(`${origin.origin}/remote/producer/automation/receive`, {
++      method: "POST",
++      redirect: "error",
++      signal: signal
++        ? AbortSignal.any([signal, AbortSignal.timeout(15000)])
++        : AbortSignal.timeout(15000),
++      headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
++      body: JSON.stringify({
++        producer_id: config.producerId,
++        event_id: eventId,
++        chat_id: chat,
++        message_id: message,
++        actor_open_id: actor,
++        decision,
++      }),
++    });
++  } catch {
++    throw new Error("Automation ingress transport failed");
++  }
++  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
++  if (response.status !== 200) throw new Error(`Automation ingress HTTP ${response.status}`);
++  let receipt: unknown;
++  try {
++    receipt = await response.json();
++  } catch {
++    return fail();
++  }
++  if (
++    !isRecord(receipt) ||
++    !text(receipt.id) ||
++    typeof receipt.state !== "string" ||
++    !["pending", "acknowledged"].includes(receipt.state)
++  )
++    return fail();
++}
 diff --git a/extensions/feishu/src/automation-config.test.ts b/extensions/feishu/src/automation-config.test.ts
 new file mode 100644
-index 00000000..d63bc147
 --- /dev/null
 +++ b/extensions/feishu/src/automation-config.test.ts
 @@ -0,0 +1,89 @@
@@ -159,6 +596,103 @@ index 93957ff4..ee34484b 100644
 +      .strict()
 +      .optional(),
 +    automationProducerToken: buildSecretInputSchema().optional(),
+diff --git a/extensions/feishu/src/feishu-ingress.test.ts b/extensions/feishu/src/feishu-ingress.test.ts
+index 8b12ee83..3c3af59f 100644
+--- a/extensions/feishu/src/feishu-ingress.test.ts
++++ b/extensions/feishu/src/feishu-ingress.test.ts
+@@ -6 +6 @@ import path from "node:path";
+-import type * as Lark from "@larksuiteoapi/node-sdk";
++import * as Lark from "@larksuiteoapi/node-sdk";
+@@ -220,0 +221,35 @@ describe("Feishu durable ingress", () => {
++  it("admits CE card actions before real SDK dispatch and preserves the header lifecycle", async () => {
++    await withQueue(async (queue, startIngress) => {
++      const dispatcher = new Lark.EventDispatcher({});
++      const seen = vi.fn(async (data: Record<string, unknown>) => {
++        const lifecycle = ingress.resolveLifecycle(data);
++        expect(lifecycle).toBeDefined();
++        await lifecycle!.onAdopted();
++        return { kind: "completed" };
++      });
++      dispatcher.register({ "card.action.trigger": seen });
++      const ingress = startIngress({ queue, dispatcher });
++      const envelope = {
++        schema: "2.0",
++        header: { event_id: "evt-ce-card", event_type: "card.action.trigger" },
++        event: {
++          operator: { open_id: "ou-operator" },
++          context: { open_chat_id: "oc-chat", open_message_id: "om-card" },
++          action: { value: { namespace: "control-everything.automation.v1" } },
++        },
++      };
++      await expect(ingress.invokeWebhook(envelope, { needCheck: false })).resolves.toMatchObject({
++        kind: "durable",
++      });
++      expect(seen).not.toHaveBeenCalled();
++      ingress.start();
++      await ingress.waitForIdle();
++      expect(seen).toHaveBeenCalledWith(
++        expect.objectContaining({ event_id: "evt-ce-card", context: envelope.event.context }),
++      );
++      await ingress.invoke(envelope, { needCheck: false });
++      await ingress.waitForIdle();
++      expect(seen).toHaveBeenCalledTimes(1);
++    });
++  });
++
+diff --git a/extensions/feishu/src/feishu-ingress.ts b/extensions/feishu/src/feishu-ingress.ts
+index 32a9caa3..42281069 100644
+--- a/extensions/feishu/src/feishu-ingress.ts
++++ b/extensions/feishu/src/feishu-ingress.ts
+@@ -1 +0,0 @@
+-// Feishu plugin owns raw Lark event admission, replay, and turn adoption.
+@@ -15,0 +15,2 @@ import { normalizeNullableString } from "openclaw/plugin-sdk/string-coerce-runti
++// Feishu plugin owns raw Lark event admission, replay, and turn adoption.
++import { isAutomationCard } from "./automation-card-ingress.js";
+@@ -129 +130,5 @@ function inspectFeishuIngressEnvelope(
+-  if (!eventType || !FEISHU_DURABLE_EVENT_TYPES.has(eventType)) {
++  if (
++    !eventType ||
++    (!FEISHU_DURABLE_EVENT_TYPES.has(eventType) &&
++      !(eventType === "card.action.trigger" && isAutomationCard(nestedEvent ?? envelope)))
++  ) {
+@@ -141,0 +147,10 @@ function inspectFeishuIngressEnvelope(
++  if (
++    eventType === "card.action.trigger" &&
++    nestedEvent?.event_id !== undefined &&
++    nestedEvent.event_id !== eventId
++  ) {
++    throw new FeishuIngressPermanentError(
++      "invalid-event",
++      "Feishu event identity conflicts with header.",
++    );
++  }
+@@ -156,0 +172,3 @@ function inspectFeishuIngressEnvelope(
++  if (eventType === "card.action.trigger") {
++    return { eventId, eventType, laneKey: `automation:${eventId}` };
++  }
+diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
+index 1cb51649..4b031862 100644
+--- a/extensions/feishu/src/monitor.account.ts
++++ b/extensions/feishu/src/monitor.account.ts
+@@ -10,0 +11 @@ import { raceWithTimeoutAndAbort } from "./async.js";
++import { isAutomationCard, receiveAutomationCard } from "./automation-card-ingress.js";
+@@ -178,0 +180 @@ type RegisterEventHandlersContext = {
++  automationIngress?: ResolvedFeishuAccount["automationIngress"];
+@@ -355,0 +358,12 @@ function registerEventHandlers(
++      if (isAutomationCard(data)) {
++        await receiveAutomationCard({
++          data,
++          config: context.automationIngress,
++          active: context.isAccountActive,
++          signal: context.abortSignal,
++        });
++        if (!context.isAccountActive() || context.abortSignal?.aborted)
++          throw new Error("Automation ingress account stopped");
++        await context.resolveIngressLifecycle(data)?.onAdopted();
++        return;
++      }
+@@ -485,0 +500 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
++      automationIngress: account.automationIngress,
 diff --git a/extensions/feishu/src/secret-contract.test.ts b/extensions/feishu/src/secret-contract.test.ts
 index 176ef135..190f74a3 100644
 --- a/extensions/feishu/src/secret-contract.test.ts

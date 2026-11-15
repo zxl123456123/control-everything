@@ -81,9 +81,9 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 飞书服务器插件的唯一 TypeScript 维护源为 `tools/packaging/openclaw-feishu/automation-ingress.patch`，固定上游提交、版本、npm 完整性和原始/补丁文件 hash 记录在同目录 `source.json`，保留上游 `LICENSE`。文件 hash 对文本使用 LF 换行。升级时重新核来源并重测，不直接修改线上 dist，不把服务器插件导入 `web`、Python wheel 或静态 HTTP 资源。
 
-`work/<feature>/` 内的上游检出、独立安装的依赖、日志和 dist 都是可重建材料。当前补丁仅增加账号专属 `automationIngress` 与 `automationProducerToken` 的严格配置及 SecretInput 激活解析；尚未接通卡片投递，也未部署。账号未配置时保持原行为；账号配置不能从频道顶层继承 producer 凭据。
+`work/<feature>/` 内的上游检出、独立安装的依赖、日志和 dist 都是可重建材料。补丁增加账号专属 `automationIngress` 与 `automationProducerToken` 的严格配置、SecretInput 激活解析及 CE 卡片投递。CE 卡复用原 WebSocket/SDK 和 SQLite 持久入口，严格使用 SDK 的 operator/context 与原 event_id；固定 HTTPS producer 地址返回 pending/acknowledged 持久回执后才完成原 claim，失败由原队列重试，停止账号后不得采用在途回执。回执仅代表 Hub 收件，不代表人工批准。非 CE 卡保持原处理；CE 未配置时拒绝投递，不落普通模型。账号配置不能从频道顶层继承 producer 凭据。实际部署、飞书发送及 TLS 现场仍须另行验收。
 
-在固定源码根使用符合上游 engines 的显式 Node 和 `source.json` 固定的 pnpm；各检出独立安装依赖，默认禁用安装脚本，不运行个人配置或真实会话。定向验证入口为 `node scripts/test-projects.mts extensions/feishu/src/automation-config.test.ts extensions/feishu/src/secret-contract.test.ts extensions/feishu/src/config-schema.test.ts extensions/feishu/src/accounts.test.ts -- --maxWorkers=1`。局部运行产物构建入口为 `node scripts/lib/plugin-npm-runtime-build.mjs extensions/feishu`；dist 不等于可安装发行包或部署验收，发行元数据必须沿用上游发布配方。
+在固定源码根使用符合上游 engines 的显式 Node 和 `source.json` 固定的 pnpm；各检出独立安装依赖，默认禁用安装脚本，不运行个人配置或真实会话。定向验证入口为 `node scripts/test-projects.mts extensions/feishu/src/automation-config.test.ts extensions/feishu/src/secret-contract.test.ts extensions/feishu/src/config-schema.test.ts extensions/feishu/src/accounts.test.ts extensions/feishu/src/automation-card-ingress.test.ts extensions/feishu/src/feishu-ingress.test.ts -- --maxWorkers=1`。局部运行产物构建入口为 `node scripts/lib/plugin-npm-runtime-build.mjs extensions/feishu`；dist 不等于可安装发行包或部署验收，发行元数据必须沿用上游发布配方。
 
 正式组装入口 `tools/packaging/build_openclaw_feishu.py` 接受 `--source` 独占固定源码目录、`--node` 明确 Node 可执行文件、`--pnpm` 固定版本包的 `bin/pnpm.mjs`，以及仓库 `work/<feature>/` 下尚不存在的 `--output`。源码须已独立安装上述测试与构建的依赖；上游测试 SDK 的 worker 编译会引用其它插件入口与 UI 测试配置，稀疏检出须覆盖真实导入闭包。组装入口不安装依赖、不启动模型或部署。
 

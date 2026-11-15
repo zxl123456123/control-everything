@@ -3,7 +3,7 @@
   "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
   "version": "2026.11.2",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
-  "patchSha256": "c12e2520db45e70ae74f43475471f6d6ae2dc13c6c765f2020df6cde0203115e",
+  "patchSha256": "90c1bba2b96012207c349db831a9d50fe63ca2f09ed65fb69e791a727d4a7f6c",
   "patchFormat": "unified-zero-context; git apply --unidiff-zero",
   "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
   "npm": {
@@ -40,15 +40,40 @@
     "extensions/feishu/src/types.ts": {
       "originalSha256": "bebb7bd1f6c3f234c72911a733a58896c80ea7b4e927a56fb84531387b09e2eb",
       "patchedSha256": "9258b7ea5787377dfa61abf7e77fb99cc3740dc8965fda10d49ee842a0a49162"
+    },
+    "extensions/feishu/src/automation-card-ingress.ts": {
+      "originalSha256": null,
+      "patchedSha256": "d773bdef86e3117018373f042916b0e910c18ac6dc6eab6a9f90941ec41c6d05"
+    },
+    "extensions/feishu/src/automation-card-ingress.test.ts": {
+      "originalSha256": null,
+      "patchedSha256": "84b3043dbc845558a63ca84cfccdc060b3a424c98ee5e80a06e17305217e085a"
+    },
+    "extensions/feishu/src/feishu-ingress.ts": {
+      "originalSha256": "4e28f530904a62eea3f3a833c26a5e44770052f2336501356ebd8ba7b6d61c21",
+      "patchedSha256": "f4ce1718517f26c067e5689b6feb19294b98a9d1b6b5691b7f6c8c6b7f97e6c1"
+    },
+    "extensions/feishu/src/feishu-ingress.test.ts": {
+      "originalSha256": "9f9a8dac5c7663f4c50cb8d57cf105cce5d1c2390db57074e20a714de6887e59",
+      "patchedSha256": "6c61dce35cdc1d359371a1021d643097acab5f36983ce0a6b034535f769757a1"
+    },
+    "extensions/feishu/src/monitor.account.ts": {
+      "originalSha256": "a4ba4249e3c9daa1a1e3c13a1f04aa9c7d9b3666896c7066b10f2d6ea604b26c",
+      "patchedSha256": "f297ea375275b8cfa569fab3f1fa45a1d3e2ba7e0e33d17840ec5f22416eed75"
     }
   },
   "tests": [
     "extensions/feishu/src/automation-config.test.ts",
     "extensions/feishu/src/secret-contract.test.ts",
     "extensions/feishu/src/config-schema.test.ts",
-    "extensions/feishu/src/accounts.test.ts"
+    "extensions/feishu/src/accounts.test.ts",
+    "extensions/feishu/src/automation-card-ingress.test.ts",
+    "extensions/feishu/src/feishu-ingress.test.ts"
   ],
-  "runtimeBuild": ["scripts/lib/plugin-npm-runtime-build.mjs", "extensions/feishu"],
+  "runtimeBuild": [
+    "scripts/lib/plugin-npm-runtime-build.mjs",
+    "extensions/feishu"
+  ],
   "runtimeOutput": "extensions/feishu/dist",
   "delivery": "runtime-build-material; not an installable plugin package"
 }
