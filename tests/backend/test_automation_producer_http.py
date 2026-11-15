@@ -41,6 +41,20 @@ class AutomationProducerHTTPTests(unittest.TestCase):
     def receive(self, body=None, **options):
         return self.request(RECEIVE, self.body if body is None else body, token=self.producer_token, **options)
 
+    def test_config_exposes_only_current_device_public_contexts(self):
+        from control_everything.integrations.remote_hub.automation_producer import AutomationProducers
+        configs = [self.config, dict(self.config, producer_id='other', device_id='other-device',
+                   token_sha256='1' * 64), dict(self.config, producer_id='old', generation=99,
+                   token_sha256='2' * 64)]
+        self.hub.automation_producers = AutomationProducers(configs)
+        status, body, *_ = self.request('/remote/desktop/config', method='GET')
+        self.assertEqual(status, 200)
+        contexts = body['automation_identity_contexts']
+        self.assertEqual(contexts, [{key: value for key, value in self.config.items()
+                                   if key != 'token_sha256'}])
+        self.assertNotIn(self.producer_token, json.dumps(contexts))
+        self.assertNotIn('token', json.dumps(contexts))
+
     def test_producer_replay_and_context(self):
         first = self.receive()
         self.assertEqual(first[0], 200)

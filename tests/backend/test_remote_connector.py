@@ -259,6 +259,85 @@ class DiscoveredEndpointTests(unittest.TestCase):
 
 
 class ConnectorTests(unittest.TestCase):
+    def test_current_binding_does_not_wait_for_connector_or_store_locks(self):
+        self.authorize(); self.connector.confirm()
+        finished = threading.Event()
+        results = []
+        def read():
+            results.append(self.connector.current_binding())
+            finished.set()
+        with self.connector._lock, self.store.locked():
+            worker = threading.Thread(target=read)
+            worker.start()
+            timely = finished.wait(1)
+        worker.join(2)
+        self.assertTrue(timely, 'binding read waited for a lock held across mailbox writes')
+        self.assertEqual(results[0]['device_id'], 'device-1')
+
+    def test_current_binding_rejects_mid_read_credential_and_revocation_changes(self):
+        self.authorize(); self.connector.confirm()
+        original = self.store.read
+        for revoke in (False, True):
+            count = [0]
+            def changing(name, **kwargs):
+                value = original(name, **kwargs)
+                if name == 'credentials.bin':
+                    count[0] += 1
+                    if count[0] == 1:
+                        if revoke:
+                            self.store.write('revocation_requested.json', {'requested': True})
+                        else:
+                            self.store.write(name, dict(value, credential_revision=2), protected=True)
+                return value
+            self.store.read = changing
+            try:
+                self.assertIsNone(self.connector.current_binding())
+            finally:
+                self.store.read = original
+                self.store.clear('revocation_requested.json')
+
+    def test_identity_context_request_rejects_changed_credential(self):
+        self.authorize(); self.connector.confirm()
+        original = self.peer.request
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            credential = self.store.read('credentials.bin', protected=True)
+            self.store.write('credentials.bin', dict(credential, control_token='B' * 43), protected=True)
+            return result
+        self.peer.request = changed
+        with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+        self.tunnel.close.assert_not_called()
+
+    def test_identity_context_change_and_invalid_fields(self):
+        self.authorize(); self.connector.confirm()
+        context = dict(producer_id='p', channel_account_id='a', app_id='app', chat_id='chat',
+                       project_id='project', device_id='device-1', generation=1)
+        for changes in ({'device_id': 'other'}, {'generation': 2}, {'token': 'secret'}):
+            self.peer.config['automation_identity_contexts'] = [dict(context, **changes)]
+            with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+        self.peer.config['automation_identity_contexts'] = [context]
+        with self.assertRaises(ConnectorError): self.connector.identity_context('p', 'other')
+        original = self.peer.request
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            self.store.write('revocation_requested.json', {'requested': True})
+            return result
+        self.peer.request = changed
+        with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+        self.assertIsNone(self.connector.current_binding())
+        self.tunnel.close.assert_not_called()
+
+    def test_identity_contexts_require_current_binding(self):
+        self.authorize(); self.connector.confirm()
+        context = dict(producer_id='p', channel_account_id='a', app_id='app', chat_id='chat',
+                       project_id='project', device_id='device-1', generation=1)
+        self.peer.config['automation_identity_contexts'] = [context]
+        self.assertEqual(self.connector.identity_context('p', 'project'),
+                         dict(context, hub_origin=self.connector.config.hub_origin))
+        self.peer.config['automation_identity_contexts'] = [context, context]
+        with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+
+
     def test_inflight_identity_or_stop_changes_preserve_durable_pending(self):
         from control_everything.workspace.store import WorkspaceStore
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox

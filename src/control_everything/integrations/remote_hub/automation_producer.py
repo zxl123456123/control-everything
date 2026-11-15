@@ -31,6 +31,12 @@ class AutomationProducers:
             hashes.add(config['token_sha256'])
         self._producers = MappingProxyType(producers)
 
+    def identity_contexts(self, device_id, generation):
+        fields = ('producer_id', 'channel_account_id', 'app_id', 'chat_id',
+                  'project_id', 'device_id', 'generation')
+        return [{key: config[key] for key in fields} for config in self._producers.values()
+                if config['device_id'] == device_id and config['generation'] == generation]
+
     def receive(self, mailbox, token, body):
         fields = {'producer_id', 'event_id', 'chat_id', 'message_id', 'actor_open_id', 'decision'}
         if type(body) is not dict or set(body) != fields or not _text(body['producer_id']):

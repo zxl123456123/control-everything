@@ -620,6 +620,66 @@ class RemoteConnector:
         RemoteAccess(config["public_origin"], config["proxy_token"])
         return config
 
+    def _identity_credential(self):
+        if (self._stop.is_set() or any(self.store.read(name) for name in
+                ('pending.json', 'revocation.json', 'revocation_requested.json'))):
+            return None
+        return self.store.read('credentials.bin', protected=True)
+
+    def current_binding(self):
+        """Read current local authority without using health state or network IO."""
+        # Mailbox delivery holds connector/store locks while entering workspace.
+        # This read is also used inside workspace transactions; never invert that order.
+        try:
+            config = self.config
+            first = self._identity_credential()
+            second = self._identity_credential()
+            if (not first or first != second or self.config != config
+                    or self._stop.is_set() or any(self.store.read(name) for name in
+                        ('pending.json', 'revocation.json', 'revocation_requested.json'))):
+                return None
+            return dict(hub_origin=config.hub_origin, **{key: first[key]
+                        for key in ('device_id', 'generation', 'credential_revision')})
+        except (OSError, ConnectorError):
+            return None
+
+    def list_identity_contexts(self):
+        with self._lock, self.store.locked():
+            credential = self._identity_credential()
+            config_snapshot = self.config
+        if not credential:
+            return []
+        config = self._check_config(credential, self.peer.request(
+            'GET', '/remote/desktop/config', token=credential['control_token']))
+        fields = {'producer_id', 'channel_account_id', 'app_id', 'chat_id',
+                  'project_id', 'device_id', 'generation'}
+        contexts = config.get('automation_identity_contexts', [])
+        if type(contexts) is not list:
+            raise ConnectorError('remote_identity_context_invalid')
+        seen, result = set(), []
+        for context in contexts:
+            if (type(context) is not dict or set(context) != fields
+                    or any(type(context[key]) is not str or not context[key]
+                           or len(context[key]) > 256 or any(ord(c) < 32 for c in context[key])
+                           for key in fields - {'generation'})
+                    or type(context['generation']) is not int
+                    or context['generation'] != credential['generation']
+                    or context['device_id'] != credential['device_id']
+                    or context['producer_id'] in seen):
+                raise ConnectorError('remote_identity_context_invalid')
+            seen.add(context['producer_id'])
+            result.append(dict(context, hub_origin=config_snapshot.hub_origin))
+        with self._lock, self.store.locked():
+            if self.config != config_snapshot or self._identity_credential() != credential:
+                raise ConnectorError('remote_identity_context_changed')
+        return result
+
+    def identity_context(self, producer_id, project_id):
+        for context in self.list_identity_contexts():
+            if context['producer_id'] == producer_id and context['project_id'] == project_id:
+                return context
+        raise ConnectorError('remote_identity_context_unavailable')
+
     def prepare_access(self):
         """Load a confirmed private credential before starting the single runtime."""
         with self._lock, self.store.locked():

@@ -306,7 +306,9 @@ class RemoteHubService:
                 "ssh": {"host": self.ssh_host, "port": self.ssh_port,
                         "user": "ced_" + device["device_id"], "host_key": self.ssh_host_key},
                 "remote_http_port": device["http_port"], "remote_ws_port": device["ws_port"],
-                "proxy_token": device["proxy_secret"]}
+                "proxy_token": device["proxy_secret"],
+                "automation_identity_contexts": self.automation_producers.identity_contexts(
+                    device["device_id"], device["generation"])}
 
     def receive_automation_message(self, token, body):
         return self.automation_producers.receive(self.automation_mailbox, token, body)
