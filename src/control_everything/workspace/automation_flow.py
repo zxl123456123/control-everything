@@ -244,6 +244,45 @@ class AutomationQueue:
                                ('implement', stamp, flow['id']))
             return row_view(self._step(connection, identity))
 
+    def reserve_change_repair(self, lease, flow_id, expected_revision, request):
+        """A requested change uses the shared repair budget. It does not accept the delivery."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow, current = view['flow'], view['step']
+            attention = flow['attention'] or {}
+            if (flow['revision'] != expected_revision or flow['status'] != 'waiting_external'
+                    or flow['phase'] != 'acceptance' or attention.get('reason') != 'acceptance_changes_requested'
+                    or not current):
+                fail('automation_step_changed')
+            existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
+                                          (flow_id, current['ordinal'] + 1)).fetchone()
+            if existing:
+                repair = json.loads(existing['request_json']).get('repair_of') or {}
+                if existing['kind'] != 'implement' or repair.get('review_id') != attention.get('review_id'):
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            used = sum(1 for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE flow_id=? AND kind='implement'", (flow_id,))
+                       if json.loads(row['request_json']).get('repair_of'))
+            if used >= 2:
+                fail('repair_budget_exhausted')
+            source = current
+            if current['kind'] == 'code_review':
+                source = self._step(connection, current['request']['verify_step_id'])
+            frozen = packed({'context': flow['context'], **request, 'repair_of': {
+                'review_id': attention.get('review_id'), 'round': used + 1},
+                'requires_code_review': source['request'].get('requires_code_review') is True})
+            identity, stamp = str(uuid4()), now_utc()
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow_id, current['ordinal'] + 1, 'implement', 0, lease.generation, 1, 'reserved',
+                 f'{int(self.clock() * 1000)}-{uuid4().hex}', frozen, stamp, stamp))
+            connection.execute("UPDATE automation_flows SET status='running',phase='implement',revision=revision+1,updated_at=? WHERE id=?",
+                               (stamp, flow_id))
+            return row_view(self._step(connection, identity))
+
     def release_reviewed_plan(self, lease, flow_id, request):
         """A human release starts implementation. It does not accept the delivery."""
         with self.store.connection() as connection:
@@ -467,7 +506,8 @@ class AutomationQueue:
         with self.store.connection() as connection:
             return [row[0] for row in connection.execute('SELECT e.id FROM automation_events e '
                 'LEFT JOIN automation_flows f ON f.id=e.flow_id WHERE (e.flow_id IS NULL OR f.status=\'running\' '
-                "OR (f.status='waiting_external' AND f.phase='integration' AND json_extract(f.attention_json,'$.reason')='integration_not_connected')) AND (?=0 OR f.phase='integration') ORDER BY e.received_at,e.id", (int(integration_only),))]
+                "OR (f.status='waiting_external' AND f.phase='integration' AND json_extract(f.attention_json,'$.reason')='integration_not_connected') "
+                "OR (f.status='waiting_external' AND f.phase='acceptance' AND json_extract(f.attention_json,'$.reason')='acceptance_changes_requested')) AND (?=0 OR f.phase='integration') ORDER BY e.received_at,e.id", (int(integration_only),))]
 
     def get_step(self, step_id):
         with self.store.connection() as connection:

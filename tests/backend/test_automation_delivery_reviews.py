@@ -77,6 +77,20 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         self.assertNotIn('integration_target', flow['attention'])
         self.assertNotIn('integrate', kinds)
 
+    def test_changes_requested_reserves_a_repair_without_accepting(self):
+        from control_everything.workspace.automation_delivery_reviews import review_delivery
+        body = dict(self.approval, verdict='changes_requested', reason='飞书要求修改', client_token='change-1')
+        review_delivery(self.service, self.item['id'], body)
+        step = self.consumer.run_once()
+        self.assertEqual(step['kind'], 'implement')
+        self.assertEqual(step['request']['repair_of']['round'], 1)
+        with self.profile.store.connection() as connection:
+            accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
+                                          (self.item['id'],)).fetchone()['accepted_delivery_id']
+            status = self.queue._view(connection, self.published['flow']['id'])['flow']['status']
+        self.assertIsNone(accepted)
+        self.assertEqual(status, 'running')
+
     def test_normal_published_stage_is_observation_only_and_requires_current_delivery(self):
         item = self.profile.store.get_item(self.item['id'])
         request = {'flow_id':self.published['flow']['id'],
