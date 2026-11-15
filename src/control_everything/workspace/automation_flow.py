@@ -148,7 +148,11 @@ class AutomationQueue:
                 fail('automation_step_transition')
             if current['status'] == 'reserved' and status == 'dispatching':
                 flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (current['flow_id'],)).fetchone()
-                problem = self._input_problem(connection, flow['task_id'], json.loads(flow['context_json']))
+                problem = None
+                if current['kind'] == 'integrate':
+                    self._accepted(connection, row_view(flow), row_view(current))
+                else:
+                    problem = self._input_problem(connection, flow['task_id'], json.loads(flow['context_json']))
                 if problem:
                     fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             stamp = now_utc()
@@ -266,11 +270,115 @@ class AutomationQueue:
             return {**self._view(connection,flow['id']), 'delivery': row_view(connection.execute(
                 'SELECT * FROM task_deliveries WHERE id=?',(identity,)).fetchone())}
 
-    def pending_events(self):
+    def _accepted(self, connection, flow, step=None):
+        from control_everything.workspace.automation_delivery_reviews import _evidence
+        snapshot = flow['attention']['integration_target']
+        item = task_access(connection, flow['task_id'], writable=True)
+        check_versions(item, {'expected_revision': snapshot['accepted_control_revision'],
+                              'progress_revision': snapshot['accepted_progress_revision']})
+        delivery = row_view(connection.execute('SELECT * FROM task_deliveries WHERE id=? AND task_id=?',
+            (snapshot['delivery_id'], item['id'])).fetchone())
+        review = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=? AND task_id=?',
+            (snapshot['review_id'], item['id'])).fetchone())
+        verify = row_view(self._step(connection, snapshot['verify_step_id']))
+        if (snapshot['actor'] != 'local_owner' or not delivery or not review or not verify
+                or item['current_delivery_id'] != delivery['id'] or item['accepted_delivery_id'] != delivery['id']
+                or review['reviewer'] != 'local_owner' or review['verdict'] != 'approved'
+                or review['delivery_id'] != delivery['id'] or delivery['source'] != 'automation_verify'
+                or delivery['source_key'] != verify['id'] or verify['flow_id'] != flow['id']
+                or delivery['material'].get('flow_id') != flow['id']
+                or delivery['material'].get('verify_step_id') != verify['id']
+                or verify['kind'] != 'verify' or verify['status'] != 'completed'
+                or digest(verify['result']) != snapshot['verify_hash']
+                or verify['request']['scope']['cwd'] != snapshot['source_root']
+                or verify['request']['verification'] != snapshot['verification']
+                or verify['result']['receipt']['source_before'] != snapshot['source_hash']
+                or flow['attention']['accepted_review_id'] != review['id']
+                or flow['attention']['accepted_delivery_id'] != delivery['id']):
+            fail('automation_step_changed')
+        if step and (step['request']['integration_target'] != snapshot
+                or step['request']['context'] != flow['context']
+                or step['request']['verify_result'] != verify['result']
+                or step['request']['registered_flow_revision'] != snapshot['accepted_flow_revision'] + 1):
+            fail('automation_step_changed')
+        _evidence(connection, item, flow, verify, delivery['material'], exclude_step_id=step['id'] if step else None)
+        return item
+
+    def reserve_integration(self, lease, flow_id, expected_flow_revision):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow, previous = view['flow'], view['step']
+            if previous['kind'] == 'integrate':
+                self._accepted(connection, flow, previous)
+                return previous
+            snapshot = flow['attention'].get('integration_target')
+            if (not snapshot or flow['revision'] != expected_flow_revision
+                    or flow['revision'] != snapshot['accepted_flow_revision'] + 1
+                    or flow['status'] != 'waiting_external' or flow['phase'] != 'integration'
+                    or flow['attention'].get('reason') != 'integration_not_connected'):
+                fail('automation_step_changed')
+            self._accepted(connection, flow)
+            identity, stamp = str(uuid4()), now_utc()
+            request = {'integration_target': snapshot, 'registered_flow_revision': flow['revision'],
+                       'verify_result': previous['result'], 'context': flow['context']}
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity,flow_id,previous['ordinal']+1,'integrate',0,lease.generation,1,'reserved',
+                 f'{int(self.clock()*1000)}-{uuid4().hex}',packed(request),stamp,stamp))
+            connection.execute("UPDATE automation_flows SET status='running',phase='integration',revision=revision+1,updated_at=? WHERE id=?",(stamp,flow_id))
+            return row_view(self._step(connection,identity))
+
+    def reject_integration(self, lease, flow_id, expected_revision, reason, *, step=None):
+        """Stop only an undispatched integration; never clear uncertain work."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow, current = view['flow'], view['step']
+            if (flow['revision'] != expected_revision or
+                    (step is not None and (current != step or current['kind'] != 'integrate'
+                     or current['status'] != 'reserved' or current['owner_generation'] != lease.generation))
+                    or (step is None and (flow['status'] != 'waiting_external' or current['kind'] != 'verify'))):
+                fail('automation_step_changed')
+            stamp = now_utc()
+            if step is not None:
+                connection.execute("UPDATE automation_steps SET status='failed',result_json=?,updated_at=? WHERE id=?",
+                    (packed({'reason':reason,'dispatched':False}),stamp,step['id']))
+            connection.execute("UPDATE automation_flows SET status='waiting_external',attention_json=?,revision=revision+1,updated_at=? WHERE id=?",
+                (packed({**flow['attention'],'reason':'integration_rejected','rejection':reason}),stamp,flow_id))
+            return self._view(connection,flow_id)
+
+    def finish_integration(self, lease, step, result):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            flow, current = view['flow'], view['step']
+            if (current != step or current['kind'] != 'integrate' or current['status'] != 'dispatching'
+                    or current['owner_generation'] != lease.generation or flow['status'] != 'running'):
+                fail('automation_step_changed')
+            item = self._accepted(connection, flow, current)
+            sha = result.get('candidate_sha')
+            if (result.get('operation_id') != step['operation_id'] or result.get('request_hash') != digest(step['request'])
+                    or result.get('integration_target') != step['request']['integration_target']
+                    or not isinstance(sha,str) or len(sha) != len(step['request']['integration_target']['target']['expected_base']) or any(c not in '0123456789abcdef' for c in sha)
+                    or result.get('target_sha') != sha or result.get('remote_sha') != sha
+                    or result.get('candidate_test_passed') is not True or result.get('target_test_passed') is not True
+                    or result.get('source_unchanged') is not True or result.get('cleanup_verified') is not True):
+                fail('automation_integration_unverified')
+            stamp = now_utc()
+            connection.execute("UPDATE automation_steps SET status='completed',result_json=?,updated_at=? WHERE id=?",(packed(result),stamp,step['id']))
+            connection.execute("UPDATE automation_flows SET status='completed',phase='integration',revision=revision+1,updated_at=? WHERE id=?",(stamp,flow['id']))
+            touch(connection,item,'done',delivery_id=item['accepted_delivery_id'],accepted=True)
+            return self._view(connection,flow['id'])
+
+    def pending_events(self, *, integration_only=False):
         with self.store.connection() as connection:
             return [row[0] for row in connection.execute('SELECT e.id FROM automation_events e '
-                'LEFT JOIN automation_flows f ON f.id=e.flow_id WHERE e.flow_id IS NULL OR f.status=\'running\' '
-                'ORDER BY e.received_at,e.id')]
+                'LEFT JOIN automation_flows f ON f.id=e.flow_id WHERE (e.flow_id IS NULL OR f.status=\'running\' '
+                "OR (f.status='waiting_external' AND f.phase='integration' AND json_extract(f.attention_json,'$.reason')='integration_not_connected' AND json_type(f.attention_json,'$.integration_target')='object')) AND (?=0 OR f.phase='integration') ORDER BY e.received_at,e.id", (int(integration_only),))]
 
     def get_step(self, step_id):
         with self.store.connection() as connection:
@@ -283,8 +391,13 @@ class AutomationQueue:
             self._guard(connection, lease)
             view = self._view(connection, step['flow_id'])
             if (view['flow']['status'] != 'running' or view['step']['id'] != step['id']
-                    or view['flow']['revision'] != step['flow_revision']):
+                    or view['flow']['revision'] != step['flow_revision']
+                    or view['step']['status'] != step['status']
+                    or (step['kind'] == 'integrate' and view['step']['owner_generation'] != lease.generation)):
                 fail('automation_step_changed')
+            if step['kind'] == 'integrate':
+                self._accepted(connection, view['flow'], view['step'])
+                return None
             return self._input_problem(connection, view['flow']['task_id'], view['flow']['context'])
 
     @staticmethod

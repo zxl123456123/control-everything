@@ -30,7 +30,11 @@ def _current(connection, task_id, body):
     return item,delivery,flow,verify
 
 
-def _evidence(connection, item, flow, verify, material):
+def _evidence(connection, item, flow, verify, material, *, exclude_step_id=None):
+    if exclude_step_id is not None:
+        own = AutomationQueue._step(connection, exclude_step_id)
+        if not own or own["flow_id"] != flow["id"] or own["kind"] != "integrate":
+            fail("automation_step_changed")
     receipt = material['receipt']
     context, request = flow['context'],verify['request']
     if dispatch._brief(connection,item['id'])['revision'] != context['brief_revision']:
@@ -63,8 +67,8 @@ def _evidence(connection, item, flow, verify, material):
                 or record['result'].get('facts',{}).get('status',{}).get('model') != model):
             fail('automation_delivery_unverified')
     if connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
-            'WHERE f.project_id=? AND s.writes_project=1 '
-            "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",(flow['project_id'],)).fetchone():
+            'WHERE f.project_id=? AND s.writes_project=1 AND (? IS NULL OR s.id != ?) '
+            "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",(flow['project_id'],exclude_step_id,exclude_step_id)).fetchone():
         fail('automation_project_busy')
 
 def review_delivery(service, task_id, body):
