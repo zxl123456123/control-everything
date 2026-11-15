@@ -549,7 +549,7 @@ class AutomationQueue:
         return None
 
     def invalidate_changed_releases(self, lease):
-        """A changed requirement or directory ends a release wait. It does not start implementation."""
+        """A changed requirement, directory, or unavailable project ends a release wait."""
         with self.store.connection() as connection:
             connection.execute('BEGIN IMMEDIATE')
             self._guard(connection, lease)
@@ -562,7 +562,7 @@ class AutomationQueue:
                 if flow.get('status') != 'waiting_user' or (flow.get('attention') or {}).get('release_ready') is not True:
                     continue
                 problem = self._input_problem(connection, flow['task_id'], flow['context'])
-                if problem not in ('requirement_changed', 'project_directory_changed'):
+                if problem not in ('requirement_changed', 'project_directory_changed', 'project_unavailable'):
                     continue
                 attention = {'reason': problem, 'step_id': None if step is None else step['id']}
                 updated = connection.execute(

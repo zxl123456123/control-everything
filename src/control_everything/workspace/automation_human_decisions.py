@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def unavailable_card(flow):
+    """The project is unavailable. The button does not start the old plan."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'project_unavailable' or not task_id
+            or type(revision) is not int or revision < 0):
+        raise ValueError('unavailable_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '项目已不可用'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'project_unavailable'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '旧方案不能开工'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '项目已不可用。旧方案不会开始实现。'}, button]}}
+
+
 def directory_card(flow):
     """The project directory changed. The button does not choose a directory or start the old plan."""
     attention = (flow or {}).get('attention') or {}
