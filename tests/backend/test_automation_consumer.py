@@ -435,11 +435,15 @@ class ConsumerTests(AutomationQueueFixture):
     def test_feature_waits_for_a_person_then_needs_independent_code_review(self):
         self.host.kind = 'feature'
         self.configure_verification()
+        cards = []
+        self.consumer.on_wait = cards.append
         waiting = self.pump()
         self.assertEqual(waiting['flow']['status'], 'waiting_user')
         self.assertTrue(waiting['flow']['attention']['requires_code_review'])
-        self.consumer.release_plan(waiting['flow']['id'], {
-            'source': 'human', 'quoted': False, 'actor_id': 'owner', 'text': '按已审方案实现'})
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['choice'], '按已审方案实现')
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['flow_id'], waiting['flow']['id'])
+        from control_everything.workspace.automation_human_decisions import apply_waiting_reply
+        apply_waiting_reply(self.consumer, waiting['flow'], cards[0]['body']['elements'][1]['value'], 'owner')
         result = self.pump()
         self.assertEqual(result['flow']['status'], 'awaiting_acceptance', result['flow'])
         with self.profile.store.connection() as connection:

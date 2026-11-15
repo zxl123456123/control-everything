@@ -27,6 +27,17 @@ def waiting_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': question}, button]}}
 
 
+def apply_waiting_reply(consumer, flow, value, actor_id):
+    card = waiting_card(flow)
+    expected = card['body']['elements'][1]['value']
+    if value != expected or not isinstance(actor_id, str) or not actor_id:
+        return {'action': 'reject', 'reason': 'stale_or_foreign_card'}
+    if expected['choice'] != PLAN_RELEASE:
+        return {'action': 'ask', 'reason': 'decision_unclear'}
+    return consumer.release_plan(flow['id'], {
+        'source': 'human', 'quoted': False, 'actor_id': actor_id, 'text': PLAN_RELEASE})
+
+
 def is_plan_release(message):
     return (isinstance(message, dict) and message.get('source') == 'human' and message.get('quoted') is not True
             and message.get('text') == PLAN_RELEASE and isinstance(message.get('actor_id'), str) and message.get('actor_id'))
