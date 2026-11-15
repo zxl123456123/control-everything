@@ -16,11 +16,14 @@ from control_everything.integrations.remote_connector import ConnectorConfig, Co
 from control_everything.integrations.remote_account import RemoteAccount
 from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
 from control_everything.workspace.automation_identity_inbox import AutomationIdentityInbox
+from control_everything.workspace.automation_identity_receipts import AutomationIdentityReceipts
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, safe_path
 
 
 class Desktop:
-    def __init__(self, server, runtime, connector=None, account=None, server_setup=None, *, window_host=None, identity_inbox=None):
+    identity_receipts = None
+
+    def __init__(self, server, runtime, connector=None, account=None, server_setup=None, *, window_host=None, identity_inbox=None, identity_receipts=None):
         self.server, self.runtime, self.connector = server, runtime, connector
         self.server_setup = server_setup
         self.window_host = window_host
@@ -30,6 +33,7 @@ class Desktop:
         self._worker = None
         self.restart_required = False
         self.identity_inbox = identity_inbox
+        self.identity_receipts = identity_receipts
         server.attach_workbench_runtime(runtime)
         server.remote_connector = connector
         server.desktop_account = account
@@ -105,6 +109,8 @@ class Desktop:
             port = urlsplit(self.runtime.websocket_origin).port
             self.connector.connect(self.server.server_address[1], port, runtime_ready=self.runtime.ready,
                                    stop_event=self._stop)
+            if self.identity_receipts is not None and not self._stop.is_set():
+                self.identity_receipts_result = self.identity_receipts.drain(self._stop)
             if self.identity_inbox is not None and not self._stop.is_set():
                 self.identity_inbox_result = self.identity_inbox.drain(self._stop)
         except (ConnectorError, WorkbenchUnavailable, OSError, ValueError):
@@ -204,8 +210,11 @@ def build_desktop(product_root, data_dir=None, port=8766, *, credential_root=Non
         identity_inbox = (AutomationIdentityInbox(server.workspace.store,
             server.workspace.identity_service(connector.current_binding), connector.current_binding)
             if connector is not None and server.workspace is not None else None)
+        identity_receipts = (AutomationIdentityReceipts(server.workspace.store,
+            server.workspace.identity_service(connector.current_binding), connector)
+            if connector is not None and server.workspace is not None else None)
         return Desktop(server, runtime, connector, account, setup if editable else None,
-                       window_host=window_host, identity_inbox=identity_inbox)
+                       window_host=window_host, identity_inbox=identity_inbox, identity_receipts=identity_receipts)
     except Exception:
         server.server_close()
         raise
