@@ -14,17 +14,24 @@ import uuid
 from .identity import HubError
 
 RECOVERABLE = ("pending", "provisioned", "online", "offline")
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 # Heartbeat freshness window shared with the browser authorization path.
 ONLINE_WINDOW = 45
 # Copy of a pre-account-id database, written next to it before the first v3 migration.
 BACKUP_SUFFIX = ".pre-account-id"
 MAILBOX_BACKUP_SUFFIX = ".pre-automation-inbox"
+IDENTITY_SEND_BACKUP_SUFFIX = ".pre-identity-send"
 ACCOUNT_ID = re.compile(r"[0-9a-f]{32}")
 
 # Latest schema. Ownership is keyed on the internal account_id; (issuer, sub) only lives in identities,
 # so replacing the identity provider is a data operation (link-identity), not a table migration.
 _TABLES = {
+    "automation_identity_send": """CREATE TABLE automation_identity_send(
+        attempt_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, generation INTEGER NOT NULL,
+        challenge_id TEXT NOT NULL, producer_id TEXT NOT NULL, context_json TEXT NOT NULL,
+        token_sha256 TEXT NOT NULL, nonce TEXT NOT NULL, expires_at TEXT NOT NULL,
+        expires_epoch REAL NOT NULL, state TEXT NOT NULL, message_id TEXT, created_at REAL NOT NULL,
+        UNIQUE(device_id,generation,challenge_id))""",
     "identities": """CREATE TABLE identities(issuer TEXT NOT NULL, sub TEXT NOT NULL, account_id TEXT NOT NULL,
         created_at REAL, PRIMARY KEY(issuer,sub))""",
     "members": """CREATE TABLE members(account_id TEXT PRIMARY KEY, status TEXT NOT NULL, last_logout_at REAL)""",
@@ -113,9 +120,10 @@ class RemoteHubStore:
                 row = source.execute("SELECT version FROM schema_version").fetchone()
             except sqlite3.OperationalError:
                 return
-            if row is None or row[0] not in (1, 2, 3):
+            if row is None or row[0] not in (1, 2, 3, 4):
                 return
-            target_path = self.path + (MAILBOX_BACKUP_SUFFIX if row[0] == 3 else BACKUP_SUFFIX)
+            target_path = self.path + (IDENTITY_SEND_BACKUP_SUFFIX if row[0] == 4 else
+                                       MAILBOX_BACKUP_SUFFIX if row[0] == 3 else BACKUP_SUFFIX)
             temporary = target_path + ".tmp"
             Path(temporary).unlink(missing_ok=True)
             target = sqlite3.connect(temporary)
@@ -133,7 +141,7 @@ class RemoteHubStore:
     def _migrate(db):
         """Forward-only migrations in the caller's single transaction; a newer version is refused."""
         version = db.execute("SELECT version FROM schema_version").fetchall()[0][0]
-        if version not in (1, 2, 3, SCHEMA_VERSION):
+        if version not in (1, 2, 3, 4, SCHEMA_VERSION):
             raise ValueError("unsupported_hub_schema")
         if version == 1:
             # v2: nullable mobile-facing metadata. Existing rows stay valid with NULLs.
@@ -150,7 +158,11 @@ class RemoteHubStore:
         if version == 3:
             db.execute(_TABLES['automation_inbox'])
             db.execute(_INDEXES[2])
-            db.execute("UPDATE schema_version SET version=?", (SCHEMA_VERSION,))
+            db.execute("UPDATE schema_version SET version=4")
+            version = 4
+        if version == 4:
+            db.execute(_TABLES['automation_identity_send'])
+            db.execute("UPDATE schema_version SET version=5")
 
     @staticmethod
     def _migrate_account_ids(db):

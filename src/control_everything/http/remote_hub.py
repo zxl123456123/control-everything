@@ -49,6 +49,11 @@ def dispatch(service, method, uri, headers, body):
     if path.startswith("/remote/producer/"):
         if "?" in uri:
             raise HubError("invalid_request_uri", 400)
+        if path in ('/remote/producer/identity-send/claim', '/remote/producer/identity-send/result'):
+            if method != 'POST':
+                raise HubError('method_not_allowed', 405)
+            operation = service.automation_identity_send.claim if path.endswith('/claim') else service.automation_identity_send.result
+            return 200, operation(_bearer(headers), body), {}
         if path != "/remote/producer/automation/receive":
             raise HubError("not_found", 404)
         if method != "POST":
@@ -62,6 +67,13 @@ def dispatch(service, method, uri, headers, body):
     session_cookie = cookie[COOKIE_NAME].value if COOKIE_NAME in cookie else ""
     if path.startswith("/remote/desktop/"):
         token = _bearer(headers)
+        if path in ('/remote/desktop/identity-send/register', '/remote/desktop/identity-send/status'):
+            if '?' in uri:
+                raise HubError('invalid_request_uri', 400)
+            if method != 'POST':
+                raise HubError('method_not_allowed', 405)
+            operation = service.automation_identity_send.register if path.endswith('/register') else service.automation_identity_send.status
+            return 200, operation(token, body), {}
         if path in ("/remote/desktop/automation/claim", "/remote/desktop/automation/ack"):
             if "?" in uri:
                 raise HubError("invalid_request_uri", 400)

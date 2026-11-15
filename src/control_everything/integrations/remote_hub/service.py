@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 from .identity import HubError, Identity, public_key_fingerprint
 from .automation_mailbox import AutomationMailbox
 from .automation_producer import AutomationProducers
+from .automation_identity_send import AutomationIdentitySend
 from .provisioning import validate_new_account
 from .sessions import BrowserSessions
 from .store import ONLINE_WINDOW, RECOVERABLE, public_device
@@ -33,6 +34,7 @@ class RemoteHubService:
         self.sessions = BrowserSessions(store, public_origin)
         self.automation_mailbox = AutomationMailbox(store)
         self.automation_producers = AutomationProducers(automation_producers)
+        self.automation_identity_send = AutomationIdentitySend(store, self.automation_mailbox, self.automation_producers)
         self.channel_probe = channel_probe
         self.static_paths, self.document_paths = frozenset(static_paths), frozenset(document_paths)
         self._limits, self._limit_lock = {}, threading.Lock()

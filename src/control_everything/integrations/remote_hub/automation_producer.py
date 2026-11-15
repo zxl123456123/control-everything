@@ -37,6 +37,20 @@ class AutomationProducers:
         return [{key: config[key] for key in fields} for config in self._producers.values()
                 if config['device_id'] == device_id and config['generation'] == generation]
 
+    def configuration(self, producer_id):
+        config = self._producers.get(producer_id)
+        if config is None:
+            raise HubError('producer_unavailable', 409)
+        return dict(config)
+
+    def authenticate(self, producer_id, token):
+        config = self._producers.get(producer_id)
+        digest = hashlib.sha256(token.encode('utf-8')).hexdigest()
+        matches = hmac.compare_digest(digest, config['token_sha256'] if config else '0' * 64)
+        if config is None or not matches:
+            raise HubError('invalid_producer_token', 401)
+        return dict(config)
+
     def receive(self, mailbox, token, body):
         fields = {'producer_id', 'event_id', 'chat_id', 'message_id', 'actor_open_id'}
         if (type(body) is not dict or set(body) not in (fields | {'decision'}, fields | {'binding'})
