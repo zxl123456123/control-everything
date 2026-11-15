@@ -1287,6 +1287,7 @@ class PanelServer(ThreadingHTTPServer):
             from control_everything.workspace.automation_flow import AutomationQueue
             from control_everything.workspace.automation_consumer import AutomationConsumer, AutomationConsumerService
             from control_everything.execution.verification import run_verification, read_verification_receipt
+            from control_everything.execution.develop_integration import run_develop_integration
             adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
             self.workspace.native_progress.adapter = adapter
             self.workspace.check_verification = None
@@ -1305,11 +1306,16 @@ class PanelServer(ThreadingHTTPServer):
                     receipt = read_verification_receipt(output_dir=output, argv=spec['argv'], cwd=scope['cwd'],
                         task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'], source_files=spec['source_files'])
                     return {'receipt': receipt, 'output_dir': str(output)}
+                def integrate(step, flow, *, cancel_event, checkpoint):
+                    output = profile.data_dir / 'automation-integration' / flow['id'] / step['id']
+                    source_output = profile.data_dir / 'automation-verification' / flow['id'] / step['request']['integration_target']['verify_step_id']
+                    return run_develop_integration(step, flow, git_executable=runtime.config.git_executable,
+                        output_dir=output, source_output_dir=source_output, cancel_event=cancel_event, checkpoint=checkpoint)
                 self.workspace.check_verification = check_verification
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
                 self.automation_consumer_service = AutomationConsumerService(
                     AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification,
-                                       integration=getattr(self, "automation_integration", None)))
+                                       integration=getattr(self, "automation_integration", None) or integrate))
                 try:
                     self.native_progress_observer.start()
                     self.automation_consumer_service.start()
