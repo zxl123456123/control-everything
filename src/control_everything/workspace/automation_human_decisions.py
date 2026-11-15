@@ -3,6 +3,7 @@ import json
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_delivery_reviews import review_delivery
+from control_everything.workspace.automation_identities import decision_authorized
 from control_everything.workspace.native_progress import row_view
 
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
@@ -139,7 +140,7 @@ def apply_acceptance_decisions(store, service, binding):
     applied = []
     for row in rows:
         decision = _stored_acceptance(row['payload_json'])
-        if decision is None:
+        if decision is None or not decision_authorized(store, decision['actor_id'], task_id=decision['task_id']):
             continue
         try:
             applied.append(review_delivery(service, decision['task_id'], decision['body']))
@@ -169,7 +170,7 @@ def _stored_acceptance(raw):
     return {'task_id': decision['task_id'], 'body': {
         'expected_revision': decision['expected_revision'], 'progress_revision': decision['progress_revision'],
         'delivery_id': decision['delivery_id'], 'verdict': decision['verdict'], 'reason': reason[decision['verdict']],
-        'confirmed': True, 'client_token': decision['decision_id']}}
+        'confirmed': True, 'client_token': decision['decision_id']}, 'actor_id': actor}
 
 
 def apply_plan_releases(store, consumer, binding):
@@ -191,6 +192,8 @@ def apply_plan_releases(store, consumer, binding):
             applied.append(existing)
             continue
         if not _waiting_release(store, release['flow_id'], release['requirement_revision']):
+            continue
+        if not decision_authorized(store, release['actor_id'], flow_id=release['flow_id']):
             continue
         try:
             applied.append(consumer.release_plan(release['flow_id'], {

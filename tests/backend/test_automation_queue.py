@@ -18,6 +18,23 @@ from control_everything.workspace.store import WorkspaceStore
 from tests.backend.test_project_management import project_body
 
 
+def bind_actor(store, project_id, open_id, *, state='active'):
+    challenge, candidate, binding_id = uuid4().hex, uuid4().hex, uuid4().hex
+    now = '2026-11-16T00:00:00+00:00'
+    with store.connection() as connection:
+        connection.execute(
+            'INSERT INTO automation_identity_challenges VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            (challenge, project_id, 'https://hub.example.test', 'father', 'account', 'app', 'chat',
+             'device', 1, 'hash', None, '2999-01-01T00:00:00+00:00', 'confirmed', now))
+        connection.execute(
+            'INSERT INTO automation_identity_candidates VALUES(?,?,?,?,?,?,?)',
+            (candidate, challenge, 'app', open_id, 'evt-' + candidate, 'in-' + candidate, now))
+        connection.execute(
+            'INSERT INTO automation_identity_bindings VALUES(?,?,?,?,?,?,?)',
+            (binding_id, challenge, candidate, project_id, state, now, None if state == 'active' else now))
+    return binding_id
+
+
 class AutomationQueueFixture(unittest.TestCase):
     def setUp(self):
         temporary = TemporaryDirectory()
@@ -66,12 +83,46 @@ class FeishuAssignmentTests(AutomationQueueFixture):
                 'kind': 'feishu_assignment', 'actor_open_id': 'ou-owner',
                 'assignment': {'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
                                'text': '请做这个任务'}}})
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
         applied = apply_feishu_assignments(self.profile.store, binding)
         self.assertEqual(applied[0]['event']['task_id'], other['id'])
         self.assertTrue(apply_feishu_assignments(self.profile.store, binding)[0]['replayed'])
         with self.profile.store.connection() as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM automation_events WHERE task_id=?",
                                                 (other['id'],)).fetchone()[0], 1)
+
+    def test_unbound_actor_does_not_enter_the_named_task(self):
+        from control_everything.workspace.automation_events import apply_feishu_assignments
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        other = self.profile.store.save_item({'title': 'Unbound assignment', 'project_id': self.project['id'],
+                                               'provider_id': None, 'state': 'todo', 'session_key': None})
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        RemoteAutomationInbox(self.profile.store).receive(binding, {
+            'id': 'om-stranger', 'source': 'feishu:test', 'event_id': 'evt-stranger', 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {
+                'kind': 'feishu_assignment', 'actor_open_id': 'ou-stranger',
+                'assignment': {'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
+                               'text': '请做这个任务'}}})
+        self.assertEqual(apply_feishu_assignments(self.profile.store, binding), [])
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute("SELECT COUNT(*) FROM automation_events WHERE source_instance='feishu'").fetchone()[0], 0)
+
+    def test_revoked_actor_does_not_enter_the_named_task(self):
+        from control_everything.workspace.automation_events import apply_feishu_assignments
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        other = self.profile.store.save_item({'title': 'Revoked assignment', 'project_id': self.project['id'],
+                                               'provider_id': None, 'state': 'todo', 'session_key': None})
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        RemoteAutomationInbox(self.profile.store).receive(binding, {
+            'id': 'om-revoked', 'source': 'feishu:test', 'event_id': 'evt-revoked', 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {
+                'kind': 'feishu_assignment', 'actor_open_id': 'ou-owner',
+                'assignment': {'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
+                               'text': '请做这个任务'}}})
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner', state='revoked')
+        self.assertEqual(apply_feishu_assignments(self.profile.store, binding), [])
 
 
 class AutomationQueueStorageTests(AutomationQueueFixture):

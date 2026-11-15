@@ -504,6 +504,8 @@ class ConsumerTests(AutomationQueueFixture):
         waiting = self.pump()
         revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
         self._store_release(waiting['flow']['id'], revision)
+        from tests.backend.test_automation_queue import bind_actor
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
         with self.profile.store.connection() as connection:
             connection.execute("UPDATE automation_remote_inbox SET ack_state='acknowledged'")
         result = self.pump()
@@ -521,6 +523,27 @@ class ConsumerTests(AutomationQueueFixture):
         revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
         calls = len(self.host.calls)
         self._store_release(waiting['flow']['id'], revision + 1)
+        self.pump()
+        with self.profile.store.connection() as connection:
+            status = self.queue._view(connection, waiting['flow']['id'])['flow']['status']
+            implements = connection.execute("SELECT id FROM automation_steps WHERE kind='implement'").fetchall()
+        self.assertEqual(status, 'waiting_user')
+        self.assertEqual(implements, [])
+        self.assertEqual(len(self.host.calls), calls)
+
+    def test_actor_bound_to_another_project_does_not_release(self):
+        from tests.backend.test_project_management import project_body
+        from tests.backend.test_automation_queue import bind_actor
+        self.host.kind = 'feature'
+        self.configure_verification()
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
+        other = self.profile.store.save_project(project_body(self.root / 'other'))
+        bind_actor(self.profile.store, other['id'], 'ou-owner')
+        calls = len(self.host.calls)
+        self._store_release(waiting['flow']['id'], revision)
         self.pump()
         with self.profile.store.connection() as connection:
             status = self.queue._view(connection, waiting['flow']['id'])['flow']['status']

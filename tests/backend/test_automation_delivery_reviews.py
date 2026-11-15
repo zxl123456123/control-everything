@@ -49,6 +49,8 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         inbox.receive(binding, {'id': 'om-accept', 'source': 'feishu:test', 'event_id': 'evt-accept',
                                  'lease_id': 'lease-2', 'lease_expires_at': 11, 'payload': {
                                      'kind': 'feishu_card_decision', 'actor_open_id': 'ou-owner', 'decision': decision}})
+        from tests.backend.test_automation_queue import bind_actor
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
         first = apply_acceptance_decisions(self.profile.store, self.service, binding)
         second = apply_acceptance_decisions(self.profile.store, self.service, binding)
         self.assertFalse(first[0]['replayed'])
@@ -57,6 +59,25 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
             accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
                                           (self.item['id'],)).fetchone()['accepted_delivery_id']
         self.assertEqual(accepted, self.delivery)
+
+    def test_unbound_actor_does_not_accept_the_current_delivery(self):
+        from control_everything.workspace.automation_human_decisions import apply_acceptance_decisions
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        decision = {'namespace': 'control-everything.automation.v1', 'decision_id': 'decision-stranger',
+                    'task_id': self.item['id'], 'delivery_id': self.delivery,
+                    'expected_revision': self.approval['expected_revision'],
+                    'progress_revision': self.approval['progress_revision'], 'verdict': 'approved'}
+        RemoteAutomationInbox(self.profile.store).receive(binding, {
+            'id': 'om-stranger', 'source': 'feishu:test', 'event_id': 'evt-stranger', 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {
+                'kind': 'feishu_card_decision', 'actor_open_id': 'ou-stranger', 'decision': decision}})
+        self.assertEqual(apply_acceptance_decisions(self.profile.store, self.service, binding), [])
+        with self.profile.store.connection() as connection:
+            accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
+                                          (self.item['id'],)).fetchone()['accepted_delivery_id']
+        self.assertIsNone(accepted)
 
     def test_accepted_delivery_without_a_target_is_not_rejected(self):
         from control_everything.workspace.automation_delivery_reviews import review_delivery
