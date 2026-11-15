@@ -9,7 +9,7 @@ from control_everything.workspace.automation_launch import AutomationLaunch, REA
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
-    directory_card, independent_review_card, plan_revision_card, rejection_card, repair_budget_card,
+    directory_card, evidence_card, independent_review_card, plan_revision_card, rejection_card, repair_budget_card,
     unavailable_card,
     requirement_card, target_wait_card,
     verification_card, waiting_card)
@@ -35,6 +35,21 @@ class AutomationConsumer:
         self.lease = lease
         if lease is None:
             return None
+        if self.check_verification is not None:
+            for item in self.queue.awaiting_evidence():
+                try:
+                    checked = self.check_verification(item['verify'], item['flow'])
+                    if checked['receipt'] == item['receipt']:
+                        continue
+                except Exception:
+                    pass
+                flow = self.queue.invalidate_acceptance(lease, item['flow']['id'], item['flow']['attention']['delivery_id'])
+                if flow is None or self.on_wait is None:
+                    continue
+                try:
+                    self.on_wait(evidence_card(flow))
+                except Exception as error:
+                    logging.getLogger(__name__).error('Automation evidence card failed: %s', type(error).__name__)
         for flow in self.queue.invalidate_changed_releases(lease):
             if self.on_wait is None:
                 continue

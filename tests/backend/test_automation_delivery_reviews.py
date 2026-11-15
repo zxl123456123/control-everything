@@ -60,6 +60,37 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
                                           (self.item['id'],)).fetchone()['accepted_delivery_id']
         self.assertEqual(accepted, self.delivery)
 
+    def test_changed_source_does_not_accept_the_stored_delivery(self):
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        from tests.backend.test_automation_queue import bind_actor
+        cards = []
+        self.consumer.on_wait = cards.append
+        (self.root / 'repo' / 'input.txt').write_bytes(b'changed after the test')
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        decision = {'namespace': 'control-everything.automation.v1', 'decision_id': 'decision-stale-source',
+                    'task_id': self.item['id'], 'delivery_id': self.delivery,
+                    'expected_revision': self.approval['expected_revision'],
+                    'progress_revision': self.approval['progress_revision'], 'verdict': 'approved'}
+        RemoteAutomationInbox(self.profile.store).receive(binding, {
+            'id': 'om-stale-source', 'source': 'feishu:test', 'event_id': 'evt-stale-source', 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {
+                'kind': 'feishu_card_decision', 'actor_open_id': 'ou-owner', 'decision': decision}})
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        self.consumer.review_service = self.service
+        self.consumer.current_binding = lambda: binding
+        self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
+                                          (self.item['id'],)).fetchone()['accepted_delivery_id']
+            flow = self.queue._view(connection, self.published['flow']['id'])['flow']
+        self.assertIsNone(accepted)
+        self.assertEqual(flow['attention']['reason'], 'verification_evidence_invalid')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'verification_evidence_invalid')
+        self.assertEqual(value['flow_id'], self.published['flow']['id'])
+        self.assertNotIn('verdict', value)
+
     def test_unbound_actor_does_not_accept_the_current_delivery(self):
         from control_everything.workspace.automation_human_decisions import apply_acceptance_decisions
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox

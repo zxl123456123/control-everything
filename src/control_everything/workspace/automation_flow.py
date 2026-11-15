@@ -548,6 +548,44 @@ class AutomationQueue:
             return 'project_directory_changed'
         return None
 
+    def awaiting_evidence(self):
+        """Return each acceptance wait with the verify step that published it."""
+        with self.store.connection() as connection:
+            rows = connection.execute("SELECT id FROM automation_flows WHERE status='awaiting_acceptance'").fetchall()
+            found = []
+            for row in rows:
+                view = self._view(connection, row[0])
+                delivery_id = (view['flow'].get('attention') or {}).get('delivery_id')
+                delivery = row_view(connection.execute(
+                    'SELECT * FROM task_deliveries WHERE id=? AND task_id=?',
+                    (delivery_id, view['flow']['task_id'])).fetchone())
+                if not delivery:
+                    continue
+                verify = row_view(self._step(connection, delivery['source_key']))
+                if verify:
+                    found.append({'flow': view['flow'], 'verify': verify, 'receipt': delivery['material']['receipt']})
+            return found
+
+    def invalidate_acceptance(self, lease, flow_id, delivery_id):
+        """Leave acceptance because the tested sources changed. It does not accept the delivery."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow = view['flow']
+            if (not flow or flow.get('status') != 'awaiting_acceptance'
+                    or (flow.get('attention') or {}).get('delivery_id') != delivery_id):
+                return None
+            attention = {'reason': 'verification_evidence_invalid', 'delivery_id': delivery_id,
+                         'step_id': None if view['step'] is None else view['step']['id']}
+            updated = connection.execute(
+                "UPDATE automation_flows SET status='waiting_external',phase='acceptance',attention_json=?,"
+                "revision=revision+1,updated_at=? WHERE id=? AND status='awaiting_acceptance'",
+                (packed(attention), now_utc(), flow_id))
+            if updated.rowcount != 1:
+                return None
+            return self._view(connection, flow_id)['flow']
+
     def invalidate_changed_releases(self, lease):
         """A changed requirement, directory, or unavailable project ends a release wait."""
         with self.store.connection() as connection:

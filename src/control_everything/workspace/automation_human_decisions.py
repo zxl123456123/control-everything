@@ -58,6 +58,23 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def evidence_card(flow):
+    """Tested sources changed. The button does not accept the old delivery."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    delivery_id = attention.get('delivery_id')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'verification_evidence_invalid'
+            or not task_id or not isinstance(delivery_id, str) or not delivery_id
+            or type(revision) is not int or revision < 0):
+        raise ValueError('evidence_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '测试后的文件已变化'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'verification_evidence_invalid'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '旧验收已失效'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '测试之后文件变了。旧的通过决定不会验收这一版。'}, button]}}
+
+
 def unavailable_card(flow):
     """The project is unavailable. The button does not start the old plan."""
     attention = (flow or {}).get('attention') or {}
