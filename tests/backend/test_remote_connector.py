@@ -539,6 +539,28 @@ class ConnectorTests(unittest.TestCase):
         self.assertEqual(status['mailbox_code'], 'remote_mailbox_receipt_failed')
         self.assertEqual(calls, ['/remote/desktop/automation/claim'])
         sink.acknowledge.assert_not_called()
+        self.connector.on_mailbox = Mock()
+        self.connector.connect(8766, 12345)
+        self.connector.on_mailbox.assert_not_called()
+
+    def test_received_mailbox_wakes_the_consumer_once(self):
+        self.authorize()
+        self.connector.confirm()
+        sink = Mock()
+        sink.pending_ack.return_value = None
+        sink.receive.return_value = {'ack': {'message_id': 'm', 'lease_id': 'l'}}
+        self.connector.mailbox_sink = sink
+        self.connector.on_mailbox = Mock()
+        original = self.peer.request
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/claim'):
+                return {'message': {'id': 'm'}}
+            if path.endswith('/automation/ack'):
+                return {'id': 'm', 'state': 'acknowledged'}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.connector.connect(8766, 12345)
+        self.connector.on_mailbox.assert_called_once_with()
 
     def test_stale_lease_storage_failure_preserves_online_connection(self):
         self.authorize()

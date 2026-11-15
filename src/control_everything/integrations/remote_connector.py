@@ -913,6 +913,12 @@ class RemoteConnector:
                     self.mailbox_code = None
                     return
                 ack = self.mailbox_sink.receive(binding, response['message'])['ack']
+                wake = getattr(self, 'on_mailbox', None)
+                if callable(wake):
+                    try:
+                        wake()
+                    except Exception:
+                        self.mailbox_code = 'remote_mailbox_wake_failed'
             if not current():
                 return
             response = self.peer.request('POST', '/remote/desktop/automation/ack', ack,
