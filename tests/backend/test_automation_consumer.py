@@ -53,9 +53,13 @@ class ConsumerTests(AutomationQueueFixture):
             return self.queue._view(connection, connection.execute('SELECT id FROM automation_flows').fetchone()[0])
 
     def test_small_implementation_is_unverified_and_restart_does_not_call(self):
+        cards = []
+        self.consumer.on_wait = cards.append
         result = self.pump()
         self.assertEqual(result['flow']['status'], 'waiting_external')
         self.assertEqual(result['flow']['attention']['reason'], 'verification_not_configured')
+        self.assertEqual(cards[0]['body']['elements'][1]['value']['reason'], 'verification_not_configured')
+        self.assertNotIn('argv', cards[0]['body']['elements'][1]['value'])
         self.assertEqual(len(self.host.calls), 3)
         self.assertEqual([p['model'] for p in self.host.calls], ['gpt-6-astra', 'gpt-6-astra', 'gpt-6.1-sol'])
         self.consumer = self.consumer_type(self.queue, self.host)
