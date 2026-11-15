@@ -1,4 +1,8 @@
 """Classify a trusted human reply. A model summary is not a decision."""
+import json
+
+from control_everything.input_validation import ProfileError
+from control_everything.workspace.native_progress import row_view
 
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
@@ -25,6 +29,83 @@ def waiting_card(flow):
                         'flow_id': flow['id'], 'requirement_revision': revision, 'choice': choice}}
     return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '需要决定'}},
             'body': {'elements': [{'tag': 'markdown', 'content': question}, button]}}
+
+
+def apply_plan_releases(store, consumer, binding):
+    """Apply a stored release for the current wait. Replay returns the same step."""
+    if any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
+        return []
+    with store.connection() as db:
+        rows = db.execute('''SELECT payload_json FROM automation_remote_inbox
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state='pending'
+            ORDER BY received_at,message_id''',
+            (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
+    applied = []
+    for row in rows:
+        release = _stored_release(row['payload_json'])
+        if release is None:
+            continue
+        existing = _released_implement(store, release['flow_id'], release['requirement_revision'])
+        if existing is not None:
+            applied.append(existing)
+            continue
+        if not _waiting_release(store, release['flow_id'], release['requirement_revision']):
+            continue
+        try:
+            applied.append(consumer.release_plan(release['flow_id'], {
+                'source': 'human', 'quoted': False, 'actor_id': release['actor_id'], 'text': PLAN_RELEASE}))
+        except ProfileError as error:
+            if str(error) == 'automation_owner_lost':
+                raise
+    return applied
+
+
+def _stored_release(raw):
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    if type(payload) is not dict:
+        return None
+    release = payload.get('plan_release')
+    actor = payload.get('actor_open_id')
+    if (payload.get('kind') != 'feishu_plan_release' or type(release) is not dict
+            or release.get('namespace') != 'control-everything.automation.v1' or release.get('text') != PLAN_RELEASE
+            or type(release.get('flow_id')) is not str or not release['flow_id']
+            or type(release.get('requirement_revision')) is not int or type(actor) is not str or not actor):
+        return None
+    return {'flow_id': release['flow_id'], 'requirement_revision': release['requirement_revision'], 'actor_id': actor}
+
+
+def _flow_ends(store, flow_id):
+    with store.connection() as db:
+        flow = row_view(db.execute('SELECT * FROM automation_flows WHERE id=?', (flow_id,)).fetchone())
+        step = row_view(db.execute('SELECT * FROM automation_steps WHERE flow_id=? ORDER BY ordinal DESC LIMIT 1',
+                                   (flow_id,)).fetchone())
+    return flow, step
+
+
+def _waiting_release(store, flow_id, revision):
+    flow, step = _flow_ends(store, flow_id)
+    attention = (flow or {}).get('attention') or {}
+    versions = attention.get('versions') or {}
+    return (flow is not None and step is not None and flow.get('status') == 'waiting_user'
+            and step.get('kind') == 'plan_review' and step.get('status') == 'completed'
+            and attention.get('requires_code_review') is True and not attention.get('questions')
+            and versions.get('requirement_revision') == revision)
+
+
+def _released_implement(store, flow_id, revision):
+    with store.connection() as db:
+        rows = db.execute("SELECT * FROM automation_steps WHERE flow_id=? AND kind='implement' ORDER BY ordinal",
+                          (flow_id,)).fetchall()
+    for row in rows:
+        body = row_view(row)
+        request = body.get('request') or {}
+        if (request.get('requires_code_review') is True
+                and (request.get('versions') or {}).get('requirement_revision') == revision):
+            return body
+    return None
 
 
 def apply_waiting_reply(consumer, flow, value, actor_id):

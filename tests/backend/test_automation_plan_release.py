@@ -23,7 +23,7 @@ class PlanReleaseTests(unittest.TestCase):
         body = {'producer_id': 'father', 'event_id': 'evt-1', 'chat_id': 'oc-chat',
                 'message_id': 'om-1', 'actor_open_id': 'ou-owner',
                 'plan_release': {'namespace': 'control-everything.automation.v1', 'flow_id': 'flow-1',
-                                 'text': '按已审方案实现'}}
+                                 'text': '按已审方案实现', 'requirement_revision': 3}}
         self.assertEqual(producers.receive(mailbox, token, body)['state'], 'pending')
         self.assertEqual(mailbox.last['kind'], 'feishu_plan_release')
         self.assertEqual(mailbox.last['plan_release']['flow_id'], 'flow-1')

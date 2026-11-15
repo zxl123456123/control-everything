@@ -67,9 +67,10 @@ class AutomationProducers:
             raise HubError('producer_chat_forbidden', 403)
         if 'plan_release' in body:
             release = body['plan_release']
-            if (type(release) is not dict or set(release) != {'namespace', 'flow_id', 'text'}
+            if (type(release) is not dict or set(release) != {'namespace', 'flow_id', 'text', 'requirement_revision'}
                     or release['namespace'] != 'control-everything.automation.v1'
-                    or not _text(release['flow_id']) or release['text'] != '按已审方案实现'):
+                    or not _text(release['flow_id']) or release['text'] != '按已审方案实现'
+                    or type(release['requirement_revision']) is not int or release['requirement_revision'] < 0):
                 raise HubError('invalid_producer_decision', 400)
         elif 'binding' in body:
             binding = body['binding']

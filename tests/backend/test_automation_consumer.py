@@ -451,6 +451,49 @@ class ConsumerTests(AutomationQueueFixture):
                 'SELECT kind FROM automation_steps ORDER BY ordinal')]
         self.assertIn('code_review', kinds)
 
+    def _store_release(self, flow_id, revision, message_id='om-release'):
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        RemoteAutomationInbox(self.profile.store).receive(binding, {
+            'id': message_id, 'source': 'feishu:test', 'event_id': message_id, 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {
+                'kind': 'feishu_plan_release', 'actor_open_id': 'ou-owner',
+                'plan_release': {'namespace': 'control-everything.automation.v1', 'flow_id': flow_id,
+                                 'text': '按已审方案实现', 'requirement_revision': revision}}})
+        self.consumer.current_binding = lambda: binding
+
+    def test_stored_release_starts_the_named_wait_once(self):
+        self.host.kind = 'feature'
+        self.configure_verification()
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
+        self._store_release(waiting['flow']['id'], revision)
+        result = self.pump()
+        self.assertEqual(result['flow']['status'], 'awaiting_acceptance', result['flow'])
+        with self.profile.store.connection() as connection:
+            implements = connection.execute("SELECT id FROM automation_steps WHERE kind='implement'").fetchall()
+        self.assertEqual(len(implements), 1)
+
+    def test_stale_stored_release_does_not_start_implementation(self):
+        self.host.kind = 'feature'
+        self.configure_verification()
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
+        calls = len(self.host.calls)
+        self._store_release(waiting['flow']['id'], revision + 1)
+        self.pump()
+        with self.profile.store.connection() as connection:
+            status = self.queue._view(connection, waiting['flow']['id'])['flow']['status']
+            implements = connection.execute("SELECT id FROM automation_steps WHERE kind='implement'").fetchall()
+        self.assertEqual(status, 'waiting_user')
+        self.assertEqual(implements, [])
+        self.assertEqual(len(self.host.calls), calls)
+
     def test_discuss_does_not_dispatch_implementation(self):
         self.host.verdict = 'discuss'
         self.assertEqual(self.pump()['flow']['status'], 'waiting_user')

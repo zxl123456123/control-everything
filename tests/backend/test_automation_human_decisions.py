@@ -1,7 +1,8 @@
 """Trusted human replies become decisions; vague or model text does not."""
 import unittest
 
-from control_everything.workspace.automation_human_decisions import classify_decision, question_card, reply_from_card, waiting_card
+from control_everything.workspace.automation_human_decisions import (
+    PLAN_RELEASE, apply_plan_releases, classify_decision, question_card, reply_from_card, waiting_card)
 
 
 def message(**changes):
@@ -19,6 +20,25 @@ def task(**changes):
 
 
 class HumanDecisionTests(unittest.TestCase):
+    def test_stored_release_does_not_start_without_the_current_wait(self):
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        from tests.backend import test_automation_identities as fixtures
+        fixtures.IdentityTests.setUp(self)
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        payload = {'kind': 'feishu_plan_release', 'actor_open_id': 'ou-owner',
+                   'plan_release': {'namespace': 'control-everything.automation.v1', 'flow_id': 'flow-1',
+                                    'text': PLAN_RELEASE, 'requirement_revision': 1}}
+        RemoteAutomationInbox(self.store).receive(binding, {
+            'id': 'om-1', 'source': 'feishu:test', 'event_id': 'evt-1', 'payload': payload,
+            'lease_id': 'lease', 'lease_expires_at': 10})
+        calls = []
+
+        class Consumer:
+            def release_plan(self, flow_id, message):
+                calls.append(flow_id)
+        self.assertEqual(apply_plan_releases(self.store, Consumer(), binding), [])
+        self.assertEqual(calls, [])
     def test_explicit_choice_and_acceptance_execute_once_each(self):
         choice = classify_decision(message(), tasks=[task()])
         self.assertEqual(choice['action'], 'execute')
