@@ -47,6 +47,9 @@ class AutomationConsumer:
                 continue
             step = view['step']
             if view['flow']['phase'] == 'integration':
+                if (view['flow']['status'] == 'waiting_external'
+                        and not (view['flow'].get('attention') or {}).get('integration_target')):
+                    return view
                 if self.integration is None or self.check_verification is None:
                     return view
                 if step['kind'] != 'integrate':

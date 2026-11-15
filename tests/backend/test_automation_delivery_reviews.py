@@ -58,6 +58,20 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
                                           (self.item['id'],)).fetchone()['accepted_delivery_id']
         self.assertEqual(accepted, self.delivery)
 
+    def test_accepted_delivery_without_a_target_is_not_rejected(self):
+        from control_everything.workspace.automation_delivery_reviews import review_delivery
+        review_delivery(self.service, self.item['id'], self.approval)
+        self.consumer.integration = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError('integrated'))
+        self.consumer.check_verification = self.service.check_verification
+        self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            flow = self.queue._view(connection, self.published['flow']['id'])['flow']
+            kinds = [row['kind'] for row in connection.execute('SELECT kind FROM automation_steps')]
+        self.assertEqual(flow['status'], 'waiting_external')
+        self.assertEqual(flow['attention']['reason'], 'integration_not_connected')
+        self.assertNotIn('integration_target', flow['attention'])
+        self.assertNotIn('integrate', kinds)
+
     def test_normal_published_stage_is_observation_only_and_requires_current_delivery(self):
         item = self.profile.store.get_item(self.item['id'])
         request = {'flow_id':self.published['flow']['id'],
