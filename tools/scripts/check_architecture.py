@@ -59,6 +59,12 @@ def ownership_error(value):
         return None if value == 'tests/__init__.py' or section in {
             'backend', 'frontend', 'e2e', 'fixtures'} else 'unknown_test_type'
     if top == 'tools':
+        if value.startswith('tools/packaging/openclaw-feishu/'):
+            return None if value in {
+                'tools/packaging/openclaw-feishu/source.json',
+                'tools/packaging/openclaw-feishu/automation-ingress.patch',
+                'tools/packaging/openclaw-feishu/LICENSE',
+            } else 'unregistered_openclaw_feishu_source'
         if value.startswith('tools/packaging/wheel-notices/'):
             return None if value in {
                 'tools/packaging/wheel-notices/sentencepiece-LICENSE.txt',

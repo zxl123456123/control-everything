@@ -1,0 +1,54 @@
+{
+  "repository": "https://github.com/openclaw/openclaw.git",
+  "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
+  "version": "2026.11.2",
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
+  "patchSha256": "c12e2520db45e70ae74f43475471f6d6ae2dc13c6c765f2020df6cde0203115e",
+  "patchFormat": "unified-zero-context; git apply --unidiff-zero",
+  "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
+  "npm": {
+    "openclaw": {
+      "tarball": "https://registry.npmjs.org/openclaw/-/openclaw-2026.11.2.tgz",
+      "integrity": "sha512-SgBml4WLp8V1DdAYkrTPLzVdA/iYo3iuHCtm4788GjaG83QZdd1VeOTlue0HBJGdn3SbFE06b6uPs+AM5ShMgg=="
+    },
+    "@openclaw/feishu": {
+      "tarball": "https://registry.npmjs.org/@openclaw/feishu/-/feishu-2026.11.2.tgz",
+      "integrity": "sha512-iINSCr1yjq+bkj8gVh2t+Qbgp442ypcTWuarOtNMM0tIdtdEtPocx4rl35jsT+asCMODrXQikH1dx4G8q2DQuA=="
+    }
+  },
+  "files": {
+    "extensions/feishu/src/accounts.ts": {
+      "originalSha256": "944c3d3f0c8a8e2760cabd3f411dbac77abd0503b4ce83c1e17b4e71d6a9c7a8",
+      "patchedSha256": "e17e8de90de7f8165597cdf448f2d36b2b950dfade3566955b58ff19da39e2f3"
+    },
+    "extensions/feishu/src/automation-config.test.ts": {
+      "originalSha256": null,
+      "patchedSha256": "28e617290e9f6b82346af538d195763f8f7b007849020dfb5b2720cf9e779d27"
+    },
+    "extensions/feishu/src/config-schema.ts": {
+      "originalSha256": "8cbf3bc318627ecda0c52c9df483a62c359f183049c81b3680b9f96ae18a8277",
+      "patchedSha256": "857ac5e7786c959559d8af58affa4430899475988e830fec29cca5da34802fc0"
+    },
+    "extensions/feishu/src/secret-contract.test.ts": {
+      "originalSha256": "76a64e0c94bd987b6933ec2da51613fb891b3cf5fd76a6ac521a521ddfcc914e",
+      "patchedSha256": "ae01bde92e67eb954c92a6176b2395e11138b840074e18c82edbba6c02963834"
+    },
+    "extensions/feishu/src/secret-contract.ts": {
+      "originalSha256": "b3d0e1e44982f5ee53d514848e706c82757d6ec39c95edece7bc6d4bf5b3b285",
+      "patchedSha256": "7585f4cc2246d876f3d1584e4490925279d4c95846e4240f84235f0c4cb5563a"
+    },
+    "extensions/feishu/src/types.ts": {
+      "originalSha256": "bebb7bd1f6c3f234c72911a733a58896c80ea7b4e927a56fb84531387b09e2eb",
+      "patchedSha256": "9258b7ea5787377dfa61abf7e77fb99cc3740dc8965fda10d49ee842a0a49162"
+    }
+  },
+  "tests": [
+    "extensions/feishu/src/automation-config.test.ts",
+    "extensions/feishu/src/secret-contract.test.ts",
+    "extensions/feishu/src/config-schema.test.ts",
+    "extensions/feishu/src/accounts.test.ts"
+  ],
+  "runtimeBuild": ["scripts/lib/plugin-npm-runtime-build.mjs", "extensions/feishu"],
+  "runtimeOutput": "extensions/feishu/dist",
+  "delivery": "runtime-build-material; not an installable plugin package"
+}

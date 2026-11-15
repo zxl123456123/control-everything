@@ -71,6 +71,14 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 ## 开发材料归属
 
+### OpenClaw 飞书接入补丁
+
+飞书服务器插件的唯一 TypeScript 维护源为 `tools/packaging/openclaw-feishu/automation-ingress.patch`，固定上游提交、版本、npm 完整性和原始/补丁文件 hash 记录在同目录 `source.json`，保留上游 `LICENSE`。文件 hash 对文本使用 LF 换行。升级时重新核来源并重测，不直接修改线上 dist，不把服务器插件导入 `web`、Python wheel 或静态 HTTP 资源。
+
+`work/<feature>/` 内的上游检出、独立安装的依赖、日志和 dist 都是可重建材料。当前补丁仅增加账号专属 `automationIngress` 与 `automationProducerToken` 的严格配置及 SecretInput 激活解析；尚未接通卡片投递，也未部署。账号未配置时保持原行为；账号配置不能从频道顶层继承 producer 凭据。
+
+在固定源码根使用符合上游 engines 的显式 Node 和 `source.json` 固定的 pnpm；各检出独立安装依赖，默认禁用安装脚本，不运行个人配置或真实会话。定向验证入口为 `node scripts/test-projects.mts extensions/feishu/src/automation-config.test.ts extensions/feishu/src/secret-contract.test.ts extensions/feishu/src/config-schema.test.ts extensions/feishu/src/accounts.test.ts -- --maxWorkers=1`。局部运行产物构建入口为 `node scripts/lib/plugin-npm-runtime-build.mjs extensions/feishu`；dist 不等于可安装发行包或部署验收，发行元数据必须沿用上游发布配方。
+
 公开指南放 `docs/guides/`，架构与契约放 `docs/architecture/`，接入示例放 `docs/examples/`，`docs` 根只保留 [README.md 索引](../docs/README.md)；开发脚本放 `tools/scripts/`。活跃任务记录放 ignored `docs/current/<feature>/`，以 README.md 记录目标、验收、负责人、文件归属、状态、阻塞及证据链接；历史记录放 ignored `docs/archive/<feature>/`。日志、截图、隔离数据与构建产物放 ignored `work/<feature>/`，旧材料放 `work/archive/<feature>/`；`current`、`archive` 根只放任务目录，`work` 根另保留 README.md 索引。本机记录不提交，整理时保留原文、失败证据和旧路径到新位置的清单。下文命令均从仓库根目录执行。
 
 一次性脚本、临时 clone、缓存、构建输出、预览 profile 和需留证的 TEMP/TMP 必须在本检出 `work/<feature>/` 下，不能为了缩短路径在盘根创建 `ce-*` 副本，也不能改用户或系统临时目录。正式构建沿用已有 `work/ce-native`、`work/workbench-engine-build/<run>/`；普通自动清理的单测可使用系统 Temp。需要临时环境时只给该子进程传任务内的环境变量；用完清理可重建内容，报告与失败日志按任务留存。历史脚本的旧绝对路径保留为证据，恢复前须重新核对，不能直接重跑。`python tools/scripts/check_architecture.py layout` 同时检查本机文档和 work 根散件；显式 `--files` 只检查给定发布候选。

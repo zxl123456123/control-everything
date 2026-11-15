@@ -1,0 +1,222 @@
+diff --git a/extensions/feishu/src/accounts.ts b/extensions/feishu/src/accounts.ts
+index 38b57a45..b16de524 100644
+--- a/extensions/feishu/src/accounts.ts
++++ b/extensions/feishu/src/accounts.ts
+@@ -7,0 +8 @@ import {
++  resolveNormalizedAccountEntry,
+@@ -232,0 +234,25 @@ function buildResolvedFeishuAccount(params: {
++  const explicit = resolveNormalizedAccountEntry(
++    feishuCfg?.accounts,
++    accountId,
++    normalizeAccountId,
++  );
++  let automationIngress: ResolvedFeishuAccount["automationIngress"];
++  if (
++    params.baseMode === "strict" &&
++    feishuCfg?.enabled !== false &&
++    explicit?.enabled !== false &&
++    explicit?.automationIngress
++  ) {
++    const token = resolveFeishuSecretLike({
++      cfg: params.cfg,
++      value: explicit.automationProducerToken,
++      path: `channels.feishu.accounts.${accountId}.automationProducerToken`,
++      mode: "strict",
++    });
++    if (!token) {
++      throw new Error(
++        `channels.feishu.accounts.${accountId}.automationProducerToken is required for automationIngress`,
++      );
++    }
++    automationIngress = { ...explicit.automationIngress, token };
++  }
+@@ -236,0 +263 @@ function buildResolvedFeishuAccount(params: {
++    automationIngress,
+diff --git a/extensions/feishu/src/automation-config.test.ts b/extensions/feishu/src/automation-config.test.ts
+new file mode 100644
+index 00000000..d63bc147
+--- /dev/null
++++ b/extensions/feishu/src/automation-config.test.ts
+@@ -0,0 +1,89 @@
++import { describe, expect, it } from "vitest";
++import { resolveFeishuAccount, resolveFeishuRuntimeAccount } from "./accounts.js";
++import { FeishuConfigSchema } from "./config-schema.js";
++
++const ingress = { hubOrigin: "https://hub.example.test", producerId: "father", chatId: "chat" };
++const account = {
++  appId: "app",
++  appSecret: "fixture",
++  automationIngress: ingress,
++  automationProducerToken: "producer-fixture",
++};
++
++describe("account-owned automation ingress", () => {
++  it("uses the normal account resolver for stored account key spelling", () => {
++    const cfg = { channels: { feishu: { accounts: { " Father ": account } } } };
++    expect(resolveFeishuRuntimeAccount({ cfg, accountId: "father" }).automationIngress).toEqual({
++      ...ingress,
++      token: "producer-fixture",
++    });
++  });
++  it("loads only explicit account ingress through the strict config entry", () => {
++    const feishu = FeishuConfigSchema.parse({
++      accounts: { father: account, mother: { appId: "mother", appSecret: "fixture" } },
++    });
++    const cfg = { channels: { feishu } };
++    expect(resolveFeishuRuntimeAccount({ cfg, accountId: "father" }).automationIngress).toEqual({
++      ...ingress,
++      token: "producer-fixture",
++    });
++    expect(
++      resolveFeishuRuntimeAccount({ cfg, accountId: "mother" }).automationIngress,
++    ).toBeUndefined();
++  });
++
++  it("rejects unsafe destinations and top-level inheritance", () => {
++    for (const hubOrigin of [
++      "not-a-url",
++      "",
++      "http://hub.example.test",
++      "https://u:p@hub.example.test",
++      "https://hub.example.test/path",
++      "https://hub.example.test?x=1",
++      "https://hub.example.test#x",
++    ]) {
++      expect(
++        FeishuConfigSchema.safeParse({
++          accounts: { father: { ...account, automationIngress: { ...ingress, hubOrigin } } },
++        }).success,
++      ).toBe(false);
++    }
++    expect(FeishuConfigSchema.safeParse({ automationIngress: ingress }).success).toBe(false);
++  });
++
++  it("rejects unresolved runtime secrets without exposing them in inspection", () => {
++    const cfg = {
++      channels: {
++        feishu: {
++          accounts: {
++            father: {
++              ...account,
++              automationProducerToken: {
++                source: "exec" as const,
++                provider: "fixture",
++                id: "producer",
++              },
++            },
++          },
++        },
++      },
++    };
++    expect(resolveFeishuAccount({ cfg, accountId: "father" }).automationIngress).toBeUndefined();
++    expect(() => resolveFeishuRuntimeAccount({ cfg, accountId: "father" })).toThrow(
++      "unresolved SecretRef",
++    );
++  });
++
++  it("fails runtime activation when the configured ingress has no producer credential", () => {
++    const cfg = {
++      channels: {
++        feishu: {
++          accounts: { father: { appId: "app", appSecret: "fixture", automationIngress: ingress } },
++        },
++      },
++    };
++    expect(() => resolveFeishuRuntimeAccount({ cfg, accountId: "father" })).toThrow(
++      "automationProducerToken",
++    );
++  });
++});
+diff --git a/extensions/feishu/src/config-schema.ts b/extensions/feishu/src/config-schema.ts
+index 93957ff4..ee34484b 100644
+--- a/extensions/feishu/src/config-schema.ts
++++ b/extensions/feishu/src/config-schema.ts
+@@ -268,0 +269,27 @@ export const FeishuAccountConfigSchema = z
++    automationIngress: z
++      .object({
++        hubOrigin: z
++          .string()
++          .url()
++          .refine(
++            (value) => {
++              const url = URL.parse(value);
++              return (
++                url !== null &&
++                url.protocol === "https:" &&
++                !url.username &&
++                !url.password &&
++                value === url.origin
++              );
++            },
++            {
++              message:
++                "automationIngress.hubOrigin must be an HTTPS origin without credentials, path, query or fragment",
++            },
++          ),
++        producerId: z.string().trim().min(1).max(256),
++        chatId: z.string().trim().min(1).max(256),
++      })
++      .strict()
++      .optional(),
++    automationProducerToken: buildSecretInputSchema().optional(),
+diff --git a/extensions/feishu/src/secret-contract.test.ts b/extensions/feishu/src/secret-contract.test.ts
+index 176ef135..190f74a3 100644
+--- a/extensions/feishu/src/secret-contract.test.ts
++++ b/extensions/feishu/src/secret-contract.test.ts
+@@ -7,0 +8,33 @@ describe("feishu secret contract", () => {
++  it("activates the producer token only for its enabled explicit ingress account", () => {
++    const token = { source: "exec" as const, provider: "fixture", id: "producer" };
++    const ingress = {
++      hubOrigin: "https://hub.example.test",
++      producerId: "fixture",
++      chatId: "chat",
++    };
++    const sourceConfig = {
++      channels: {
++        feishu: {
++          accounts: {
++            father: { automationIngress: ingress, automationProducerToken: token },
++            mother: { automationProducerToken: token },
++            disabled: {
++              enabled: false,
++              automationIngress: ingress,
++              automationProducerToken: token,
++            },
++          },
++        },
++      },
++    };
++    const context = createResolverContext({ sourceConfig, env: {} });
++    collectRuntimeConfigAssignments({
++      config: structuredClone(sourceConfig),
++      defaults: undefined,
++      context,
++    });
++    expect(context.assignments.map(({ path }) => path)).toEqual([
++      "channels.feishu.accounts.father.automationProducerToken",
++    ]);
++  });
++
+diff --git a/extensions/feishu/src/secret-contract.ts b/extensions/feishu/src/secret-contract.ts
+index 4437b9c4..2ca18052 100644
+--- a/extensions/feishu/src/secret-contract.ts
++++ b/extensions/feishu/src/secret-contract.ts
+@@ -12 +12 @@ export const channelSecrets = createChannelSecretContract({
+-  account: ["appSecret", "encryptKey", "verificationToken"],
++  account: ["appSecret", "encryptKey", "verificationToken", "automationProducerToken"],
+@@ -15,0 +16,9 @@ export const channelSecrets = createChannelSecretContract({
++    collectConditionalChannelFieldAssignments({
++      ...params,
++      field: "automationProducerToken",
++      topLevelActiveWithoutAccounts: false,
++      topLevelInheritedAccountActive: () => false,
++      accountActive: ({ account, enabled }) => enabled && Boolean(account.automationIngress),
++      topInactiveReason: "Automation producer credentials are account-only.",
++      accountInactiveReason: "Feishu account is disabled or has no automationIngress.",
++    });
+diff --git a/extensions/feishu/src/types.ts b/extensions/feishu/src/types.ts
+index eeac93fa..e66a60ff 100644
+--- a/extensions/feishu/src/types.ts
++++ b/extensions/feishu/src/types.ts
+@@ -35,0 +36 @@ export type ResolvedFeishuAccount = {
++  automationIngress?: NonNullable<FeishuAccountConfig["automationIngress"]> & { token: string };
