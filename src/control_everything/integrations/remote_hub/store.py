@@ -14,7 +14,7 @@ import uuid
 from .identity import HubError
 
 RECOVERABLE = ("pending", "provisioned", "online", "offline")
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 # Heartbeat freshness window shared with the browser authorization path.
 ONLINE_WINDOW = 45
 # Copy of a pre-account-id database, written next to it before the first v3 migration.
@@ -22,6 +22,13 @@ BACKUP_SUFFIX = ".pre-account-id"
 MAILBOX_BACKUP_SUFFIX = ".pre-automation-inbox"
 IDENTITY_SEND_BACKUP_SUFFIX = ".pre-identity-send"
 CARD_BACKUP_SUFFIX = ".pre-outbound-card"
+LEASE_BACKUP_SUFFIX = ".pre-outbound-lease"
+# v6 introduced the queue without a claim lease. Fresh databases use the current table instead.
+_OUTBOUND_V6 = """CREATE TABLE automation_outbound_cards(
+        id TEXT PRIMARY KEY NOT NULL, device_id TEXT NOT NULL, producer_id TEXT NOT NULL,
+        flow_id TEXT NOT NULL, requirement_revision INTEGER NOT NULL, card_json TEXT NOT NULL,
+        message_id TEXT, created_at REAL NOT NULL,
+        UNIQUE(device_id, flow_id, requirement_revision))"""
 ACCOUNT_ID = re.compile(r"[0-9a-f]{32}")
 
 # Latest schema. Ownership is keyed on the internal account_id; (issuer, sub) only lives in identities,
@@ -57,7 +64,7 @@ _TABLES = {
     "automation_outbound_cards": """CREATE TABLE automation_outbound_cards(
         id TEXT PRIMARY KEY NOT NULL, device_id TEXT NOT NULL, producer_id TEXT NOT NULL,
         flow_id TEXT NOT NULL, requirement_revision INTEGER NOT NULL, card_json TEXT NOT NULL,
-        message_id TEXT, created_at REAL NOT NULL,
+        message_id TEXT, lease_id TEXT, leased_at REAL, created_at REAL NOT NULL,
         UNIQUE(device_id, flow_id, requirement_revision))""",
     "automation_inbox": """CREATE TABLE automation_inbox(id TEXT PRIMARY KEY NOT NULL,
         source TEXT NOT NULL, event_id TEXT NOT NULL, device_id TEXT NOT NULL REFERENCES devices(device_id),
@@ -126,9 +133,10 @@ class RemoteHubStore:
                 row = source.execute("SELECT version FROM schema_version").fetchone()
             except sqlite3.OperationalError:
                 return
-            if row is None or row[0] not in (1, 2, 3, 4, 5):
+            if row is None or row[0] not in (1, 2, 3, 4, 5, 6):
                 return
-            target_path = self.path + (CARD_BACKUP_SUFFIX if row[0] == 5 else
+            target_path = self.path + (LEASE_BACKUP_SUFFIX if row[0] == 6 else
+                                       CARD_BACKUP_SUFFIX if row[0] == 5 else
                                        IDENTITY_SEND_BACKUP_SUFFIX if row[0] == 4 else
                                        MAILBOX_BACKUP_SUFFIX if row[0] == 3 else BACKUP_SUFFIX)
             temporary = target_path + ".tmp"
@@ -148,7 +156,7 @@ class RemoteHubStore:
     def _migrate(db):
         """Forward-only migrations in the caller's single transaction; a newer version is refused."""
         version = db.execute("SELECT version FROM schema_version").fetchall()[0][0]
-        if version not in (1, 2, 3, 4, 5, SCHEMA_VERSION):
+        if version not in (1, 2, 3, 4, 5, 6, SCHEMA_VERSION):
             raise ValueError("unsupported_hub_schema")
         if version == 1:
             # v2: nullable mobile-facing metadata. Existing rows stay valid with NULLs.
@@ -172,8 +180,13 @@ class RemoteHubStore:
             db.execute("UPDATE schema_version SET version=5")
             version = 5
         if version == 5:
-            db.execute(_TABLES['automation_outbound_cards'])
+            db.execute(_OUTBOUND_V6)
             db.execute("UPDATE schema_version SET version=6")
+            version = 6
+        if version == 6:
+            db.execute("ALTER TABLE automation_outbound_cards ADD COLUMN lease_id TEXT")
+            db.execute("ALTER TABLE automation_outbound_cards ADD COLUMN leased_at REAL")
+            db.execute("UPDATE schema_version SET version=7")
 
     @staticmethod
     def _migrate_account_ids(db):

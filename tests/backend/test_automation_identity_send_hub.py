@@ -57,6 +57,40 @@ class IdentitySendTests(unittest.TestCase):
         body['expected_context']['chat_id'] = 'new-chat'
         self.assertEqual(self.request(path, body)[0], 409)
 
+    def test_v6_pending_card_keeps_its_row_and_is_claimed_once(self):
+        from control_everything.integrations.remote_hub.store import RemoteHubStore, LEASE_BACKUP_SUFFIX
+        path = self.hub.store.path
+        with self.hub.store.transaction() as db:
+            db.execute('''CREATE TABLE outbound_v6(
+                id TEXT PRIMARY KEY NOT NULL, device_id TEXT NOT NULL, producer_id TEXT NOT NULL,
+                flow_id TEXT NOT NULL, requirement_revision INTEGER NOT NULL, card_json TEXT NOT NULL,
+                message_id TEXT, created_at REAL NOT NULL,
+                UNIQUE(device_id, flow_id, requirement_revision))''')
+            db.execute('''INSERT INTO outbound_v6(id,device_id,producer_id,flow_id,requirement_revision,card_json,created_at)
+                          VALUES(?,?,?,?,?,?,?)''',
+                       ('card-v6', self.device['device_id'], 'producer-a', 'flow-v6', 1, '{"kept":true}', 1))
+            db.execute('DROP TABLE automation_outbound_cards')
+            db.execute('ALTER TABLE outbound_v6 RENAME TO automation_outbound_cards')
+            db.execute('UPDATE schema_version SET version=6')
+        store = RemoteHubStore(path)
+        with closing(sqlite3.connect(path + LEASE_BACKUP_SUFFIX)) as backup:
+            self.assertEqual(backup.execute('SELECT version FROM schema_version').fetchone()[0], 6)
+            names = [row[1] for row in backup.execute('PRAGMA table_info(automation_outbound_cards)')]
+            self.assertNotIn('lease_id', names)
+            self.assertEqual(backup.execute("SELECT id FROM automation_outbound_cards").fetchone()[0], 'card-v6')
+        with store.transaction() as db:
+            self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 7)
+            row = db.execute('SELECT card_json, lease_id, message_id FROM automation_outbound_cards WHERE id=?',
+                             ('card-v6',)).fetchone()
+            self.assertEqual((row['card_json'], row['lease_id'], row['message_id']), ('{"kept":true}', None, None))
+        claimed = self.request('/remote/producer/automation/outbound/claim', {'producer_id': 'producer-a'},
+                               token=self.producer_token)
+        self.assertEqual((claimed[0], claimed[1]['id'], claimed[1]['card']), (200, 'card-v6', {'kept': True}))
+        self.assertTrue(claimed[1]['lease_id'])
+        again = self.request('/remote/producer/automation/outbound/claim', {'producer_id': 'producer-a'},
+                             token=self.producer_token)
+        self.assertIsNone(again[1]['card'])
+
     def test_v4_migration_backup_preserves_inbox(self):
         from control_everything.integrations.remote_hub.store import RemoteHubStore, IDENTITY_SEND_BACKUP_SUFFIX
         path = self.hub.store.path
@@ -68,7 +102,7 @@ class IdentitySendTests(unittest.TestCase):
             db.execute('UPDATE schema_version SET version=4')
         store = RemoteHubStore(path)
         with store.transaction() as db:
-            self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 6)
+            self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 7)
             self.assertEqual([tuple(row) for row in db.execute('SELECT * FROM automation_inbox')], before)
         with closing(sqlite3.connect(path + IDENTITY_SEND_BACKUP_SUFFIX)) as backup:
             self.assertEqual(backup.execute('SELECT version FROM schema_version').fetchone()[0], 4)

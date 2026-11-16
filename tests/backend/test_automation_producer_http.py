@@ -53,10 +53,31 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         claimed = self.request('/remote/producer/automation/outbound/claim', {'producer_id': 'producer-a'},
                                token=self.producer_token)
         self.assertEqual(claimed[1]['card']['body']['elements'][1]['value']['flow_id'], 'flow-1')
+        again = self.request('/remote/producer/automation/outbound/claim', {'producer_id': 'producer-a'},
+                             token=self.producer_token)
+        self.assertIsNone(again[1]['card'])
+        occupied = self.request('/remote/desktop/automation/card', card)
+        self.assertEqual(occupied[1], {'id': first[1]['id'], 'duplicate': True, 'state': 'leased'})
         marked = self.request('/remote/producer/automation/outbound/sent',
-                              {'producer_id': 'producer-a', 'id': claimed[1]['id'], 'message_id': 'om-card'},
+                              {'producer_id': 'producer-a', 'id': claimed[1]['id'], 'lease_id': claimed[1]['lease_id'],
+                               'message_id': 'om-card'},
                               token=self.producer_token)
         self.assertEqual(marked[1]['state'], 'sent')
+        replayed = self.request('/remote/producer/automation/outbound/sent',
+                                {'producer_id': 'producer-a', 'id': claimed[1]['id'], 'lease_id': claimed[1]['lease_id'],
+                                 'message_id': 'om-card'},
+                                token=self.producer_token)
+        self.assertEqual(replayed[1]['state'], 'sent')
+        changed = self.request('/remote/producer/automation/outbound/sent',
+                               {'producer_id': 'producer-a', 'id': claimed[1]['id'], 'lease_id': claimed[1]['lease_id'],
+                                'message_id': 'om-other'},
+                               token=self.producer_token)
+        self.assertEqual(changed[0], 409)
+        stolen = self.request('/remote/producer/automation/outbound/sent',
+                              {'producer_id': 'producer-a', 'id': claimed[1]['id'], 'lease_id': 'not-the-lease',
+                               'message_id': 'om-card'},
+                              token=self.producer_token)
+        self.assertEqual(stolen[0], 409)
         found = self.request('/remote/producer/automation/outbound/lookup',
                              {'producer_id': 'producer-a', 'message_id': 'om-card'}, token=self.producer_token)
         self.assertEqual(found[1]['card']['body']['elements'][1]['value']['flow_id'], 'flow-1')

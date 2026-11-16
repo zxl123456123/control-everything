@@ -381,11 +381,11 @@ class RemoteHubService:
         producer = matches[0]
         encoded = json.dumps(card, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
         with self.store.transaction() as db:
-            existing = db.execute('SELECT id, message_id FROM automation_outbound_cards WHERE device_id=? AND flow_id=? AND requirement_revision=?',
+            existing = db.execute('SELECT id, message_id, lease_id FROM automation_outbound_cards WHERE device_id=? AND flow_id=? AND requirement_revision=?',
                                   (device['device_id'], flow_id, revision)).fetchone()
             if existing:
-                return {'id': existing['id'], 'duplicate': True,
-                        'state': 'sent' if existing['message_id'] else 'pending'}
+                state = 'sent' if existing['message_id'] else 'leased' if existing['lease_id'] else 'pending'
+                return {'id': existing['id'], 'duplicate': True, 'state': state}
             identity = uuid.uuid4().hex
             db.execute('INSERT INTO automation_outbound_cards(id,device_id,producer_id,flow_id,requirement_revision,card_json,created_at) VALUES(?,?,?,?,?,?,?)',
                        (identity, device['device_id'], producer['producer_id'], flow_id,
@@ -410,21 +410,37 @@ class RemoteHubService:
             raise HubError('invalid_request_fields', 400)
         config = self.automation_producers.authenticate(body['producer_id'], token)
         with self.store.transaction() as db:
-            row = db.execute('SELECT id, card_json FROM automation_outbound_cards WHERE producer_id=? AND message_id IS NULL ORDER BY created_at,id LIMIT 1',
-                             (config['producer_id'],)).fetchone()
+            row = db.execute('''SELECT id, card_json FROM automation_outbound_cards
+                WHERE producer_id=? AND message_id IS NULL AND lease_id IS NULL
+                ORDER BY created_at,id LIMIT 1''', (config['producer_id'],)).fetchone()
             if row is None:
                 return {'card': None}
-            return {'id': row['id'], 'card': json.loads(row['card_json'])}
+            lease_id = secrets.token_urlsafe(32)
+            changed = db.execute('''UPDATE automation_outbound_cards SET lease_id=?,leased_at=?
+                WHERE id=? AND producer_id=? AND message_id IS NULL AND lease_id IS NULL''',
+                (lease_id, self.store.clock(), row['id'], config['producer_id']))
+            if changed.rowcount != 1:
+                return {'card': None}
+            return {'id': row['id'], 'lease_id': lease_id, 'card': json.loads(row['card_json'])}
 
     def mark_outbound_card(self, token, body):
-        if (type(body) is not dict or set(body) != {'producer_id', 'id', 'message_id'}
+        if (type(body) is not dict or set(body) != {'producer_id', 'id', 'message_id', 'lease_id'}
                 or any(not isinstance(body.get(key), str) or not body[key] or len(body[key]) > 256
-                       for key in ('producer_id', 'id', 'message_id'))):
+                       for key in ('producer_id', 'id', 'message_id', 'lease_id'))):
             raise HubError('invalid_request_fields', 400)
         config = self.automation_producers.authenticate(body['producer_id'], token)
         with self.store.transaction() as db:
-            changed = db.execute('UPDATE automation_outbound_cards SET message_id=? WHERE id=? AND producer_id=? AND message_id IS NULL',
-                                 (body['message_id'], body['id'], config['producer_id']))
+            row = db.execute('SELECT message_id, lease_id FROM automation_outbound_cards WHERE id=? AND producer_id=?',
+                             (body['id'], config['producer_id'])).fetchone()
+            if row is None or row['lease_id'] != body['lease_id']:
+                raise HubError('outbound_card_changed', 409)
+            if row['message_id'] == body['message_id']:
+                return {'id': body['id'], 'state': 'sent'}
+            if row['message_id'] is not None:
+                raise HubError('outbound_card_changed', 409)
+            changed = db.execute('''UPDATE automation_outbound_cards SET message_id=?
+                WHERE id=? AND producer_id=? AND lease_id=? AND message_id IS NULL''',
+                (body['message_id'], body['id'], config['producer_id'], body['lease_id']))
             if changed.rowcount != 1:
                 raise HubError('outbound_card_changed', 409)
         return {'id': body['id'], 'state': 'sent'}
