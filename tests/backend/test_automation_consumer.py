@@ -701,8 +701,9 @@ class ConsumerTests(AutomationQueueFixture):
         waiting = self.pump()
         revision = cards[0]['body']['elements'][1]['value']['requirement_revision']
         self._store_release(waiting['flow']['id'], revision)
-        from tests.backend.test_automation_queue import bind_actor
+        from tests.backend.test_automation_queue import bind_actor, designate_actor
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
         with self.profile.store.connection() as connection:
             connection.execute("UPDATE automation_remote_inbox SET ack_state='acknowledged'")
         result = self.pump()

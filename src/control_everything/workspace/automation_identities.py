@@ -1,6 +1,7 @@
 """Local identity facts. Trusted methods are internal adapter boundaries, not HTTP APIs."""
 import hashlib
 import json
+import re
 import secrets
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -147,6 +148,28 @@ class IdentityService:
             db.execute("UPDATE automation_identity_challenges SET state='revoked' WHERE id=?",(fact['challenge_id'],))
             return dict(db.execute('SELECT * FROM automation_identity_bindings WHERE id=?',(binding_id,)).fetchone())
 
+    def designate(self, project_id, task_id, binding_id):
+        """A local manager names one active binding as this task's acceptor. Chat cannot do this."""
+        if (not isinstance(task_id, str) or not task_id or len(task_id) > 256
+                or not isinstance(binding_id, str) or not re.fullmatch(r'[0-9a-f]{32}', binding_id)):
+            raise ValueError('acceptor_invalid')
+        with self._transaction(project_id) as (db, binding):
+            fact = db.execute('''SELECT c.open_id, c.app_id FROM automation_identity_bindings b
+                JOIN automation_identity_candidates c ON c.id=b.candidate_id
+                JOIN automation_identity_challenges h ON h.id=b.challenge_id
+                WHERE b.id=? AND b.project_id=? AND b.state='active' AND h.project_id=?
+                AND h.hub_origin=? AND h.device_id=? AND h.generation=?''',
+                (binding_id, project_id, project_id, binding['hub_origin'], binding['device_id'], binding['generation'])).fetchone()
+            if not fact:
+                raise ValueError('acceptor_binding_missing')
+            task = db.execute('SELECT project_id FROM task_items WHERE id=?', (task_id,)).fetchone()
+            if not task or task['project_id'] != project_id:
+                raise ValueError('acceptor_task_missing')
+            db.execute('''INSERT INTO automation_task_acceptors(task_id, app_id, open_id, set_at) VALUES(?,?,?,?)
+                ON CONFLICT(task_id) DO UPDATE SET app_id=excluded.app_id, open_id=excluded.open_id, set_at=excluded.set_at''',
+                (task_id, fact['app_id'], fact['open_id'], now_utc()))
+            return {'task_id': task_id, 'app_id': fact['app_id'], 'open_id': fact['open_id']}
+
 
 def trusted_context(payload):
     """Project and app come from the authenticated producer stamp, not the card button."""
@@ -189,5 +212,18 @@ def decision_authorized(store, actor_id, *, task_id=None, flow_id=None, trusted,
         return False
     with store.connection() as db:
         row = db.execute(sql, (row_id,)).fetchone()
-    return row is not None and row['project_id'] == project_id and actor_authorized(
-        store, project_id, actor_id, app_id=app_id, device=device)
+    if row is None or row['project_id'] != project_id or not actor_authorized(
+            store, project_id, actor_id, app_id=app_id, device=device):
+        return False
+    named_task = task_id if task_id is not None else None
+    if named_task is None:
+        with store.connection() as db:
+            flow = db.execute('SELECT task_id FROM automation_flows WHERE id=?', (flow_id,)).fetchone()
+        named_task = flow['task_id'] if flow else None
+    if not isinstance(named_task, str) or not named_task:
+        return False
+    with store.connection() as db:
+        designated = db.execute(
+            'SELECT 1 FROM automation_task_acceptors WHERE task_id=? AND open_id=? AND app_id=?',
+            (named_task, actor_id, app_id)).fetchone()
+    return designated is not None

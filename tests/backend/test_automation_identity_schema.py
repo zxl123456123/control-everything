@@ -45,7 +45,7 @@ class IdentitySchemaTests(unittest.TestCase):
                         self.assertEqual(schema.table_facts(connection, 14), before)
                 else:
                     result = migration.migrate_tasks(str(root))
-                    self.assertEqual(result['schema_version'], 15)
+                    self.assertEqual(result['schema_version'], 16)
                     backup = result['backup']
                     with profile.store.connection() as connection:
                         after = schema.table_facts(connection, 15)

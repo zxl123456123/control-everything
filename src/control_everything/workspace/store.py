@@ -84,7 +84,7 @@ class WorkspaceStore:
                         try:
                             # A second process might have initialized while we waited.
                             if not connection.execute("SELECT name FROM sqlite_master").fetchone():
-                                tasks.install_schema15(connection, fresh=True)
+                                tasks.install_schema16(connection, fresh=True)
                             connection.commit()
                         except Exception:
                             connection.rollback()

@@ -50,8 +50,9 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
                                  'lease_id': 'lease-2', 'lease_expires_at': 11, 'payload': {
                                      'kind': 'feishu_card_decision', 'project_id': self.project['id'],
                                      'app_id': 'app', 'actor_open_id': 'ou-owner', 'decision': decision}})
-        from tests.backend.test_automation_queue import bind_actor
+        from tests.backend.test_automation_queue import bind_actor, designate_actor
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
         first = apply_acceptance_decisions(self.profile.store, self.service, binding)
         second = apply_acceptance_decisions(self.profile.store, self.service, binding)
         self.assertFalse(first[0]['replayed'])
@@ -67,7 +68,7 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
 
     def test_changed_source_does_not_accept_the_stored_delivery(self):
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
-        from tests.backend.test_automation_queue import bind_actor
+        from tests.backend.test_automation_queue import bind_actor, designate_actor
         cards = []
         self.consumer.on_wait = cards.append
         (self.root / 'repo' / 'input.txt').write_bytes(b'changed after the test')
@@ -83,6 +84,7 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
                 'kind': 'feishu_card_decision', 'project_id': self.project['id'], 'app_id': 'app',
                 'actor_open_id': 'ou-owner', 'decision': decision}})
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
         self.consumer.review_service = self.service
         self.consumer.current_binding = lambda: binding
         self.consumer.run_once()

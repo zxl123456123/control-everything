@@ -39,6 +39,13 @@ def bind_actor(store, project_id, open_id, *, state='active'):
     return binding_id
 
 
+def designate_actor(store, task_id, open_id, app_id='app'):
+    with store.connection() as connection:
+        connection.execute(
+            'INSERT INTO automation_task_acceptors(task_id, app_id, open_id, set_at) VALUES(?,?,?,?)',
+            (task_id, app_id, open_id, '2026-11-16T00:00:00+00:00'))
+
+
 class AutomationQueueFixture(unittest.TestCase):
     def setUp(self):
         temporary = TemporaryDirectory()
@@ -88,6 +95,7 @@ class FeishuAssignmentTests(AutomationQueueFixture):
                 assignment={'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
                             'text': '请做这个任务'})})
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, other['id'], 'ou-owner')
         applied = apply_feishu_assignments(self.profile.store, binding)
         self.assertEqual(applied[0]['event']['task_id'], other['id'])
         self.assertTrue(apply_feishu_assignments(self.profile.store, binding)[0]['replayed'])
@@ -140,6 +148,9 @@ class FeishuAssignmentTests(AutomationQueueFixture):
         trusted_there = {'project_id': other['id'], 'app_id': 'app'}
         self.assertFalse(decision_authorized(self.profile.store, 'ou-owner', task_id=other_item['id'],
                                              trusted=trusted_here, device=device))
+        self.assertFalse(decision_authorized(self.profile.store, 'ou-owner', task_id=other_item['id'],
+                                             trusted=trusted_there, device=device))
+        designate_actor(self.profile.store, other_item['id'], 'ou-owner')
         self.assertTrue(decision_authorized(self.profile.store, 'ou-owner', task_id=other_item['id'],
                                             trusted=trusted_there, device=device))
         self.assertFalse(decision_authorized(self.profile.store, 'ou-owner', task_id=other_item['id'],
@@ -201,7 +212,7 @@ class AutomationQueueStorageTests(AutomationQueueFixture):
             connection.commit()
             original = dict(connection.execute('SELECT * FROM automation_events').fetchone())
         result = task_migration.migrate_tasks(str(root))
-        self.assertEqual(result['schema_version'], 15)
+        self.assertEqual(result['schema_version'], 16)
         self.assertEqual(backups.validate_backup(result['backup'])['schema_version'], 11)
         with Profile.open(str(root)).store.connection() as connection:
             event = dict(connection.execute('SELECT * FROM automation_events').fetchone())

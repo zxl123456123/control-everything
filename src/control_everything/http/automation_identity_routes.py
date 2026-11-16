@@ -7,7 +7,7 @@ from control_everything.input_validation import ProfileError
 from control_everything.workspace.store import WorkspaceError
 from control_everything.workspace.validation import project_id_valid
 
-ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-identities(?:/(contexts|challenges|confirm|revoke|send))?\Z')
+ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-identities(?:/(contexts|challenges|confirm|revoke|send|acceptor))?\Z')
 _TRANSPORT_STATES = {'queued', 'sending', 'unknown', 'sent', 'expired'}
 
 
@@ -48,6 +48,14 @@ def handle(handler, path, *, write=False):
         elif not write:
             result = {'identities':service.list(project_id)}
         else:
+            if action == 'acceptor':
+                if (type(body) is not dict or set(body) != {'task_id', 'binding_id'}
+                        or any(type(body[key]) is not str or not body[key] or len(body[key]) > 256 for key in body)
+                        or not re.fullmatch('[0-9a-f]{32}', body['binding_id'])):
+                    raise ValueError('invalid_request')
+                result = service.designate(project_id, body['task_id'], body['binding_id'])
+                handler.reply(200, result)
+                return True
             key = {'challenges':'producer_id','send':'producer_id','confirm':'candidate_id','revoke':'binding_id'}[action]
             if (type(body) is not dict or set(body) != {key} or type(body[key]) is not str or not body[key]
                     or len(body[key]) > 256 or (action not in ('challenges', 'send') and not re.fullmatch('[0-9a-f]{32}',body[key]))):
