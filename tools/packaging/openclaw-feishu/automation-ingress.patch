@@ -1099,6 +1099,196 @@ index 0000000..07a1165
 +    );
 +  }
 +}
+diff --git a/extensions/feishu/src/automation-outbound-sender.test.ts b/extensions/feishu/src/automation-outbound-sender.test.ts
+new file mode 100644
+index 0000000..78dfd96
+--- /dev/null
++++ b/extensions/feishu/src/automation-outbound-sender.test.ts
+@@ -0,0 +1,70 @@
++import { describe, expect, it, vi } from "vitest";
++import { runOutboundSender } from "./automation-outbound-sender.js";
++
++const config = {
++  hubOrigin: "https://hub.example.test",
++  producerId: "father",
++  chatId: "oc-chat",
++  token: "producer-fixture",
++};
++const card = { schema: "2.0", body: { elements: [{ tag: "markdown" }] } };
++const claimed = { id: "card-1", lease_id: "lease-1", card };
++
++function json(body: unknown, status = 200): Response {
++  return new Response(JSON.stringify(body), { status });
++}
++
++describe("outbound card sender", () => {
++  it("does not touch the network without ingress config", async () => {
++    const fetch = vi.spyOn(globalThis, "fetch");
++    const sendCard = vi.fn();
++    await runOutboundSender({ signal: new AbortController().signal, active: () => true, sendCard });
++    expect(fetch).not.toHaveBeenCalled();
++    expect(sendCard).not.toHaveBeenCalled();
++    fetch.mockRestore();
++  });
++
++  it("sends one claimed card and retries only the same receipt", async () => {
++    const controller = new AbortController();
++    let claims = 0;
++    let marks = 0;
++    vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
++      const path = String(url);
++      if (path.endsWith("/claim")) {
++        claims += 1;
++        return json(claims === 1 ? claimed : { card: null });
++      }
++      marks += 1;
++      if (marks === 1) return json({ error: "busy" }, 503);
++      controller.abort();
++      return json({ id: claimed.id, state: "sent" });
++    });
++    const sendCard = vi.fn(async () => ({ messageId: "om-card" }));
++    await runOutboundSender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
++    expect(sendCard).toHaveBeenCalledTimes(1);
++    expect(sendCard.mock.calls[0]?.[0].uuid).toBe(claimed.id);
++    expect(sendCard.mock.calls[0]?.[0].card).toEqual(card);
++    const receipts = vi.mocked(fetch).mock.calls.filter((call) => String(call[0]).endsWith("/sent"));
++    expect(receipts).toHaveLength(2);
++    expect(JSON.parse(receipts[0]?.[1]?.body as string)).toEqual({
++      producer_id: "father", id: "card-1", lease_id: "lease-1", message_id: "om-card",
++    });
++    expect(receipts[0]?.[1]?.body).toBe(receipts[1]?.[1]?.body);
++    vi.restoreAllMocks();
++  });
++
++  it("does not mark or send again when the card has no message id", async () => {
++    const controller = new AbortController();
++    let claims = 0;
++    vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
++      claims += 1;
++      if (claims > 1) controller.abort();
++      return json(claimed);
++    });
++    const sendCard = vi.fn(async () => ({ messageId: "" }));
++    await runOutboundSender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
++    expect(sendCard).toHaveBeenCalledTimes(1);
++    expect(vi.mocked(fetch).mock.calls.some((call) => String(call[0]).endsWith("/sent"))).toBe(false);
++    vi.restoreAllMocks();
++  });
++});
+diff --git a/extensions/feishu/src/automation-outbound-sender.ts b/extensions/feishu/src/automation-outbound-sender.ts
+new file mode 100644
+index 0000000..6280b55
+--- /dev/null
++++ b/extensions/feishu/src/automation-outbound-sender.ts
+@@ -0,0 +1,108 @@
++import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
++import type { ClawdbotConfig } from "../runtime-api.js";
++import { sendCardFeishu } from "./send.js";
++import type { ResolvedFeishuAccount } from "./types.js";
++
++const IDLE_MS = 2_000;
++
++type Ingress = NonNullable<ResolvedFeishuAccount["automationIngress"]>;
++type Claimed = { id: string; lease_id: string; card: Record<string, unknown> };
++
++function text(value: unknown): string {
++  return typeof value === "string" && value.trim() && value.length <= 256 && ![...value].some((char) => char.charCodeAt(0) < 32)
++    ? value
++    : "";
++}
++
++async function pause(signal: AbortSignal, ms: number): Promise<void> {
++  if (signal.aborted) return;
++  await new Promise<void>((resolve) => {
++    const timer = setTimeout(resolve, ms);
++    signal.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
++  });
++}
++
++async function post(config: Ingress, path: string, body: Record<string, unknown>, signal: AbortSignal): Promise<Response> {
++  const origin = new URL(config.hubOrigin);
++  return fetch(`${origin.origin}${path}`, {
++    method: "POST",
++    redirect: "error",
++    signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
++    headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
++    body: JSON.stringify(body),
++  });
++}
++
++function readClaim(value: unknown): Claimed | null | undefined {
++  if (!isRecord(value) || !("card" in value)) return undefined;
++  if (value.card === null && Object.keys(value).length === 1) return null;
++  const keys = ["id", "lease_id", "card"];
++  if (Object.keys(value).length !== keys.length || keys.some((key) => !(key in value))) return undefined;
++  if (!text(value.id) || !text(value.lease_id) || !isRecord(value.card)) return undefined;
++  return { id: text(value.id), lease_id: text(value.lease_id), card: value.card };
++}
++
++async function mark(config: Ingress, signal: AbortSignal, claimed: Claimed, messageId: string): Promise<void> {
++  const body = { producer_id: config.producerId, id: claimed.id, lease_id: claimed.lease_id, message_id: messageId };
++  while (!signal.aborted) {
++    try {
++      const response = await post(config, "/remote/producer/automation/outbound/sent", body, signal);
++      if (response.status === 200) return;
++      if (response.status === 409) return;
++    } catch {
++      // The same receipt may be retried. The card send is not.
++    }
++    await pause(signal, IDLE_MS);
++  }
++}
++
++export async function runOutboundSender(params: {
++  config?: Ingress;
++  signal: AbortSignal;
++  active: () => boolean;
++  sendCard?: (input: { uuid: string; card: Record<string, unknown> }) => Promise<{ messageId?: string }>;
++  cfg?: ClawdbotConfig;
++  accountId?: string;
++}): Promise<void> {
++  const { config, signal } = params;
++  if (!config) return;
++  const sendCard = params.sendCard ?? (async (input) => {
++    const result = await sendCardFeishu({
++      cfg: params.cfg as ClawdbotConfig,
++      to: config.chatId,
++      accountId: params.accountId,
++      card: input.card,
++      uuid: input.uuid,
++    });
++    return { messageId: result.messageId };
++  });
++  const sent = new Map<string, string>();
++  while (params.active() && !signal.aborted) {
++    let claimed: Claimed | null | undefined;
++    try {
++      const response = await post(config, "/remote/producer/automation/outbound/claim", { producer_id: config.producerId }, signal);
++      claimed = response.status === 200 ? readClaim(await response.json()) : undefined;
++    } catch {
++      claimed = undefined;
++    }
++    if (!params.active() || signal.aborted) return;
++    if (!claimed) {
++      await pause(signal, IDLE_MS);
++      continue;
++    }
++    let messageId = sent.get(claimed.id) ?? "";
++    if (!sent.has(claimed.id)) {
++      try {
++        messageId = text((await sendCard({ uuid: claimed.id, card: claimed.card })).messageId);
++      } catch {
++        messageId = "";
++      }
++      sent.set(claimed.id, messageId);
++    }
++    if (!messageId) {
++      await pause(signal, IDLE_MS);
++      continue;
++    }
++    await mark(config, signal, claimed, messageId);
++  }
++}
 diff --git a/extensions/feishu/src/config-schema.ts b/extensions/feishu/src/config-schema.ts
 index 93957ff..ee34484 100644
 --- a/extensions/feishu/src/config-schema.ts
@@ -1206,15 +1396,16 @@ index 32a9caa..4228106 100644
 +    return { eventId, eventType, laneKey: `automation:${eventId}` };
 +  }
 diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
-index 1cb5164..a3f2b10 100644
+index 1cb5164..81f7fda 100644
 --- a/extensions/feishu/src/monitor.account.ts
 +++ b/extensions/feishu/src/monitor.account.ts
-@@ -10,0 +11,2 @@ import { raceWithTimeoutAndAbort } from "./async.js";
+@@ -10,0 +11,3 @@ import { raceWithTimeoutAndAbort } from "./async.js";
 +import { isAutomationCard, receiveAutomationCard } from "./automation-card-ingress.js";
 +import { runIdentitySender } from "./automation-identity-sender.js";
-@@ -178,0 +181 @@ type RegisterEventHandlersContext = {
++import { runOutboundSender } from "./automation-outbound-sender.js";
+@@ -178,0 +182 @@ type RegisterEventHandlersContext = {
 +  automationIngress?: ResolvedFeishuAccount["automationIngress"];
-@@ -355,0 +359,12 @@ function registerEventHandlers(
+@@ -355,0 +360,12 @@ function registerEventHandlers(
 +      if (isAutomationCard(data)) {
 +        await receiveAutomationCard({
 +          data,
@@ -1227,7 +1418,7 @@ index 1cb5164..a3f2b10 100644
 +        await context.resolveIngressLifecycle(data)?.onAdopted();
 +        return;
 +      }
-@@ -474,0 +490,11 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
+@@ -474,0 +491,20 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
 +    if (account.automationIngress) {
 +      trackTask(
 +        runIdentitySender({
@@ -1238,8 +1429,17 @@ index 1cb5164..a3f2b10 100644
 +          accountId,
 +        }),
 +      );
++      trackTask(
++        runOutboundSender({
++          config: account.automationIngress,
++          signal: accountAbortSignal,
++          active: () => !accountAbortSignal.aborted,
++          cfg,
++          accountId,
++        }),
++      );
 +    }
-@@ -485,0 +512 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
+@@ -485,0 +522 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
 +      automationIngress: account.automationIngress,
 diff --git a/extensions/feishu/src/secret-contract.test.ts b/extensions/feishu/src/secret-contract.test.ts
 index 176ef13..190f74a 100644
