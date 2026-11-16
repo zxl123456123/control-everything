@@ -816,11 +816,18 @@ class ConsumerTests(AutomationQueueFixture):
         view = self.queue.claim(self.consumer.lease, self.event['id'])
         step = self.queue.record(self.consumer.lease, view['step'], 'dispatching')
         self.consumer = self.consumer_type(self.queue, self.host, verification=verify)
+        cards = []
+        self.consumer.on_wait = cards.append
         result = self.pump()
         self.assertEqual(result['step']['id'], step['id'])
         self.assertEqual(result['step']['status'], 'unknown')
         self.assertEqual(result['flow']['attention']['reason'], 'verification_unknown')
         self.assertEqual(self.verification_calls, [])
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'verification_unknown')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
+        self.assertNotIn('verdict', value)
 
     def test_verify_dispatch_rechecks_task_version(self):
         self.configure_verification()

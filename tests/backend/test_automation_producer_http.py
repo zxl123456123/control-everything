@@ -141,6 +141,12 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         unobserved = self.request('/remote/desktop/automation/card', missing)
         self.assertEqual(unobserved[0], 200)
         self.assertNotIn(unobserved[1]['id'], (model[1]['id'], review[1]['id']))
+        unknown = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 15, 'reason': 'verification_unknown'}}]}}
+        held_unknown = self.request('/remote/desktop/automation/card', unknown)
+        self.assertEqual(held_unknown[0], 200)
+        self.assertNotIn(held_unknown[1]['id'], (unobserved[1]['id'], model[1]['id']))
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers

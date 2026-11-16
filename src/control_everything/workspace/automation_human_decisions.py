@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def unknown_verification_card(flow):
+    """Verification ended unknown. The button does not claim success or retry."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'verification_unknown' or not task_id
+            or type(revision) is not int or revision < 0):
+        raise ValueError('unknown_verification_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '验证结果未知'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'verification_unknown'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能当成测试通过'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '验证结果未知。不会当成测试通过，也不会自动重试。'}, button]}}
+
+
 def model_card(flow):
     """The observed model is missing or wrong. The button does not continue the step."""
     attention = (flow or {}).get('attention') or {}
