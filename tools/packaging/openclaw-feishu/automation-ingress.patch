@@ -36,7 +36,7 @@ diff --git a/extensions/feishu/src/automation-card-ingress.test.ts b/extensions/
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.test.ts
-@@ -0,0 +1,417 @@
+@@ -0,0 +1,499 @@
 +import "./lifecycle.test-support.js";
 +import fs from "node:fs/promises";
 +import os from "node:os";
@@ -454,11 +454,93 @@ new file mode 100644
 +      );
 +  },
 +);
++
++it("posts an acceptance card without its flow id", async () => {
++  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
++    new Response(JSON.stringify({ id: "receipt", state: "pending" })),
++  );
++  const data = { ...envelope().event, event_id: "accept-flow" };
++  data.action.value = { ...decision, flow_id: "flow-1" };
++  await receiveAutomationCard({
++    data,
++    config: { ...ingress, token: "fixture" },
++    active: () => true,
++  });
++  expect(JSON.parse(fetch.mock.calls[0]?.[1]?.body as string).decision).toEqual(decision);
++});
++
++it("posts a plan release and an assignment without choosing execution", async () => {
++  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
++    new Response(JSON.stringify({ id: "receipt", state: "pending" })),
++  );
++  const release = { ...envelope().event, event_id: "plan-release" };
++  release.action.value = {
++    namespace: "control-everything.automation.v1",
++    task_id: "task",
++    flow_id: "flow-1",
++    requirement_revision: 3,
++    choice: "按已审方案实现",
++  };
++  await receiveAutomationCard({
++    data: release,
++    config: { ...ingress, token: "fixture" },
++    active: () => true,
++  });
++  expect(JSON.parse(fetch.mock.calls[0]?.[1]?.body as string).plan_release).toEqual({
++    namespace: "control-everything.automation.v1",
++    flow_id: "flow-1",
++    text: "按已审方案实现",
++    requirement_revision: 3,
++  });
++  const assigned = { ...envelope().event, event_id: "assignment" };
++  assigned.action.value = {
++    namespace: "control-everything.automation.v1",
++    task_id: "task",
++    text: "请做这个任务",
++  };
++  await receiveAutomationCard({
++    data: assigned,
++    config: { ...ingress, token: "fixture" },
++    active: () => true,
++  });
++  expect(JSON.parse(fetch.mock.calls[1]?.[1]?.body as string).assignment).toEqual(
++    assigned.action.value,
++  );
++});
++
++it("does not post a held card or an unknown reason", async () => {
++  const fetch = vi.spyOn(globalThis, "fetch");
++  const held = { ...envelope().event, event_id: "held" };
++  held.action.value = {
++    namespace: "control-everything.automation.v1",
++    task_id: "task",
++    flow_id: "flow-1",
++    requirement_revision: 4,
++    reason: "integration_target_required",
++  };
++  await expect(
++    receiveAutomationCard({
++      data: held,
++      config: { ...ingress, token: "fixture" },
++      active: () => true,
++    }),
++  ).resolves.toBeUndefined();
++  const unknown = { ...envelope().event, event_id: "unknown-reason" };
++  unknown.action.value = { ...held.action.value, reason: "not-a-reason" };
++  await expect(
++    receiveAutomationCard({
++      data: unknown,
++      config: { ...ingress, token: "fixture" },
++      active: () => true,
++    }),
++  ).rejects.toThrow("Invalid automation card ingress");
++  expect(fetch).not.toHaveBeenCalled();
++});
 diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feishu/src/automation-card-ingress.ts
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,192 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
 +
@@ -504,44 +586,116 @@ new file mode 100644
 +  const message = text(data.context.open_message_id);
 +  const actor = text(data.operator.open_id);
 +  const decision = data.action.value;
-+  const identity = decision.namespace === "control-everything.identity.v1";
-+  const keys = identity
-+    ? ["namespace", "challenge_id", "nonce"]
-+    : [
-+        "namespace",
-+        "decision_id",
-+        "task_id",
-+        "delivery_id",
-+        "expected_revision",
-+        "progress_revision",
-+        "verdict",
-+      ];
++  const names = Object.keys(decision);
++  const exact = (expected: string[]) =>
++    names.length === expected.length && expected.every((key) => names.includes(key));
++  const bounded = (key: string) => {
++    const item = text(decision[key]);
++    return item.length > 0 && item.length <= 256;
++  };
++  const revision = (key: string) =>
++    Number.isSafeInteger(decision[key]) && Number(decision[key]) >= 0;
++  const plan = "按已审方案实现";
++  const assignmentText = "请做这个任务";
++  const heldReasons = new Set([
++    "integration_target_required",
++    "integration_retest_failed",
++    "repair_budget_exhausted",
++    "verification_not_configured",
++    "acceptance_rejected",
++    "human_decision_required",
++    "plan_revision_limit",
++    "requirement_changed",
++    "independent_review_required",
++    "project_directory_changed",
++    "project_unavailable",
++    "verification_evidence_invalid",
++    "invalid_code_review",
++    "model_unobserved",
++    "model_mismatch",
++    "verification_unknown",
++    "verification_checker_unavailable",
++    "read_only_result_unverified",
++    "verification_callback_unavailable",
++    "automation_delivery_unverified",
++    "automation_project_busy",
++    "invalid_planning_result",
++    "automation_plan_changed",
++    "read_only_launch_args_unsupported",
++    "read_only_command_override_unsupported",
++  ]);
++  const decisionKeys = [
++    "namespace",
++    "decision_id",
++    "task_id",
++    "delivery_id",
++    "expected_revision",
++    "progress_revision",
++    "verdict",
++  ];
++  let posted: Record<string, unknown> | undefined;
 +  if (
-+    Object.keys(decision).length !== keys.length ||
-+    keys.some((key) => !(key in decision)) ||
-+    (identity
-+      ? !["challenge_id", "nonce"].every(
-+          (key) =>
-+            typeof decision[key] === "string" &&
-+            text(decision[key]).length > 0 &&
-+            text(decision[key]).length <= 256,
-+        )
-+      : decision.namespace !== "control-everything.automation.v1" ||
-+        !["decision_id", "task_id", "delivery_id"].every((key) => text(decision[key])) ||
-+        !["expected_revision", "progress_revision"].every(
-+          (key) => Number.isSafeInteger(decision[key]) && Number(decision[key]) >= 0,
-+        ) ||
-+        typeof decision.verdict !== "string" ||
-+        !["approved", "changes_requested", "rejected"].includes(decision.verdict)) ||
-+    !eventId ||
-+    !message ||
-+    !actor ||
-+    chat !== config.chatId
++    decision.namespace === "control-everything.identity.v1" &&
++    exact(["namespace", "challenge_id", "nonce"]) &&
++    ["challenge_id", "nonce"].every(bounded)
 +  )
-+    return fail();
++    posted = { binding: decision };
++  else if (
++    decision.namespace === "control-everything.automation.v1" &&
++    (exact(decisionKeys) || exact([...decisionKeys, "flow_id"])) &&
++    ["decision_id", "task_id", "delivery_id"].every((key) => text(decision[key])) &&
++    (!("flow_id" in decision) || bounded("flow_id")) &&
++    ["expected_revision", "progress_revision"].every(revision) &&
++    typeof decision.verdict === "string" &&
++    ["approved", "changes_requested", "rejected"].includes(decision.verdict)
++  ) {
++    const body = { ...decision };
++    delete body.flow_id;
++    posted = { decision: body };
++  } else if (
++    decision.namespace === "control-everything.automation.v1" &&
++    exact(["namespace", "task_id", "flow_id", "requirement_revision", "choice"]) &&
++    bounded("task_id") &&
++    bounded("flow_id") &&
++    revision("requirement_revision") &&
++    decision.choice === plan
++  )
++    posted = {
++      plan_release: {
++        namespace: decision.namespace,
++        flow_id: text(decision.flow_id),
++        text: plan,
++        requirement_revision: decision.requirement_revision,
++      },
++    };
++  else if (
++    decision.namespace === "control-everything.automation.v1" &&
++    exact(["namespace", "task_id", "text"]) &&
++    bounded("task_id") &&
++    decision.text === assignmentText
++  )
++    posted = {
++      assignment: {
++        namespace: decision.namespace,
++        task_id: text(decision.task_id),
++        text: assignmentText,
++      },
++    };
++  else if (
++    decision.namespace === "control-everything.automation.v1" &&
++    exact(["namespace", "task_id", "flow_id", "requirement_revision", "reason"]) &&
++    bounded("task_id") &&
++    bounded("flow_id") &&
++    revision("requirement_revision") &&
++    typeof decision.reason === "string" &&
++    heldReasons.has(decision.reason)
++  )
++    posted = {};
++  if (!posted || !eventId || !message || !actor || chat !== config.chatId) return fail();
 +  const origin = new URL(config.hubOrigin);
 +  if (origin.protocol !== "https:" || origin.origin !== config.hubOrigin) return fail();
 +  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
++  if (Object.keys(posted).length === 0) return;
 +  let response: Response;
 +  try {
 +    response = await fetch(`${origin.origin}/remote/producer/automation/receive`, {
@@ -557,7 +711,7 @@ new file mode 100644
 +        chat_id: chat,
 +        message_id: message,
 +        actor_open_id: actor,
-+        ...(identity ? { binding: decision } : { decision }),
++        ...posted,
 +      }),
 +    });
 +  } catch {

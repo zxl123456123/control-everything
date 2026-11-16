@@ -3,7 +3,7 @@
   "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
   "version": "2026.11.2",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
-  "patchSha256": "63fb87e9438e998123e280e9c195fcd816e6e621c105213d577d40f0114b64b5",
+  "patchSha256": "e03f7a288ca8352cf8e976b2f25873860c799e79f54075def3fae7dff6c4af4c",
   "patchFormat": "unified-zero-context; git apply --unidiff-zero",
   "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
   "npm": {
@@ -43,11 +43,11 @@
     },
     "extensions/feishu/src/automation-card-ingress.ts": {
       "originalSha256": null,
-      "patchedSha256": "0a3c8851ec5b491d682f6077b523f9e9d2039c25264656a70c4a12cc757c73ad"
+      "patchedSha256": "8dcf88b1bf0327f4e9a5aec18f94f4d43e79f4338badd58bc848d19ddd0de4e2"
     },
     "extensions/feishu/src/automation-card-ingress.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "b950ed356770b0443f79786c95b6adf56c1d059c324ad725d5d27a4b1f1b5cb5"
+      "patchedSha256": "7726a3d880849dcb7759ddf8035d00f1a90b325aeed79c7d84d2571d553b2f14"
     },
     "extensions/feishu/src/feishu-ingress.ts": {
       "originalSha256": "4e28f530904a62eea3f3a833c26a5e44770052f2336501356ebd8ba7b6d61c21",
