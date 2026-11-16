@@ -539,12 +539,20 @@ index 0000000..0ca4810
 +});
 diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feishu/src/automation-card-ingress.ts
 new file mode 100644
-index 0000000..467fc74
+index 0000000..9fd26c0
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,279 @@
+@@ -0,0 +1,287 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
++
++
++export function hubOriginAllowed(value: string): boolean {
++  const url = URL.parse(value);
++  if (!url || url.username || url.password || value !== url.origin) return false;
++  if (url.protocol === "https:") return true;
++  return url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port !== "";
++}
 +
 +export function isAutomationCard(data: unknown): boolean {
 +  return (
@@ -695,7 +703,7 @@ index 0000000..467fc74
 +    posted = {};
 +  if (!posted || !eventId || !message || !actor || chat !== config.chatId) return fail();
 +  const origin = new URL(config.hubOrigin);
-+  if (origin.protocol !== "https:" || origin.origin !== config.hubOrigin) return fail();
++  if (!hubOriginAllowed(config.hubOrigin)) return fail();
 +  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
 +  if (Object.keys(posted).length === 0) return;
 +  let response: Response;
@@ -786,7 +794,7 @@ index 0000000..467fc74
 +  const actor = params.event.sender?.sender_id?.open_id?.trim() ?? "";
 +  if ((text !== PLAN && !ACCEPTANCE[text]) || !parent || !actor || !message.message_id || !message.chat_id) return false;
 +  const origin = new URL(params.config.hubOrigin);
-+  if (origin.protocol !== "https:" || origin.origin !== params.config.hubOrigin) return false;
++  if (!hubOriginAllowed(params.config.hubOrigin)) return false;
 +  let found: Response;
 +  try {
 +    found = await fetch(`${origin.origin}/remote/producer/automation/outbound/lookup`, {
@@ -824,10 +832,10 @@ index 0000000..467fc74
 +}
 diff --git a/extensions/feishu/src/automation-config.test.ts b/extensions/feishu/src/automation-config.test.ts
 new file mode 100644
-index 0000000..d63bc14
+index 0000000..70c40d8
 --- /dev/null
 +++ b/extensions/feishu/src/automation-config.test.ts
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,97 @@
 +import { describe, expect, it } from "vitest";
 +import { resolveFeishuAccount, resolveFeishuRuntimeAccount } from "./accounts.js";
 +import { FeishuConfigSchema } from "./config-schema.js";
@@ -871,6 +879,9 @@ index 0000000..d63bc14
 +      "https://hub.example.test/path",
 +      "https://hub.example.test?x=1",
 +      "https://hub.example.test#x",
++      "http://localhost:18869",
++      "http://127.0.0.1",
++      "http://127.0.0.1:18869/path",
 +    ]) {
 +      expect(
 +        FeishuConfigSchema.safeParse({
@@ -879,6 +890,11 @@ index 0000000..d63bc14
 +      ).toBe(false);
 +    }
 +    expect(FeishuConfigSchema.safeParse({ automationIngress: ingress }).success).toBe(false);
++    expect(
++      FeishuConfigSchema.safeParse({
++        accounts: { father: { ...account, automationIngress: { ...ingress, hubOrigin: "http://127.0.0.1:18869" } } },
++      }).success,
++    ).toBe(true);
 +  });
 +
 +  it("rejects unresolved runtime secrets without exposing them in inspection", () => {
@@ -1005,10 +1021,11 @@ index 0000000..0e9d46a
 +});
 diff --git a/extensions/feishu/src/automation-identity-sender.ts b/extensions/feishu/src/automation-identity-sender.ts
 new file mode 100644
-index 0000000..07a1165
+index 0000000..631ae72
 --- /dev/null
 +++ b/extensions/feishu/src/automation-identity-sender.ts
-@@ -0,0 +1,177 @@
+@@ -0,0 +1,179 @@
++import { hubOriginAllowed } from "./automation-card-ingress.js";
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ClawdbotConfig } from "../runtime-api.js";
 +import { sendCardFeishu } from "./send.js";
@@ -1071,6 +1088,7 @@ index 0000000..07a1165
 +  body: Record<string, unknown>,
 +  signal: AbortSignal,
 +): Promise<Response> {
++  if (!hubOriginAllowed(config.hubOrigin)) throw new Error("Automation hub origin rejected");
 +  const origin = new URL(config.hubOrigin);
 +  return fetch(`${origin.origin}${path}`, {
 +    method: "POST",
@@ -1264,10 +1282,11 @@ index 0000000..78dfd96
 +});
 diff --git a/extensions/feishu/src/automation-outbound-sender.ts b/extensions/feishu/src/automation-outbound-sender.ts
 new file mode 100644
-index 0000000..6280b55
+index 0000000..5dd018f
 --- /dev/null
 +++ b/extensions/feishu/src/automation-outbound-sender.ts
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,110 @@
++import { hubOriginAllowed } from "./automation-card-ingress.js";
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ClawdbotConfig } from "../runtime-api.js";
 +import { sendCardFeishu } from "./send.js";
@@ -1293,6 +1312,7 @@ index 0000000..6280b55
 +}
 +
 +async function post(config: Ingress, path: string, body: Record<string, unknown>, signal: AbortSignal): Promise<Response> {
++  if (!hubOriginAllowed(config.hubOrigin)) throw new Error("Automation hub origin rejected");
 +  const origin = new URL(config.hubOrigin);
 +  return fetch(`${origin.origin}${path}`, {
 +    method: "POST",
@@ -1447,10 +1467,10 @@ index 0000000..2b31d50
 +  });
 +});
 diff --git a/extensions/feishu/src/config-schema.ts b/extensions/feishu/src/config-schema.ts
-index 93957ff..ee34484 100644
+index 93957ff..225cf25 100644
 --- a/extensions/feishu/src/config-schema.ts
 +++ b/extensions/feishu/src/config-schema.ts
-@@ -268,0 +269,27 @@ export const FeishuAccountConfigSchema = z
+@@ -268,0 +269,28 @@ export const FeishuAccountConfigSchema = z
 +    automationIngress: z
 +      .object({
 +        hubOrigin: z
@@ -1461,15 +1481,16 @@ index 93957ff..ee34484 100644
 +              const url = URL.parse(value);
 +              return (
 +                url !== null &&
-+                url.protocol === "https:" &&
 +                !url.username &&
 +                !url.password &&
-+                value === url.origin
++                value === url.origin &&
++                (url.protocol === "https:" ||
++                  (url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port !== ""))
 +              );
 +            },
 +            {
 +              message:
-+                "automationIngress.hubOrigin must be an HTTPS origin without credentials, path, query or fragment",
++                "automationIngress.hubOrigin must be an HTTPS origin, or loopback HTTP, without credentials, path, query or fragment",
 +            },
 +          ),
 +        producerId: z.string().trim().min(1).max(256),
