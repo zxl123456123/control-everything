@@ -1,6 +1,23 @@
 from tests.backend.test_automation_integration_targets import IntegrationTargetTests
 
 class IntegrationExecutionTests(IntegrationTargetTests):
+    def test_designated_acceptor_review_can_integrate_and_a_stranger_cannot(self):
+        from control_everything.input_validation import ProfileError
+        from tests.backend.test_automation_queue import designate_actor
+        registered = self.service.register_task_integration_target(self.item['id'], self.request)
+        with self.profile.store.connection() as connection:
+            connection.execute("UPDATE task_reviews SET reviewer='ou-owner' WHERE task_id=?", (self.item['id'],))
+        with self.assertRaises(ProfileError):
+            self.queue.reserve_integration(self.queue.acquire(), registered['flow']['id'], registered['flow']['revision'])
+        designate_actor(self.profile.store, self.item['id'], 'ou-stranger')
+        with self.assertRaises(ProfileError):
+            self.queue.reserve_integration(self.queue.acquire(), registered['flow']['id'], registered['flow']['revision'])
+        with self.profile.store.connection() as connection:
+            connection.execute('DELETE FROM automation_task_acceptors WHERE task_id=?', (self.item['id'],))
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+        step = self.queue.reserve_integration(self.queue.acquire(), registered['flow']['id'], registered['flow']['revision'])
+        self.assertEqual(step['kind'], 'integrate')
+
     def test_registered_intent_is_claimed_without_model(self):
         registered = self.service.register_task_integration_target(self.item['id'], self.request)
         self.assertIn(self.event['id'], self.queue.pending_events())

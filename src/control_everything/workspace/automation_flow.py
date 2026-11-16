@@ -409,9 +409,13 @@ class AutomationQueue:
         review = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=? AND task_id=?',
             (snapshot['review_id'], item['id'])).fetchone())
         verify = row_view(self._step(connection, snapshot['verify_step_id']))
+        reviewer = review['reviewer'] if review else None
+        designated = reviewer == 'local_owner' or (isinstance(reviewer, str) and connection.execute(
+            'SELECT 1 FROM automation_task_acceptors WHERE task_id=? AND open_id=?',
+            (item['id'], reviewer)).fetchone() is not None)
         if (snapshot['actor'] != 'local_owner' or not delivery or not review or not verify
                 or item['current_delivery_id'] != delivery['id'] or item['accepted_delivery_id'] != delivery['id']
-                or review['reviewer'] != 'local_owner' or review['verdict'] != 'approved'
+                or not designated or review['verdict'] != 'approved'
                 or review['delivery_id'] != delivery['id'] or delivery['source'] != 'automation_verify'
                 or delivery['source_key'] != verify['id'] or verify['flow_id'] != flow['id']
                 or delivery['material'].get('flow_id') != flow['id']
