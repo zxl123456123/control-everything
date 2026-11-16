@@ -50,7 +50,8 @@ def _card_identity(card):
                                     'verification_checker_unavailable', 'read_only_result_unverified',
                                     'verification_callback_unavailable', 'automation_delivery_unverified',
                                     'automation_project_busy', 'invalid_planning_result',
-                                    'automation_plan_changed')
+                                    'automation_plan_changed', 'read_only_launch_args_unsupported',
+                                    'read_only_command_override_unsupported')
             and text('task_id') and text('flow_id')
             and type(value['requirement_revision']) is int and value['requirement_revision'] >= 0):
         prefix = {'integration_retest_failed': 'failure', 'repair_budget_exhausted': 'budget',
@@ -67,7 +68,9 @@ def _card_identity(card):
                   'automation_delivery_unverified': 'unpublished',
                   'automation_project_busy': 'busy',
                   'invalid_planning_result': 'planning',
-                  'automation_plan_changed': 'planchanged'}.get(value['reason'], 'target')
+                  'automation_plan_changed': 'planchanged',
+                  'read_only_launch_args_unsupported': 'launch',
+                  'read_only_command_override_unsupported': 'override'}.get(value['reason'], 'target')
         return prefix + ':' + value['flow_id'], value['requirement_revision']
     raise HubError('invalid_waiting_card', 400)
 

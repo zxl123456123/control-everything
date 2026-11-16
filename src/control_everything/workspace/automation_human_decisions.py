@@ -58,6 +58,23 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def refusal_card(flow):
+    """A read-only launch was refused. The button does not continue with writes."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    reason = attention.get('reason')
+    if (flow.get('status') != 'waiting_external'
+            or reason not in ('read_only_launch_args_unsupported', 'read_only_command_override_unsupported')
+            or not task_id or type(revision) is not int or revision < 0):
+        raise ValueError('refusal_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '只读启动被拒绝'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': reason}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能继续'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '只读启动被拒绝。不会改用可写方式继续，也不会进入验收。'}, button]}}
+
+
 def changed_plan_card(flow):
     """The reviewed plan no longer matches. The button does not start that plan."""
     attention = (flow or {}).get('attention') or {}

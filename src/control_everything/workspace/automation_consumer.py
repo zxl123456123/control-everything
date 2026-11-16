@@ -10,6 +10,7 @@ from control_everything.workspace.automation_events import apply_feishu_assignme
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
     busy_card, callback_card, changed_plan_card, checker_card, directory_card, evidence_card,
+    refusal_card,
     independent_review_card,
     planning_card,
     invalid_review_card,
@@ -287,6 +288,9 @@ class AutomationConsumer:
                 card = planning_card(view['flow'])
             elif (view['flow'].get('attention') or {}).get('reason') == 'automation_plan_changed':
                 card = changed_plan_card(view['flow'])
+            elif (view['flow'].get('attention') or {}).get('reason') in (
+                    'read_only_launch_args_unsupported', 'read_only_command_override_unsupported'):
+                card = refusal_card(view['flow'])
             if card is not None:
                 try:
                     self.on_wait(card)

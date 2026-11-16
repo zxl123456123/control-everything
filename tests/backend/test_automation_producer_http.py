@@ -189,6 +189,18 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         held_changed = self.request('/remote/desktop/automation/card', changed)
         self.assertEqual(held_changed[0], 200)
         self.assertNotIn(held_changed[1]['id'], (held_planning[1]['id'], held_busy[1]['id']))
+        refused = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 23, 'reason': 'read_only_launch_args_unsupported'}}]}}
+        held_refused = self.request('/remote/desktop/automation/card', refused)
+        self.assertEqual(held_refused[0], 200)
+        self.assertNotIn(held_refused[1]['id'], (held_changed[1]['id'], held_planning[1]['id']))
+        override = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 24, 'reason': 'read_only_command_override_unsupported'}}]}}
+        held_override = self.request('/remote/desktop/automation/card', override)
+        self.assertEqual(held_override[0], 200)
+        self.assertNotIn(held_override[1]['id'], (held_refused[1]['id'], held_changed[1]['id']))
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers

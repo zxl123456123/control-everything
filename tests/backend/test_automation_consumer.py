@@ -449,10 +449,17 @@ class ConsumerTests(AutomationQueueFixture):
             self.host.calls.append(copy.deepcopy(params))
             return {'contractVersion': 1, 'refused': True, 'reason': 'read_only_launch_args_unsupported'}
         self.host.create = refuse
+        cards = []
+        self.consumer.on_wait = cards.append
         result = self.pump()
         self.assertEqual(result['flow']['attention']['reason'], 'read_only_launch_args_unsupported')
         self.assertEqual(result['step']['status'], 'failed')
         self.assertEqual(len(self.host.calls), 1)
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'read_only_launch_args_unsupported')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
+        self.assertNotIn('verdict', value)
         self.consumer = self.consumer_type(self.queue, self.host)
         self.pump()
         self.assertEqual(len(self.host.calls), 1)
