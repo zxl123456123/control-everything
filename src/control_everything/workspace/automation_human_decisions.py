@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def checker_card(flow):
+    """No checker can reread the receipt. The button does not claim the tests passed."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'verification_checker_unavailable'
+            or not task_id or type(revision) is not int or revision < 0):
+        raise ValueError('checker_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '还不能复核验证'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'verification_checker_unavailable'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能进入验收'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '没有复核验证证据。不会把这一步当成测试通过，也不会进入验收。'}, button]}}
+
+
 def unknown_verification_card(flow):
     """Verification ended unknown. The button does not claim success or retry."""
     attention = (flow or {}).get('attention') or {}

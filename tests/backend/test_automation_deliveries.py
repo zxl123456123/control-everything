@@ -95,8 +95,17 @@ class AutomationDeliveryTests(AutomationQueueFixture):
 
     def test_missing_checker_cannot_publish(self):
         self.prepare()
+        cards = []
+        self.consumer.on_wait = cards.append
         self.consumer.check_verification = None
-        self.assertEqual(self.pump()['flow']['attention']['reason'], 'verification_checker_unavailable')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_checker_unavailable')
+        self.assertNotEqual(result['flow']['status'], 'awaiting_acceptance')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'verification_checker_unavailable')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('verdict', value)
+        self.assertNotIn('choice', value)
 
     def test_transaction_rechecks_versions_owner_and_slot_and_rolls_back_touch_failure(self):
         check = self.prepare()
