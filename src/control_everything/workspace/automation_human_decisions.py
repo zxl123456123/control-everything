@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def changed_plan_card(flow):
+    """The reviewed plan no longer matches. The button does not start that plan."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'automation_plan_changed'
+            or not task_id or type(revision) is not int or revision < 0):
+        raise ValueError('changed_plan_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '方案已变化'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'automation_plan_changed'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能开工'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '方案在审查后变了。不会按旧方案开始实现。'}, button]}}
+
+
 def planning_card(flow):
     """The planning result is not usable. The button does not start implementation."""
     attention = (flow or {}).get('attention') or {}

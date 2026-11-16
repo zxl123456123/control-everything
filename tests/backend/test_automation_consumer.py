@@ -269,6 +269,24 @@ class ConsumerTests(AutomationQueueFixture):
         with self.assertRaisesRegex(ProfileError, 'automation_step_changed'):
             replacement.wait(new_lease, current, 'waiting_external', 'prepare', {})
 
+    def test_changed_plan_does_not_start_implementation(self):
+        from unittest.mock import patch
+        from control_everything.input_validation import ProfileError
+        cards = []
+        self.consumer.on_wait = cards.append
+        with patch('control_everything.workspace.automation_consumer.planning_outcome',
+                   side_effect=ProfileError('automation_plan_changed')):
+            result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'automation_plan_changed')
+        self.assertNotEqual(result['flow']['status'], 'waiting_user')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'automation_plan_changed')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
+        with self.profile.store.connection() as connection:
+            implements = connection.execute("SELECT id FROM automation_steps WHERE kind='implement'").fetchall()
+        self.assertEqual(implements, [])
+
     def test_invalid_completed_output_waits_without_relaunch(self):
         observe = self.host.observe
         def invalid(binding, **kwargs):
