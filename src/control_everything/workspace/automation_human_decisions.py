@@ -3,7 +3,7 @@ import json
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_delivery_reviews import review_delivery
-from control_everything.workspace.automation_identities import decision_authorized
+from control_everything.workspace.automation_identities import decision_authorized, trusted_context
 from control_everything.workspace.native_progress import row_view
 
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
@@ -407,10 +407,11 @@ def apply_acceptance_decisions(store, service, binding):
     applied = []
     for row in rows:
         decision = _stored_acceptance(row['payload_json'])
-        if decision is None or not decision_authorized(store, decision['actor_id'], task_id=decision['task_id']):
+        if decision is None or not decision_authorized(
+                store, decision['actor_id'], task_id=decision['task_id'], trusted=decision['trusted'], device=binding):
             continue
         try:
-            applied.append(review_delivery(service, decision['task_id'], decision['body']))
+            applied.append(review_delivery(service, decision['task_id'], decision['body'], reviewer=decision['actor_id']))
         except ProfileError as error:
             if str(error) == 'automation_owner_lost':
                 raise
@@ -431,10 +432,10 @@ def _stored_acceptance(raw):
             or decision.get('verdict') not in ('approved', 'changes_requested', 'rejected')
             or any(type(decision.get(key)) is not str or not decision[key] for key in ('decision_id', 'task_id', 'delivery_id'))
             or any(type(decision.get(key)) is not int or decision[key] < 0 for key in ('expected_revision', 'progress_revision'))
-            or type(actor) is not str or not actor):
+            or type(actor) is not str or not actor or trusted_context(payload) is None):
         return None
     reason = {'approved': '这个版本通过，集成 develop', 'changes_requested': '飞书要求修改', 'rejected': '飞书拒绝'}
-    return {'task_id': decision['task_id'], 'body': {
+    return {'task_id': decision['task_id'], 'trusted': trusted_context(payload), 'body': {
         'expected_revision': decision['expected_revision'], 'progress_revision': decision['progress_revision'],
         'delivery_id': decision['delivery_id'], 'verdict': decision['verdict'], 'reason': reason[decision['verdict']],
         'confirmed': True, 'client_token': decision['decision_id']}, 'actor_id': actor}
@@ -460,7 +461,8 @@ def apply_plan_releases(store, consumer, binding):
             continue
         if not _waiting_release(store, release['flow_id'], release['requirement_revision']):
             continue
-        if not decision_authorized(store, release['actor_id'], flow_id=release['flow_id']):
+        if not decision_authorized(store, release['actor_id'], flow_id=release['flow_id'],
+                                   trusted=release['trusted'], device=binding):
             continue
         try:
             applied.append(consumer.release_plan(release['flow_id'], {
@@ -483,9 +485,11 @@ def _stored_release(raw):
     if (payload.get('kind') != 'feishu_plan_release' or type(release) is not dict
             or release.get('namespace') != 'control-everything.automation.v1' or release.get('text') != PLAN_RELEASE
             or type(release.get('flow_id')) is not str or not release['flow_id']
-            or type(release.get('requirement_revision')) is not int or type(actor) is not str or not actor):
+            or type(release.get('requirement_revision')) is not int or type(actor) is not str or not actor
+            or trusted_context(payload) is None):
         return None
-    return {'flow_id': release['flow_id'], 'requirement_revision': release['requirement_revision'], 'actor_id': actor}
+    return {'flow_id': release['flow_id'], 'requirement_revision': release['requirement_revision'],
+            'actor_id': actor, 'trusted': trusted_context(payload)}
 
 
 def _flow_ends(store, flow_id):

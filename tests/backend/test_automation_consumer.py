@@ -687,7 +687,8 @@ class ConsumerTests(AutomationQueueFixture):
         RemoteAutomationInbox(self.profile.store).receive(binding, {
             'id': message_id, 'source': 'feishu:test', 'event_id': message_id, 'lease_id': 'lease',
             'lease_expires_at': 10, 'payload': {
-                'kind': 'feishu_plan_release', 'actor_open_id': 'ou-owner',
+                'kind': 'feishu_plan_release', 'project_id': self.project['id'], 'app_id': 'app',
+                'actor_open_id': 'ou-owner',
                 'plan_release': {'namespace': 'control-everything.automation.v1', 'flow_id': flow_id,
                                  'text': '按已审方案实现', 'requirement_revision': revision}}})
         self.consumer.current_binding = lambda: binding

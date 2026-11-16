@@ -148,26 +148,46 @@ class IdentityService:
             return dict(db.execute('SELECT * FROM automation_identity_bindings WHERE id=?',(binding_id,)).fetchone())
 
 
-def actor_authorized(store, project_id, actor_id):
-    """A Feishu open_id can decide only after an active binding for that project."""
-    if not isinstance(project_id, str) or not project_id or not isinstance(actor_id, str) or not actor_id:
+def trusted_context(payload):
+    """Project and app come from the authenticated producer stamp, not the card button."""
+    if not isinstance(payload, dict):
+        return None
+    project_id, app_id = payload.get('project_id'), payload.get('app_id')
+    if not isinstance(project_id, str) or not project_id or not isinstance(app_id, str) or not app_id:
+        return None
+    return {'project_id': project_id, 'app_id': app_id}
+
+
+def actor_authorized(store, project_id, actor_id, *, app_id, device):
+    """An open_id decides only with an active binding for this project, app, and device generation."""
+    if (not isinstance(project_id, str) or not project_id or not isinstance(actor_id, str) or not actor_id
+            or not isinstance(app_id, str) or not app_id or not isinstance(device, dict)):
+        return False
+    origin, device_id, generation = device.get('hub_origin'), device.get('device_id'), device.get('generation')
+    if (not isinstance(origin, str) or not origin or not isinstance(device_id, str) or not device_id
+            or type(generation) is not int or generation < 1):
         return False
     with store.connection() as db:
         row = db.execute('''SELECT 1 FROM automation_identity_bindings b
             JOIN automation_identity_candidates c ON c.id=b.candidate_id
-            WHERE b.project_id=? AND b.state='active' AND c.open_id=?''', (project_id, actor_id)).fetchone()
+            JOIN automation_identity_challenges h ON h.id=b.challenge_id
+            WHERE b.project_id=? AND b.state='active' AND c.open_id=? AND c.app_id=?
+            AND h.project_id=? AND h.app_id=? AND h.hub_origin=? AND h.device_id=? AND h.generation=?''',
+            (project_id, actor_id, app_id, project_id, app_id, origin, device_id, generation)).fetchone()
     return row is not None
 
 
-def decision_authorized(store, actor_id, *, task_id=None, flow_id=None):
-    """The project comes from the task or flow, never from the Feishu payload."""
-    if (task_id is None) == (flow_id is None):
+def decision_authorized(store, actor_id, *, task_id=None, flow_id=None, trusted, device):
+    """The task or flow project must be the trusted message project. A named task cannot cross projects."""
+    if (task_id is None) == (flow_id is None) or not isinstance(trusted, dict):
         return False
+    project_id, app_id = trusted.get('project_id'), trusted.get('app_id')
     row_id = task_id if task_id is not None else flow_id
     sql = ('SELECT project_id FROM task_items WHERE id=?' if task_id is not None
            else 'SELECT project_id FROM automation_flows WHERE id=?')
-    if not isinstance(row_id, str) or not row_id:
+    if not isinstance(row_id, str) or not row_id or not isinstance(project_id, str) or not project_id:
         return False
     with store.connection() as db:
         row = db.execute(sql, (row_id,)).fetchone()
-    return row is not None and actor_authorized(store, row['project_id'], actor_id)
+    return row is not None and row['project_id'] == project_id and actor_authorized(
+        store, project_id, actor_id, app_id=app_id, device=device)

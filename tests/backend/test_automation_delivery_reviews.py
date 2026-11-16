@@ -48,7 +48,8 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         self.assertEqual(apply_acceptance_decisions(self.profile.store, self.service, binding), [])
         inbox.receive(binding, {'id': 'om-accept', 'source': 'feishu:test', 'event_id': 'evt-accept',
                                  'lease_id': 'lease-2', 'lease_expires_at': 11, 'payload': {
-                                     'kind': 'feishu_card_decision', 'actor_open_id': 'ou-owner', 'decision': decision}})
+                                     'kind': 'feishu_card_decision', 'project_id': self.project['id'],
+                                     'app_id': 'app', 'actor_open_id': 'ou-owner', 'decision': decision}})
         from tests.backend.test_automation_queue import bind_actor
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
         first = apply_acceptance_decisions(self.profile.store, self.service, binding)
@@ -59,6 +60,10 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
             accepted = connection.execute('SELECT accepted_delivery_id FROM task_items WHERE id=?',
                                           (self.item['id'],)).fetchone()['accepted_delivery_id']
         self.assertEqual(accepted, self.delivery)
+        with self.profile.store.connection() as connection:
+            reviewer = connection.execute('SELECT reviewer FROM task_reviews WHERE task_id=?',
+                                          (self.item['id'],)).fetchone()['reviewer']
+        self.assertEqual(reviewer, 'ou-owner')
 
     def test_changed_source_does_not_accept_the_stored_delivery(self):
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
@@ -75,7 +80,8 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         RemoteAutomationInbox(self.profile.store).receive(binding, {
             'id': 'om-stale-source', 'source': 'feishu:test', 'event_id': 'evt-stale-source', 'lease_id': 'lease',
             'lease_expires_at': 10, 'payload': {
-                'kind': 'feishu_card_decision', 'actor_open_id': 'ou-owner', 'decision': decision}})
+                'kind': 'feishu_card_decision', 'project_id': self.project['id'], 'app_id': 'app',
+                'actor_open_id': 'ou-owner', 'decision': decision}})
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
         self.consumer.review_service = self.service
         self.consumer.current_binding = lambda: binding

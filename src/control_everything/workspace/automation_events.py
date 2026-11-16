@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace import dispatch, task_messages
-from control_everything.workspace.automation_identities import decision_authorized
+from control_everything.workspace.automation_identities import decision_authorized, trusted_context
 from control_everything.workspace.native_progress import body_fields, check_versions, digest, packed, task_access
 from control_everything.workspace.store import now_utc
 
@@ -42,7 +42,8 @@ def apply_feishu_assignments(store, binding):
         if (payload.get('kind') != 'feishu_assignment' or type(assignment) is not dict
                 or assignment.get('text') != ASSIGNMENT or not isinstance(payload.get('actor_open_id'), str)):
             continue
-        if not decision_authorized(store, payload['actor_open_id'], task_id=assignment.get('task_id')):
+        if not decision_authorized(store, payload['actor_open_id'], task_id=assignment.get('task_id'),
+                                   trusted=trusted_context(payload), device=binding):
             continue
         try:
             result = accept_feishu_assignment(store, assignment.get('task_id'), {

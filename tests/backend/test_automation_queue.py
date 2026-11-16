@@ -18,6 +18,10 @@ from control_everything.workspace.store import WorkspaceStore
 from tests.backend.test_project_management import project_body
 
 
+def trusted_payload(project_id, **payload):
+    return {'project_id': project_id, 'app_id': 'app', **payload}
+
+
 def bind_actor(store, project_id, open_id, *, state='active'):
     challenge, candidate, binding_id = uuid4().hex, uuid4().hex, uuid4().hex
     now = '2026-11-16T00:00:00+00:00'
@@ -79,10 +83,10 @@ class FeishuAssignmentTests(AutomationQueueFixture):
                    'credential_revision': 1}
         RemoteAutomationInbox(self.profile.store).receive(binding, {
             'id': 'om-assign', 'source': 'feishu:test', 'event_id': 'evt-stored', 'lease_id': 'lease',
-            'lease_expires_at': 10, 'payload': {
-                'kind': 'feishu_assignment', 'actor_open_id': 'ou-owner',
-                'assignment': {'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
-                               'text': '请做这个任务'}}})
+            'lease_expires_at': 10, 'payload': trusted_payload(self.project['id'],
+                kind='feishu_assignment', actor_open_id='ou-owner',
+                assignment={'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
+                            'text': '请做这个任务'})})
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
         applied = apply_feishu_assignments(self.profile.store, binding)
         self.assertEqual(applied[0]['event']['task_id'], other['id'])
@@ -100,10 +104,10 @@ class FeishuAssignmentTests(AutomationQueueFixture):
                    'credential_revision': 1}
         RemoteAutomationInbox(self.profile.store).receive(binding, {
             'id': 'om-stranger', 'source': 'feishu:test', 'event_id': 'evt-stranger', 'lease_id': 'lease',
-            'lease_expires_at': 10, 'payload': {
-                'kind': 'feishu_assignment', 'actor_open_id': 'ou-stranger',
-                'assignment': {'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
-                               'text': '请做这个任务'}}})
+            'lease_expires_at': 10, 'payload': trusted_payload(self.project['id'],
+                kind='feishu_assignment', actor_open_id='ou-stranger',
+                assignment={'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
+                            'text': '请做这个任务'})})
         self.assertEqual(apply_feishu_assignments(self.profile.store, binding), [])
         with self.profile.store.connection() as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM automation_events WHERE source_instance='feishu'").fetchone()[0], 0)
@@ -117,12 +121,29 @@ class FeishuAssignmentTests(AutomationQueueFixture):
                    'credential_revision': 1}
         RemoteAutomationInbox(self.profile.store).receive(binding, {
             'id': 'om-revoked', 'source': 'feishu:test', 'event_id': 'evt-revoked', 'lease_id': 'lease',
-            'lease_expires_at': 10, 'payload': {
-                'kind': 'feishu_assignment', 'actor_open_id': 'ou-owner',
-                'assignment': {'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
-                               'text': '请做这个任务'}}})
+            'lease_expires_at': 10, 'payload': trusted_payload(self.project['id'],
+                kind='feishu_assignment', actor_open_id='ou-owner',
+                assignment={'namespace': 'control-everything.automation.v1', 'task_id': other['id'],
+                            'text': '请做这个任务'})})
         bind_actor(self.profile.store, self.project['id'], 'ou-owner', state='revoked')
         self.assertEqual(apply_feishu_assignments(self.profile.store, binding), [])
+
+    def test_binding_on_another_project_does_not_authorize_this_task(self):
+        from tests.backend.test_project_management import project_body
+        from control_everything.workspace.automation_identities import decision_authorized
+        other = self.profile.store.save_project(project_body(self.root / 'other-auth'))
+        other_item = self.profile.store.save_item({'title': 'Other project task', 'project_id': other['id'],
+                                                    'provider_id': None, 'state': 'todo', 'session_key': None})
+        bind_actor(self.profile.store, other['id'], 'ou-owner')
+        device = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1}
+        trusted_here = {'project_id': self.project['id'], 'app_id': 'app'}
+        trusted_there = {'project_id': other['id'], 'app_id': 'app'}
+        self.assertFalse(decision_authorized(self.profile.store, 'ou-owner', task_id=other_item['id'],
+                                             trusted=trusted_here, device=device))
+        self.assertTrue(decision_authorized(self.profile.store, 'ou-owner', task_id=other_item['id'],
+                                            trusted=trusted_there, device=device))
+        self.assertFalse(decision_authorized(self.profile.store, 'ou-owner', task_id=other_item['id'],
+                                             trusted=trusted_there, device={**device, 'generation': 2}))
 
 
 class AutomationQueueStorageTests(AutomationQueueFixture):

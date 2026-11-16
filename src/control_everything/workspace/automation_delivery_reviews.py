@@ -71,9 +71,10 @@ def _evidence(connection, item, flow, verify, material, *, exclude_step_id=None)
             "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",(flow['project_id'],exclude_step_id,exclude_step_id)).fetchone():
         fail('automation_project_busy')
 
-def review_delivery(service, task_id, body):
+def review_delivery(service, task_id, body, *, reviewer='local_owner'):
     body_fields(body, ('expected_revision','progress_revision','delivery_id','verdict','reason','confirmed','client_token'))
-    if body['confirmed'] is not True or body['verdict'] not in ('approved','changes_requested','rejected'):
+    if (body['confirmed'] is not True or body['verdict'] not in ('approved','changes_requested','rejected')
+            or not isinstance(reviewer, str) or not reviewer or len(reviewer) > 256):
         raise ProfileError('invalid_review')
     if not isinstance(body['reason'], str):
         raise ProfileError('invalid_review','reason')
@@ -112,7 +113,7 @@ def review_delivery(service, task_id, body):
                     'output_dir':checked['output_dir'],'identity_scope':'declared_inputs'}
         connection.execute('INSERT INTO task_reviews(id,task_id,verdict,reason,evidence_json,reviewer,created_at,'
             'delivery_id,native_run_id,client_token,request_hash) VALUES(?,?,?,?,?,?,?, ?,NULL,?,?)',
-            (identity,task_id,body['verdict'],body['reason'],packed(evidence),'local_owner',now_utc(),
+            (identity,task_id,body['verdict'],body['reason'],packed(evidence),reviewer,now_utc(),
              delivery['id'],body['client_token'],request_hash))
         approved = body['verdict'] == 'approved'
         touch(connection,item,'review' if approved else 'doing',delivery_id=delivery['id'],accepted=approved)
