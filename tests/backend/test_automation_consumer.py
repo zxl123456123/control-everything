@@ -106,13 +106,27 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(attempts, [0, 1, 2])
 
     def test_missing_or_wrong_model_stops_without_review(self):
+        cards = []
+        self.consumer.on_wait = cards.append
         self.host.model = None
-        self.assertEqual(self.pump()['flow']['attention']['reason'], 'model_unobserved')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'model_unobserved')
         self.assertEqual(len(self.host.calls), 1)
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'model_unobserved')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
 
     def test_wrong_model_stops(self):
+        cards = []
+        self.consumer.on_wait = cards.append
         self.host.model = 'gpt-6.1-sol'
-        self.assertEqual(self.pump()['flow']['attention']['reason'], 'model_mismatch')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'model_mismatch')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'model_mismatch')
+        self.assertNotIn('choice', value)
+        self.assertNotIn('gpt-6.1-sol', str(value))
 
     def test_archived_project_invalidates_a_release_wait(self):
         from tests.backend.test_automation_queue import bind_actor

@@ -58,6 +58,24 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def model_card(flow):
+    """The observed model is missing or wrong. The button does not continue the step."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    reason = attention.get('reason')
+    if (flow.get('status') != 'waiting_external' or reason not in ('model_unobserved', 'model_mismatch') or not task_id
+            or type(revision) is not int or revision < 0):
+        raise ValueError('model_card_unavailable')
+    text = ('没有观察到这一步的模型。不会把这一步当成完成。' if reason == 'model_unobserved'
+            else '这一步的模型与要求不一致。不会继续。')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '模型未按要求执行'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': reason}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能继续'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': text}, button]}}
+
+
 def invalid_review_card(flow):
     """The code review was not a verdict. The button does not accept the work."""
     attention = (flow or {}).get('attention') or {}

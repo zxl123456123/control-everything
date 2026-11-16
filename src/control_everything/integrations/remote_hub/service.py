@@ -45,7 +45,8 @@ def _card_identity(card):
                                     'acceptance_rejected', 'human_decision_required', 'plan_revision_limit',
                                     'requirement_changed', 'independent_review_required',
                                     'project_directory_changed', 'project_unavailable',
-                                    'verification_evidence_invalid', 'invalid_code_review')
+                                    'verification_evidence_invalid', 'invalid_code_review',
+                                    'model_unobserved', 'model_mismatch')
             and text('task_id') and text('flow_id')
             and type(value['requirement_revision']) is int and value['requirement_revision'] >= 0):
         prefix = {'integration_retest_failed': 'failure', 'repair_budget_exhausted': 'budget',
@@ -53,8 +54,8 @@ def _card_identity(card):
                   'human_decision_required': 'decision', 'plan_revision_limit': 'revision',
                   'requirement_changed': 'changed', 'independent_review_required': 'review',
                   'project_directory_changed': 'directory', 'project_unavailable': 'unavailable',
-                  'verification_evidence_invalid': 'evidence', 'invalid_code_review': 'invalid'}.get(
-                      value['reason'], 'target')
+                  'verification_evidence_invalid': 'evidence', 'invalid_code_review': 'invalid',
+                  'model_unobserved': 'unobserved', 'model_mismatch': 'mismatch'}.get(value['reason'], 'target')
         return prefix + ':' + value['flow_id'], value['requirement_revision']
     raise HubError('invalid_waiting_card', 400)
 

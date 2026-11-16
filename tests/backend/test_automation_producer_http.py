@@ -129,6 +129,18 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         review = self.request('/remote/desktop/automation/card', invalid)
         self.assertEqual(review[0], 200)
         self.assertNotIn(review[1]['id'], (first[1]['id'], stored[1]['id'], held[1]['id'], asked[1]['id'], limited[1]['id'], stale[1]['id'], blocked[1]['id'], directory[1]['id'], unavailable[1]['id'], evidence[1]['id']))
+        mismatch = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 13, 'reason': 'model_mismatch'}}]}}
+        model = self.request('/remote/desktop/automation/card', mismatch)
+        self.assertEqual(model[0], 200)
+        self.assertNotIn(model[1]['id'], (first[1]['id'], stored[1]['id'], held[1]['id'], asked[1]['id'], limited[1]['id'], stale[1]['id'], blocked[1]['id'], directory[1]['id'], unavailable[1]['id'], evidence[1]['id'], review[1]['id']))
+        missing = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 14, 'reason': 'model_unobserved'}}]}}
+        unobserved = self.request('/remote/desktop/automation/card', missing)
+        self.assertEqual(unobserved[0], 200)
+        self.assertNotIn(unobserved[1]['id'], (model[1]['id'], review[1]['id']))
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers
