@@ -12,6 +12,17 @@ from control_everything.workspace.store import now_utc
 from control_everything.workspace.automation_planning import planning_outcome
 
 LEASE_SECONDS = 60
+
+
+def reviewer_may_integrate(connection, task_id, reviewer):
+    """Local owner reviews stay valid. A Feishu review must be the task's designated acceptor."""
+    if reviewer == 'local_owner':
+        return True
+    if not isinstance(reviewer, str) or not reviewer:
+        return False
+    return connection.execute(
+        'SELECT 1 FROM automation_task_acceptors WHERE task_id=? AND open_id=?',
+        (task_id, reviewer)).fetchone() is not None
 STEP_TRANSITIONS = {
     'reserved': ('dispatching',),
     'dispatching': ('running', 'completed', 'failed', 'unknown'),
@@ -409,10 +420,7 @@ class AutomationQueue:
         review = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=? AND task_id=?',
             (snapshot['review_id'], item['id'])).fetchone())
         verify = row_view(self._step(connection, snapshot['verify_step_id']))
-        reviewer = review['reviewer'] if review else None
-        designated = reviewer == 'local_owner' or (isinstance(reviewer, str) and connection.execute(
-            'SELECT 1 FROM automation_task_acceptors WHERE task_id=? AND open_id=?',
-            (item['id'], reviewer)).fetchone() is not None)
+        designated = reviewer_may_integrate(connection, item['id'], review['reviewer'] if review else None)
         if (snapshot['actor'] != 'local_owner' or not delivery or not review or not verify
                 or item['current_delivery_id'] != delivery['id'] or item['accepted_delivery_id'] != delivery['id']
                 or not designated or review['verdict'] != 'approved'

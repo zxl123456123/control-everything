@@ -4,7 +4,7 @@ import re
 from urllib.parse import urlsplit
 
 from control_everything.input_validation import ProfileError
-from control_everything.workspace.automation_flow import AutomationQueue
+from control_everything.workspace.automation_flow import AutomationQueue, reviewer_may_integrate
 from control_everything.workspace.automation_delivery_reviews import _evidence
 from control_everything.workspace.native_progress import body_fields, check_versions, digest, fail, packed, row_view, task_access
 from control_everything.workspace.store import now_utc
@@ -109,7 +109,8 @@ def register_target(service, task_id, body):
         if (flow['revision'] != body['expected_flow_revision'] or flow['status'] != 'waiting_external' or flow['phase'] != 'integration'
                 or attention.get('reason') != 'integration_not_connected' or not delivery or not review
                 or item['current_delivery_id'] != delivery['id'] or item['accepted_delivery_id'] != delivery['id']
-                or review['delivery_id'] != delivery['id'] or review['verdict'] != 'approved' or review['reviewer'] != 'local_owner'
+                or review['delivery_id'] != delivery['id'] or review['verdict'] != 'approved'
+                or not reviewer_may_integrate(connection, task_id, review['reviewer'])
                 or attention.get('accepted_review_id') != review['id'] or attention.get('accepted_delivery_id') != delivery['id']
                 or attention.get('expected_revision') != item['revision'] or attention.get('progress_revision') != item['progress_revision']
                 or delivery['source'] != 'automation_verify' or not verify or verify['kind'] != 'verify' or verify['status'] != 'completed'

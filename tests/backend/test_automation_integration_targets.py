@@ -50,6 +50,22 @@ class IntegrationTargetTests(AutomationQueueFixture):
                 'files':[{'source_path':p,'target_path':p} for p in ['input.txt','verify.py']],
                 'script_arg_map':[{'index':1,'source_path':'verify.py'}],'commit_message':'feat: integrate verified change'}}
 
+    def test_designated_acceptor_can_register_and_a_stranger_cannot(self):
+        from tests.backend.test_automation_queue import designate_actor
+        with self.profile.store.connection() as connection:
+            connection.execute("UPDATE task_reviews SET reviewer='ou-owner' WHERE task_id=?", (self.item['id'],))
+        with self.assertRaises(ProfileError):
+            self.service.register_task_integration_target(self.item['id'], self.request)
+        designate_actor(self.profile.store, self.item['id'], 'ou-stranger')
+        with self.assertRaises(ProfileError):
+            self.service.register_task_integration_target(self.item['id'], self.request)
+        with self.profile.store.connection() as connection:
+            connection.execute('DELETE FROM automation_task_acceptors WHERE task_id=?', (self.item['id'],))
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+        recorded = self.service.register_task_integration_target(self.item['id'], self.request)
+        self.assertTrue(recorded['recorded'])
+        self.assertFalse(recorded['replayed'])
+
     def test_registration_and_history_replay_leave_task_and_steps_unchanged(self):
         with self.profile.store.connection() as c:
             before={table:[tuple(r) for r in c.execute('SELECT * FROM '+table)] for table in ('task_items','task_reviews','automation_steps')}
