@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def callback_card(flow):
+    """Verification cannot run. The button does not invent a command or claim success."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'verification_callback_unavailable'
+            or not task_id or type(revision) is not int or revision < 0):
+        raise ValueError('callback_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '还不能验证'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'verification_callback_unavailable'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能当成测试通过'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '没有验证回调。不会执行测试，也不会把这一步当成通过。'}, button]}}
+
+
 def read_only_card(flow):
     """A read-only result could not be checked. The button does not continue or accept."""
     attention = (flow or {}).get('attention') or {}

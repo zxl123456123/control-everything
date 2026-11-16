@@ -159,6 +159,12 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         held_readonly = self.request('/remote/desktop/automation/card', readonly)
         self.assertEqual(held_readonly[0], 200)
         self.assertNotIn(held_readonly[1]['id'], (held_checker[1]['id'], held_unknown[1]['id']))
+        callback = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 18, 'reason': 'verification_callback_unavailable'}}]}}
+        held_callback = self.request('/remote/desktop/automation/card', callback)
+        self.assertEqual(held_callback[0], 200)
+        self.assertNotIn(held_callback[1]['id'], (held_readonly[1]['id'], held_checker[1]['id']))
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers

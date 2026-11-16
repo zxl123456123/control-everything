@@ -47,7 +47,8 @@ def _card_identity(card):
                                     'project_directory_changed', 'project_unavailable',
                                     'verification_evidence_invalid', 'invalid_code_review',
                                     'model_unobserved', 'model_mismatch', 'verification_unknown',
-                                    'verification_checker_unavailable', 'read_only_result_unverified')
+                                    'verification_checker_unavailable', 'read_only_result_unverified',
+                                    'verification_callback_unavailable')
             and text('task_id') and text('flow_id')
             and type(value['requirement_revision']) is int and value['requirement_revision'] >= 0):
         prefix = {'integration_retest_failed': 'failure', 'repair_budget_exhausted': 'budget',
@@ -59,7 +60,8 @@ def _card_identity(card):
                   'model_unobserved': 'unobserved', 'model_mismatch': 'mismatch',
                   'verification_unknown': 'unknown',
                   'verification_checker_unavailable': 'checker',
-                  'read_only_result_unverified': 'readonly'}.get(value['reason'], 'target')
+                  'read_only_result_unverified': 'readonly',
+                  'verification_callback_unavailable': 'callback'}.get(value['reason'], 'target')
         return prefix + ':' + value['flow_id'], value['requirement_revision']
     raise HubError('invalid_waiting_card', 400)
 

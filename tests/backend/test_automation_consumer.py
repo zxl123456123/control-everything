@@ -878,9 +878,18 @@ class ConsumerTests(AutomationQueueFixture):
 
     def test_missing_verification_callback_waits_without_execution(self):
         self.configure_verification()
+        cards = []
+        self.consumer.on_wait = cards.append
         self.consumer.verification = None
-        self.assertEqual(self.pump()['flow']['attention']['reason'], 'verification_callback_unavailable')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'verification_callback_unavailable')
         self.assertEqual(self.verification_calls, [])
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'verification_callback_unavailable')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('argv', value)
+        self.assertNotIn('choice', value)
+        self.assertNotIn('verdict', value)
 
     def test_disk_receipt_recheck_rejects_wrong_identity_and_changed_log(self):
         from pathlib import Path
