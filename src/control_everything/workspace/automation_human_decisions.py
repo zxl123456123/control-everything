@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def read_only_card(flow):
+    """A read-only result could not be checked. The button does not continue or accept."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'read_only_result_unverified'
+            or not task_id or type(revision) is not int or revision < 0):
+        raise ValueError('read_only_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '只读结果未核对'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'read_only_result_unverified'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能继续'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '只读步骤的结果无法核对。不会继续实现，也不会进入验收。'}, button]}}
+
+
 def checker_card(flow):
     """No checker can reread the receipt. The button does not claim the tests passed."""
     attention = (flow or {}).get('attention') or {}

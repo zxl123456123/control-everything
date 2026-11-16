@@ -10,6 +10,7 @@ from control_everything.workspace.automation_events import apply_feishu_assignme
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
     checker_card, directory_card, evidence_card, independent_review_card, invalid_review_card, model_card,
+    read_only_card,
     plan_revision_card,
     unknown_verification_card,
     rejection_card, repair_budget_card,
@@ -269,6 +270,8 @@ class AutomationConsumer:
                 card = unknown_verification_card(view['flow'])
             elif (view['flow'].get('attention') or {}).get('reason') == 'verification_checker_unavailable':
                 card = checker_card(view['flow'])
+            elif (view['flow'].get('attention') or {}).get('reason') == 'read_only_result_unverified':
+                card = read_only_card(view['flow'])
             if card is not None:
                 try:
                     self.on_wait(card)

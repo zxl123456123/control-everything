@@ -460,11 +460,18 @@ class ConsumerTests(AutomationQueueFixture):
             request = json.loads(step['request_json'])
             request['params'].pop('readOnly')
             connection.execute('UPDATE automation_steps SET request_json=? WHERE id=?', (json.dumps(request), step['id']))
+        cards = []
+        self.consumer.on_wait = cards.append
         result = self.pump()
         self.assertEqual(result['flow']['attention']['reason'], 'read_only_result_unverified')
         self.assertEqual(result['step']['status'], 'completed')
         self.assertIn('facts', result['step']['result'])
         self.assertEqual(len(self.host.calls), 1)
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'read_only_result_unverified')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
+        self.assertNotIn('verdict', value)
 
     def test_failed_read_only_refusal_recovers_wait_after_interruption(self):
         self.consumer.run_once()
