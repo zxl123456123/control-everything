@@ -1,5 +1,5 @@
 diff --git a/extensions/feishu/src/accounts.ts b/extensions/feishu/src/accounts.ts
-index 38b57a45..b16de524 100644
+index 38b57a4..b16de52 100644
 --- a/extensions/feishu/src/accounts.ts
 +++ b/extensions/feishu/src/accounts.ts
 @@ -7,0 +8 @@ import {
@@ -34,6 +34,7 @@ index 38b57a45..b16de524 100644
 +    automationIngress,
 diff --git a/extensions/feishu/src/automation-card-ingress.test.ts b/extensions/feishu/src/automation-card-ingress.test.ts
 new file mode 100644
+index 0000000..0ca4810
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.test.ts
 @@ -0,0 +1,499 @@
@@ -538,6 +539,7 @@ new file mode 100644
 +});
 diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feishu/src/automation-card-ingress.ts
 new file mode 100644
+index 0000000..e34f788
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
 @@ -0,0 +1,192 @@
@@ -735,6 +737,7 @@ new file mode 100644
 +}
 diff --git a/extensions/feishu/src/automation-config.test.ts b/extensions/feishu/src/automation-config.test.ts
 new file mode 100644
+index 0000000..d63bc14
 --- /dev/null
 +++ b/extensions/feishu/src/automation-config.test.ts
 @@ -0,0 +1,89 @@
@@ -827,8 +830,277 @@ new file mode 100644
 +    );
 +  });
 +});
+diff --git a/extensions/feishu/src/automation-identity-sender.test.ts b/extensions/feishu/src/automation-identity-sender.test.ts
+new file mode 100644
+index 0000000..0e9d46a
+--- /dev/null
++++ b/extensions/feishu/src/automation-identity-sender.test.ts
+@@ -0,0 +1,80 @@
++import { describe, expect, it, vi } from "vitest";
++import { runIdentitySender } from "./automation-identity-sender.js";
++
++const config = {
++  hubOrigin: "https://hub.example.test",
++  producerId: "father",
++  chatId: "oc-chat",
++  token: "producer-fixture",
++};
++const attempt = {
++  attempt_id: "ab".repeat(16),
++  challenge_id: "cd".repeat(16),
++  nonce: "nonce-value",
++  expires_at: "2026-11-15T12:00:00+00:00",
++  context: { chat_id: "oc-chat" },
++};
++
++function json(body: unknown, status = 200): Response {
++  return new Response(JSON.stringify(body), { status });
++}
++
++describe("identity sender", () => {
++  it("does not touch the network without ingress config", async () => {
++    const fetch = vi.spyOn(globalThis, "fetch");
++    const sendCard = vi.fn();
++    await runIdentitySender({
++      signal: new AbortController().signal,
++      active: () => true,
++      sendCard,
++    });
++    expect(fetch).not.toHaveBeenCalled();
++    expect(sendCard).not.toHaveBeenCalled();
++    fetch.mockRestore();
++  });
++
++  it("sends one card for a claim and retries only the same result", async () => {
++    const controller = new AbortController();
++    let claims = 0;
++    let results = 0;
++    vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
++      const path = String(url);
++      if (path.endsWith("/claim")) {
++        claims += 1;
++        return json({ attempt: claims === 1 ? attempt : null });
++      }
++      results += 1;
++      if (results === 1) return json({ error: "busy" }, 503);
++      controller.abort();
++      return json({ state: "sent" });
++    });
++    const sendCard = vi.fn(async () => ({ messageId: "om-card" }));
++    await runIdentitySender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
++    expect(sendCard).toHaveBeenCalledTimes(1);
++    expect(sendCard.mock.calls[0]?.[0].uuid).toBe(attempt.attempt_id);
++    expect(sendCard.mock.calls[0]?.[0].card.body.elements[1].value).toEqual({
++      namespace: "control-everything.identity.v1",
++      challenge_id: attempt.challenge_id,
++      nonce: attempt.nonce,
++    });
++    const resultCalls = vi.mocked(fetch).mock.calls.filter((call) => String(call[0]).endsWith("/result"));
++    expect(resultCalls).toHaveLength(2);
++    expect(JSON.parse(resultCalls[0]?.[1]?.body as string)).toEqual(JSON.parse(resultCalls[1]?.[1]?.body as string));
++    vi.restoreAllMocks();
++  });
++
++  it("reports unknown and does not send again when the card result has no id", async () => {
++    const controller = new AbortController();
++    vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
++      if (String(url).endsWith("/claim")) return json({ attempt });
++      controller.abort();
++      return json({ state: "unknown" });
++    });
++    const sendCard = vi.fn(async () => ({ messageId: "" }));
++    await runIdentitySender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
++    expect(sendCard).toHaveBeenCalledTimes(1);
++    const body = JSON.parse(String(vi.mocked(fetch).mock.calls.find((call) => String(call[0]).endsWith("/result"))?.[1]?.body));
++    expect(body).toEqual({ producer_id: "father", attempt_id: attempt.attempt_id, state: "unknown" });
++    vi.restoreAllMocks();
++  });
++});
+diff --git a/extensions/feishu/src/automation-identity-sender.ts b/extensions/feishu/src/automation-identity-sender.ts
+new file mode 100644
+index 0000000..07a1165
+--- /dev/null
++++ b/extensions/feishu/src/automation-identity-sender.ts
+@@ -0,0 +1,177 @@
++import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
++import type { ClawdbotConfig } from "../runtime-api.js";
++import { sendCardFeishu } from "./send.js";
++import type { ResolvedFeishuAccount } from "./types.js";
++
++const IDLE_MS = 2_000;
++const HEX = /^[0-9a-f]{32}$/;
++
++type Ingress = NonNullable<ResolvedFeishuAccount["automationIngress"]>;
++type Attempt = {
++  attempt_id: string;
++  challenge_id: string;
++  nonce: string;
++  expires_at: string;
++};
++
++export function identityCard(attempt: Attempt): Record<string, unknown> {
++  return {
++    schema: "2.0",
++    header: { title: { tag: "plain_text", content: "确认身份" }, template: "blue" },
++    body: {
++      elements: [
++        {
++          tag: "markdown",
++          content: "请确认这是你的工作台身份。确认不会授予本机管理员或任务验收权限。",
++        },
++        {
++          tag: "button",
++          text: { tag: "plain_text", content: "确认是我" },
++          type: "primary",
++          value: {
++            namespace: "control-everything.identity.v1",
++            challenge_id: attempt.challenge_id,
++            nonce: attempt.nonce,
++          },
++        },
++      ],
++    },
++  };
++}
++
++async function pause(signal: AbortSignal, ms: number): Promise<void> {
++  if (signal.aborted) return;
++  await new Promise<void>((resolve) => {
++    const timer = setTimeout(resolve, ms);
++    signal.addEventListener(
++      "abort",
++      () => {
++        clearTimeout(timer);
++        resolve();
++      },
++      { once: true },
++    );
++  });
++}
++
++async function post(
++  config: Ingress,
++  path: string,
++  body: Record<string, unknown>,
++  signal: AbortSignal,
++): Promise<Response> {
++  const origin = new URL(config.hubOrigin);
++  return fetch(`${origin.origin}${path}`, {
++    method: "POST",
++    redirect: "error",
++    signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
++    headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
++    body: JSON.stringify(body),
++  });
++}
++
++function text(value: unknown): string {
++  return typeof value === "string" && value.trim() && value.length <= 256 && ![...value].some((char) => char.charCodeAt(0) < 32)
++    ? value
++    : "";
++}
++
++function readAttempt(value: unknown, config: Ingress): Attempt | null | undefined {
++  if (!isRecord(value) || !("attempt" in value) || Object.keys(value).length !== 1) return undefined;
++  if (value.attempt === null) return null;
++  const attempt = value.attempt;
++  if (!isRecord(attempt)) return undefined;
++  const keys = ["attempt_id", "challenge_id", "nonce", "expires_at", "context"];
++  if (Object.keys(attempt).length !== keys.length || keys.some((key) => !(key in attempt))) return undefined;
++  if (!HEX.test(text(attempt.attempt_id)) || !text(attempt.challenge_id) || !text(attempt.nonce) || !text(attempt.expires_at))
++    return undefined;
++  if (!isRecord(attempt.context) || attempt.context.chat_id !== config.chatId) return undefined;
++  return {
++    attempt_id: text(attempt.attempt_id),
++    challenge_id: text(attempt.challenge_id),
++    nonce: text(attempt.nonce),
++    expires_at: text(attempt.expires_at),
++  };
++}
++
++async function claim(config: Ingress, signal: AbortSignal): Promise<Attempt | null | undefined> {
++  const response = await post(config, "/remote/producer/identity-send/claim", { producer_id: config.producerId }, signal);
++  if (response.status !== 200) return undefined;
++  return readAttempt(await response.json(), config);
++}
++
++async function report(
++  config: Ingress,
++  signal: AbortSignal,
++  body: Record<string, unknown>,
++): Promise<void> {
++  while (!signal.aborted) {
++    try {
++      const response = await post(config, "/remote/producer/identity-send/result", body, signal);
++      if (response.status === 200) return;
++    } catch {
++      // The same result payload may be retried. The SDK send is not.
++    }
++    await pause(signal, IDLE_MS);
++  }
++}
++
++export async function runIdentitySender(params: {
++  config?: Ingress;
++  signal: AbortSignal;
++  active: () => boolean;
++  sendCard?: (input: { uuid: string; card: Record<string, unknown> }) => Promise<{ messageId?: string }>;
++  cfg?: ClawdbotConfig;
++  accountId?: string;
++}): Promise<void> {
++  const { config, signal } = params;
++  if (!config) return;
++  const sendCard =
++    params.sendCard ??
++    (async (input) => {
++      const result = await sendCardFeishu({
++        cfg: params.cfg as ClawdbotConfig,
++        to: config.chatId,
++        accountId: params.accountId,
++        card: input.card,
++        uuid: input.uuid,
++      });
++      return { messageId: result.messageId };
++    });
++  const sent = new Set<string>();
++  while (params.active() && !signal.aborted) {
++    let attempt: Attempt | null | undefined;
++    try {
++      attempt = await claim(config, signal);
++    } catch {
++      attempt = undefined;
++    }
++    if (!params.active() || signal.aborted) return;
++    if (!attempt) {
++      await pause(signal, IDLE_MS);
++      continue;
++    }
++    if (sent.has(attempt.attempt_id)) {
++      await report(config, signal, { producer_id: config.producerId, attempt_id: attempt.attempt_id, state: "unknown" });
++      continue;
++    }
++    sent.add(attempt.attempt_id);
++    if (!params.active() || signal.aborted) {
++      await report(config, signal, { producer_id: config.producerId, attempt_id: attempt.attempt_id, state: "unknown" });
++      return;
++    }
++    let messageId = "";
++    try {
++      messageId = text((await sendCard({ uuid: attempt.attempt_id, card: identityCard(attempt) })).messageId);
++    } catch {
++      messageId = "";
++    }
++    await report(
++      config,
++      signal,
++      messageId
++        ? { producer_id: config.producerId, attempt_id: attempt.attempt_id, state: "sent", message_id: messageId }
++        : { producer_id: config.producerId, attempt_id: attempt.attempt_id, state: "unknown" },
++    );
++  }
++}
 diff --git a/extensions/feishu/src/config-schema.ts b/extensions/feishu/src/config-schema.ts
-index 93957ff4..ee34484b 100644
+index 93957ff..ee34484 100644
 --- a/extensions/feishu/src/config-schema.ts
 +++ b/extensions/feishu/src/config-schema.ts
 @@ -268,0 +269,27 @@ export const FeishuAccountConfigSchema = z
@@ -860,7 +1132,7 @@ index 93957ff4..ee34484b 100644
 +      .optional(),
 +    automationProducerToken: buildSecretInputSchema().optional(),
 diff --git a/extensions/feishu/src/feishu-ingress.test.ts b/extensions/feishu/src/feishu-ingress.test.ts
-index 8b12ee83..3c3af59f 100644
+index 8b12ee8..3c3af59 100644
 --- a/extensions/feishu/src/feishu-ingress.test.ts
 +++ b/extensions/feishu/src/feishu-ingress.test.ts
 @@ -6 +6 @@ import path from "node:path";
@@ -903,7 +1175,7 @@ index 8b12ee83..3c3af59f 100644
 +  });
 +
 diff --git a/extensions/feishu/src/feishu-ingress.ts b/extensions/feishu/src/feishu-ingress.ts
-index 32a9caa3..42281069 100644
+index 32a9caa..4228106 100644
 --- a/extensions/feishu/src/feishu-ingress.ts
 +++ b/extensions/feishu/src/feishu-ingress.ts
 @@ -1 +0,0 @@
@@ -934,14 +1206,15 @@ index 32a9caa3..42281069 100644
 +    return { eventId, eventType, laneKey: `automation:${eventId}` };
 +  }
 diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
-index 1cb51649..4b031862 100644
+index 1cb5164..a3f2b10 100644
 --- a/extensions/feishu/src/monitor.account.ts
 +++ b/extensions/feishu/src/monitor.account.ts
-@@ -10,0 +11 @@ import { raceWithTimeoutAndAbort } from "./async.js";
+@@ -10,0 +11,2 @@ import { raceWithTimeoutAndAbort } from "./async.js";
 +import { isAutomationCard, receiveAutomationCard } from "./automation-card-ingress.js";
-@@ -178,0 +180 @@ type RegisterEventHandlersContext = {
++import { runIdentitySender } from "./automation-identity-sender.js";
+@@ -178,0 +181 @@ type RegisterEventHandlersContext = {
 +  automationIngress?: ResolvedFeishuAccount["automationIngress"];
-@@ -355,0 +358,12 @@ function registerEventHandlers(
+@@ -355,0 +359,12 @@ function registerEventHandlers(
 +      if (isAutomationCard(data)) {
 +        await receiveAutomationCard({
 +          data,
@@ -954,10 +1227,22 @@ index 1cb51649..4b031862 100644
 +        await context.resolveIngressLifecycle(data)?.onAdopted();
 +        return;
 +      }
-@@ -485,0 +500 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
+@@ -474,0 +490,11 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
++    if (account.automationIngress) {
++      trackTask(
++        runIdentitySender({
++          config: account.automationIngress,
++          signal: accountAbortSignal,
++          active: () => !accountAbortSignal.aborted,
++          cfg,
++          accountId,
++        }),
++      );
++    }
+@@ -485,0 +512 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
 +      automationIngress: account.automationIngress,
 diff --git a/extensions/feishu/src/secret-contract.test.ts b/extensions/feishu/src/secret-contract.test.ts
-index 176ef135..190f74a3 100644
+index 176ef13..190f74a 100644
 --- a/extensions/feishu/src/secret-contract.test.ts
 +++ b/extensions/feishu/src/secret-contract.test.ts
 @@ -7,0 +8,33 @@ describe("feishu secret contract", () => {
@@ -995,7 +1280,7 @@ index 176ef135..190f74a3 100644
 +  });
 +
 diff --git a/extensions/feishu/src/secret-contract.ts b/extensions/feishu/src/secret-contract.ts
-index 4437b9c4..2ca18052 100644
+index 4437b9c..2ca1805 100644
 --- a/extensions/feishu/src/secret-contract.ts
 +++ b/extensions/feishu/src/secret-contract.ts
 @@ -12 +12 @@ export const channelSecrets = createChannelSecretContract({
@@ -1011,8 +1296,18 @@ index 4437b9c4..2ca18052 100644
 +      topInactiveReason: "Automation producer credentials are account-only.",
 +      accountInactiveReason: "Feishu account is disabled or has no automationIngress.",
 +    });
+diff --git a/extensions/feishu/src/send.ts b/extensions/feishu/src/send.ts
+index 9c10e7e..3d5291a 100644
+--- a/extensions/feishu/src/send.ts
++++ b/extensions/feishu/src/send.ts
+@@ -90,0 +91 @@ export async function sendReplyOrFallbackDirect(
++    uuid?: string;
+@@ -105,0 +107 @@ export async function sendReplyOrFallbackDirect(
++              ...(params.uuid === undefined ? {} : { uuid: params.uuid }),
+@@ -436,0 +439 @@ type SendFeishuCardParams = Omit<
++  uuid?: string;
 diff --git a/extensions/feishu/src/types.ts b/extensions/feishu/src/types.ts
-index eeac93fa..e66a60ff 100644
+index eeac93f..e66a60f 100644
 --- a/extensions/feishu/src/types.ts
 +++ b/extensions/feishu/src/types.ts
 @@ -35,0 +36 @@ export type ResolvedFeishuAccount = {

@@ -3,7 +3,7 @@
   "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
   "version": "2026.11.2",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
-  "patchSha256": "e03f7a288ca8352cf8e976b2f25873860c799e79f54075def3fae7dff6c4af4c",
+  "patchSha256": "b5ef4d71888ebe85a412030f1e106144bbbc0b4cb749a995a9329fb66a86b125",
   "patchFormat": "unified-zero-context; git apply --unidiff-zero",
   "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
   "npm": {
@@ -41,6 +41,18 @@
       "originalSha256": "bebb7bd1f6c3f234c72911a733a58896c80ea7b4e927a56fb84531387b09e2eb",
       "patchedSha256": "9258b7ea5787377dfa61abf7e77fb99cc3740dc8965fda10d49ee842a0a49162"
     },
+    "extensions/feishu/src/automation-identity-sender.ts": {
+      "originalSha256": null,
+      "patchedSha256": "3c9a6cfbe8969990a90ac0b2ec4bb8e2a9f9b37354c06605a004b398be41b0c4"
+    },
+    "extensions/feishu/src/automation-identity-sender.test.ts": {
+      "originalSha256": null,
+      "patchedSha256": "8e50ae6ce5644d4416112d23b016bbc21174837be9ccb7c157716e7f3c81b6ac"
+    },
+    "extensions/feishu/src/send.ts": {
+      "originalSha256": "9daa090cfc25309fe240534bc9f1d0780eab5f3549caeec9f83c782f5f47607e",
+      "patchedSha256": "15edcf6689e610e80b0bb300305152694124069aa23619dd85d0ed5f23a0bc13"
+    },
     "extensions/feishu/src/automation-card-ingress.ts": {
       "originalSha256": null,
       "patchedSha256": "8dcf88b1bf0327f4e9a5aec18f94f4d43e79f4338badd58bc848d19ddd0de4e2"
@@ -59,7 +71,7 @@
     },
     "extensions/feishu/src/monitor.account.ts": {
       "originalSha256": "a4ba4249e3c9daa1a1e3c13a1f04aa9c7d9b3666896c7066b10f2d6ea604b26c",
-      "patchedSha256": "f297ea375275b8cfa569fab3f1fa45a1d3e2ba7e0e33d17840ec5f22416eed75"
+      "patchedSha256": "9d9bfffd4fd941d9ccb02f10d496749fe896697d1853cefcd822fea881d0be65"
     }
   },
   "tests": [
@@ -68,6 +80,7 @@
     "extensions/feishu/src/config-schema.test.ts",
     "extensions/feishu/src/accounts.test.ts",
     "extensions/feishu/src/automation-card-ingress.test.ts",
+    "extensions/feishu/src/automation-identity-sender.test.ts",
     "extensions/feishu/src/feishu-ingress.test.ts"
   ],
   "runtimeBuild": [
