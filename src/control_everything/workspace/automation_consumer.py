@@ -9,7 +9,8 @@ from control_everything.workspace.automation_launch import AutomationLaunch, REA
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_human_decisions import (
     acceptance_card, apply_acceptance_decisions, apply_plan_releases, integration_failure_card, is_plan_release,
-    callback_card, checker_card, directory_card, evidence_card, independent_review_card, invalid_review_card,
+    busy_card, callback_card, checker_card, directory_card, evidence_card, independent_review_card,
+    invalid_review_card,
     unpublished_card,
     model_card,
     read_only_card,
@@ -278,6 +279,8 @@ class AutomationConsumer:
                 card = callback_card(view['flow'])
             elif (view['flow'].get('attention') or {}).get('reason') == 'automation_delivery_unverified':
                 card = unpublished_card(view['flow'])
+            elif (view['flow'].get('attention') or {}).get('reason') == 'automation_project_busy':
+                card = busy_card(view['flow'])
             if card is not None:
                 try:
                     self.on_wait(card)

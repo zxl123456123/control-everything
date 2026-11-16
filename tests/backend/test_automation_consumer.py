@@ -876,6 +876,25 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(len(self.verification_calls), 1)
         self.assertEqual(result['step']['writes_project'], 1)
 
+    def test_busy_project_does_not_reach_acceptance(self):
+        from control_everything.input_validation import ProfileError
+        self.configure_verification()
+        for _ in range(12):
+            self.consumer.run_once()
+        def busy(*args, **kwargs):
+            raise ProfileError('automation_project_busy')
+        self.queue.publish_delivery = busy
+        cards = []
+        self.consumer.on_wait = cards.append
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'automation_project_busy')
+        self.assertNotEqual(result['flow']['status'], 'awaiting_acceptance')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'automation_project_busy')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('verdict', value)
+        self.assertNotIn('choice', value)
+
     def test_unpublished_delivery_does_not_reach_acceptance(self):
         from control_everything.input_validation import ProfileError
         self.configure_verification()
