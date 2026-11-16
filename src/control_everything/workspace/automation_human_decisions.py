@@ -58,6 +58,21 @@ def verification_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '实现已停下。没有验证命令，所以不会自称测试通过。'}, button]}}
 
 
+def invalid_review_card(flow):
+    """The code review was not a verdict. The button does not accept the work."""
+    attention = (flow or {}).get('attention') or {}
+    task_id = flow.get('task_id')
+    revision = (flow.get('context') or {}).get('requirement_revision')
+    if (flow.get('status') != 'waiting_external' or attention.get('reason') != 'invalid_code_review' or not task_id
+            or type(revision) is not int or revision < 0):
+        raise ValueError('invalid_review_card_unavailable')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': '审查结果无效'}, 'type': 'primary',
+              'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
+                        'requirement_revision': revision, 'reason': 'invalid_code_review'}}
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '不能进入验收'}},
+            'body': {'elements': [{'tag': 'markdown', 'content': '代码审查没有给出有效结论。不会进入验收。'}, button]}}
+
+
 def evidence_card(flow):
     """Tested sources changed. The button does not accept the old delivery."""
     attention = (flow or {}).get('attention') or {}

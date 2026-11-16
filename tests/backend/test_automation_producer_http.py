@@ -123,6 +123,12 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         evidence = self.request('/remote/desktop/automation/card', drifted)
         self.assertEqual(evidence[0], 200)
         self.assertNotIn(evidence[1]['id'], (first[1]['id'], stored[1]['id'], held[1]['id'], asked[1]['id'], limited[1]['id'], stale[1]['id'], blocked[1]['id'], directory[1]['id'], unavailable[1]['id']))
+        invalid = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 12, 'reason': 'invalid_code_review'}}]}}
+        review = self.request('/remote/desktop/automation/card', invalid)
+        self.assertEqual(review[0], 200)
+        self.assertNotIn(review[1]['id'], (first[1]['id'], stored[1]['id'], held[1]['id'], asked[1]['id'], limited[1]['id'], stale[1]['id'], blocked[1]['id'], directory[1]['id'], unavailable[1]['id'], evidence[1]['id']))
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers

@@ -12,6 +12,7 @@ class PlanningHost(FakeHost):
         super().__init__()
         self.calls = []
         self.kind, self.verdict, self.code_verdict, self.model = 'small', 'approve', 'approve', 'requested'
+        self.code_text = None
         self.questions = []
 
     def create(self, params, *, cancel_event=None):
@@ -29,8 +30,9 @@ class PlanningHost(FakeHost):
                  {'kind': self.kind, 'verdict': self.verdict, 'rationale': 'Scope checked.', 'questions': self.questions})
         reply = copy.deepcopy(self.reply)
         reply['binding'] = copy.deepcopy(binding)
+        message = self.code_text if prompt.startswith('CODE_REVIEW') and self.code_text else json.dumps(value)
         reply['status'].update(providerSession=binding['providerSession'], state='done', turnEndedAt=120,
-                               turnEndDisposition='identified', lastAssistantMessage=json.dumps(value))
+                               turnEndDisposition='identified', lastAssistantMessage=message)
         if self.calls[-1]['model'] == 'gpt-6.1-sol':
             reply['status']['lastAssistantMessage'] = 'Implemented; model claims tests passed.'
         if self.model is not None:
@@ -587,6 +589,24 @@ class ConsumerTests(AutomationQueueFixture):
             kinds = [row['kind'] for row in connection.execute(
                 'SELECT kind FROM automation_steps ORDER BY ordinal')]
         self.assertIn('code_review', kinds)
+
+    def test_invalid_code_review_does_not_reach_acceptance(self):
+        from control_everything.workspace.automation_human_decisions import apply_waiting_reply
+        self.host.kind = 'feature'
+        self.host.code_text = 'not json'
+        self.configure_verification()
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        apply_waiting_reply(self.consumer, waiting['flow'], cards[0]['body']['elements'][1]['value'], 'owner')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'invalid_code_review')
+        self.assertNotEqual(result['flow']['status'], 'awaiting_acceptance')
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'invalid_code_review')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('verdict', value)
+        self.assertNotIn('choice', value)
 
     def test_code_review_revise_shares_two_repair_rounds(self):
         self.host.kind = 'feature'
