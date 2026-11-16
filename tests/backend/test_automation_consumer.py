@@ -276,8 +276,16 @@ class ConsumerTests(AutomationQueueFixture):
             reply['status']['lastAssistantMessage'] = 'not JSON'
             return reply
         self.host.observe = invalid
-        self.assertEqual(self.pump()['flow']['attention']['reason'], 'invalid_planning_result')
+        cards = []
+        self.consumer.on_wait = cards.append
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'invalid_planning_result')
         self.assertEqual(len(self.host.calls), 1)
+        value = cards[-1]['body']['elements'][1]['value']
+        self.assertEqual(value['reason'], 'invalid_planning_result')
+        self.assertEqual(value['flow_id'], result['flow']['id'])
+        self.assertNotIn('choice', value)
+        self.assertNotIn('verdict', value)
 
     def test_unknown_operation_replays_exact_request(self):
         calls = []

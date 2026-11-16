@@ -177,6 +177,12 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         held_busy = self.request('/remote/desktop/automation/card', busy)
         self.assertEqual(held_busy[0], 200)
         self.assertNotIn(held_busy[1]['id'], (held_unpublished[1]['id'], held_callback[1]['id']))
+        planning = {'schema': '2.0', 'body': {'elements': [{}, {'value': {
+            'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
+            'requirement_revision': 21, 'reason': 'invalid_planning_result'}}]}}
+        held_planning = self.request('/remote/desktop/automation/card', planning)
+        self.assertEqual(held_planning[0], 200)
+        self.assertNotIn(held_planning[1]['id'], (held_busy[1]['id'], held_unpublished[1]['id']))
 
     def test_config_exposes_only_current_device_public_contexts(self):
         from control_everything.integrations.remote_hub.automation_producer import AutomationProducers
