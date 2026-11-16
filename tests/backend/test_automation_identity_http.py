@@ -111,6 +111,35 @@ class IdentityHTTPTests(unittest.TestCase):
             for table in ('task_reviews','task_items','automation_flows'):
                 self.assertEqual(db.execute('SELECT count(*) FROM '+table).fetchone()[0],0)
 
+    def test_acceptor_is_a_confirmed_binding_not_a_typed_open_id(self):
+        import hashlib
+        from control_everything.workspace.automation_identities import decision_authorized
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        created = self.request('/challenges','POST',{'producer_id':'producer'})[1]
+        service = self.workspace.identity_service(self.connector.current_binding)
+        service.attach_message('p',created['challenge_id'],'card')
+        envelope = {k:self.context[k] for k in ('producer_id','channel_account_id','app_id','chat_id')}
+        envelope.update(message_id='card',nonce=created['nonce'],actor_open_id='owner',event_id='owner',inbox_message_id='owner')
+        payload = {'kind':'feishu_identity_binding','project_id':'p',
+                   **{k:envelope[k] for k in ('producer_id','channel_account_id','app_id','chat_id','message_id','actor_open_id')},
+                   'binding':{'namespace':'control-everything.identity.v1','challenge_id':created['challenge_id'],'nonce':created['nonce']}}
+        source = 'feishu:'+hashlib.sha256(json.dumps(['account','app'],separators=(',', ':')).encode()).hexdigest()
+        RemoteAutomationInbox(self.profile.store).receive(self.binding,
+            {'id':'owner','source':source,'event_id':'owner','payload':payload,'lease_id':'lease','lease_expires_at':100})
+        candidate = service.receive_candidate('p',created['challenge_id'],envelope)
+        binding = self.request('/confirm','POST',{'candidate_id':candidate['id']})[1]
+        task = self.profile.store.save_item({'title':'Need an acceptor','project_id':'p','provider_id':None,'state':'todo','session_key':None})
+        device = {'hub_origin':'https://hub.example.test','device_id':'device','generation':1}
+        trusted = {'project_id':'p','app_id':'app'}
+        self.assertFalse(decision_authorized(self.profile.store,'owner',task_id=task['id'],trusted=trusted,device=device))
+        self.assertEqual(self.request('/acceptor','POST',{'task_id':task['id'],'open_id':'owner'})[0],400)
+        status, named = self.request('/acceptor','POST',{'task_id':task['id'],'binding_id':binding['id']})
+        self.assertEqual(status,200,named)
+        self.assertEqual(named['open_id'],'owner')
+        self.assertTrue(decision_authorized(self.profile.store,'owner',task_id=task['id'],trusted=trusted,device=device))
+        self.assertFalse(decision_authorized(self.profile.store,'other',task_id=task['id'],trusted=trusted,device=device))
+        self.assertEqual(self.request('/acceptor')[0],405)
+
     def test_missing_dependencies_and_method_shapes(self):
         self.assertEqual(self.request('/challenges')[0],405)
         self.assertEqual(self.request('','POST',{})[0],405)
