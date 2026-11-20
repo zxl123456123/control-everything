@@ -757,8 +757,9 @@ class ConsumerTests(AutomationQueueFixture):
         self.consumer.on_wait = cards.append
         first = self.pump()
         self.assertEqual(first['flow']['status'], 'waiting_user')
-        original_choice, alternate = [element['value'] for element in cards[-1]['body']['elements']
-                                      if element['tag'] == 'button']
+        buttons = [element['value'] for element in cards[-1]['body']['elements'] if element['tag'] == 'button']
+        original_choice, alternate = [value for value in buttons if 'choice_id' in value]
+        self.assertEqual(buttons[-1]['reason'], 'human_decision_required')
         self.assertEqual(original_choice['task_id'], self.item['id'])
         self.assertEqual(cards[-1]['project_id'], self.project['id'])
         self.assertEqual(original_choice['decision_id'], first['step']['id'])
@@ -804,6 +805,144 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertNotIn('ou-owner', self.host.calls[2]['prompt'])
         self.assertNotEqual(json.loads(steps[3][2])['providerSession']['id'],
                             json.loads(steps[4][2])['providerSession']['id'])
+
+    def test_implementation_choice_preserves_writes_and_repair_lineage(self):
+        from pathlib import Path
+
+        from control_everything.workspace.automation_human_decisions import apply_plan_choices, apply_waiting_reply
+        from control_everything.workspace.automation_planning import IMPLEMENT_DECISION_MARKER
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        from control_everything.workspace.native_progress import digest
+        from tests.backend.test_automation_queue import bind_actor, designate_actor
+
+        self.host.kind = 'feature'
+        self.configure_verification(
+            "from pathlib import Path; assert Path('input.txt').read_bytes().endswith(b' done')")
+        self.service.check_verification = self.consumer.check_verification
+        decision = IMPLEMENT_DECISION_MARKER + '\n' + json.dumps({'decision': {
+            'question': 'Which internal implementation should we keep?',
+            'options': [{'id': 'keep', 'label': 'Reuse the helper', 'impact': 'Smaller internal change'},
+                        {'id': 'inline', 'label': 'Inline the logic', 'impact': 'One fewer internal call'}],
+        }})
+        original_create, original_observe = self.host.create, self.host.observe
+        writes = []
+
+        def create(params, **kwargs):
+            if params['model'] == 'gpt-6.1-sol':
+                path = Path(params['cwd']) / 'input.txt'
+                with path.open('ab') as stream:
+                    stream.write(b' partial' if len(writes) % 2 == 0 else b' done')
+                writes.append(params)
+            return original_create(params, **kwargs)
+
+        def observe(binding, **kwargs):
+            result = original_observe(binding, **kwargs)
+            if self.host.calls[-1]['model'] == 'gpt-6.1-sol' and len(writes) % 2 == 1:
+                result['status']['lastAssistantMessage'] = decision
+            return result
+
+        self.host.create, self.host.observe = create, observe
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        apply_waiting_reply(self.consumer, waiting['flow'], cards[-1]['body']['elements'][1]['value'], 'owner')
+        first = self.pump()
+        self.assertEqual((first['flow']['status'], first['flow']['phase']), ('waiting_user', 'implement'))
+        self.assertEqual(first['step']['status'], 'completed')
+        path = self.root / 'repo' / 'input.txt'
+        self.assertTrue(path.read_bytes().endswith(b' partial'))
+        self.assertEqual(self.verification_calls, [])
+        self.assertIn(IMPLEMENT_DECISION_MARKER, writes[0]['prompt'])
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1, 'credential_revision': 1}
+        self.consumer.current_binding = lambda: binding
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+        inbox = RemoteAutomationInbox(self.profile.store)
+
+        def receive(message_id, choice):
+            inbox.receive(binding, {'id': message_id, 'source': 'feishu:test', 'event_id': message_id,
+                'lease_id': 'lease', 'lease_expires_at': 10, 'payload': {
+                    'kind': 'feishu_plan_choice', 'project_id': self.project['id'], 'app_id': 'app',
+                    'actor_open_id': 'ou-owner', 'plan_choice': choice}})
+
+        def latest_choice():
+            return next(element['value'] for element in cards[-1]['body']['elements'] if element['tag'] == 'button')
+
+        old_choice = latest_choice()
+        receive('first-choice', old_choice)
+        other = self.profile.store.save_item({'title': 'Concurrent task', 'project_id': self.project['id'],
+            'provider_id': None, 'state': 'todo', 'session_key': None})
+        event = self.service.enable_task_automation(other['id'], {**self.body, 'client_token': 'concurrent-choice'})
+        occupied = self.queue.claim(self.consumer.lease, event['id'])['step']
+        apply_plan_choices(self.profile.store, self.consumer, binding)
+        with self.profile.store.connection() as connection:
+            blocked = self.queue._view(connection, first['flow']['id'])
+        self.assertEqual(blocked['step']['id'], first['step']['id'])
+        self.assertEqual(blocked['flow']['status'], 'waiting_user')
+        prepared = self.consumer.launch.prepare(self.consumer.lease, occupied)
+        self.queue.wait(self.consumer.lease, prepared, 'waiting_external', 'prepare', {})
+        first_delivery = self.pump()
+        self.assertEqual(first_delivery['flow']['status'], 'awaiting_acceptance')
+        changes = cards[-1]['body']['elements'][2]['value']
+        review = self.service.review_task_delivery(self.item['id'], {
+            **{key: changes[key] for key in ('delivery_id', 'verdict', 'expected_revision', 'progress_revision')},
+            'reason': 'Correct the implementation', 'confirmed': True, 'client_token': 'first-review',
+        })['review']
+        repair = self.pump()
+        self.assertEqual((repair['flow']['status'], repair['flow']['phase']), ('waiting_user', 'implement'))
+        self.assertTrue(path.read_bytes().endswith(b' partial done partial'))
+        self.assertEqual(len(self.verification_calls), 1)
+        self.assertIn(IMPLEMENT_DECISION_MARKER, writes[2]['prompt'])
+        repair_choice = latest_choice()
+        receive('stale-competing-choice', {**old_choice, 'choice_id': 'inline'})
+        self.assertEqual(self.pump()['step']['id'], repair['step']['id'])
+        receive('repair-choice', repair_choice)
+        final = self.pump()
+        self.assertEqual(final['flow']['id'], first['flow']['id'])
+        self.assertEqual(final['flow']['status'], 'awaiting_acceptance')
+        self.assertTrue(path.read_bytes().endswith(b' partial done partial done'))
+        self.assertEqual(len(self.verification_calls), 2)
+        self.assertEqual(len({(params['cwd'], params['worktreeId']) for params in writes}), 1)
+        with self.profile.store.connection() as connection:
+            implementation_ids = [row['id'] for row in connection.execute(
+                "SELECT id FROM automation_steps WHERE kind='implement' ORDER BY ordinal")]
+        original, continued, repair_original, repair_continued = map(self.queue.get_step, implementation_ids)
+        self.assertEqual(original['id'], first['step']['id'])
+        self.assertEqual(continued['request']['continuation_of']['step_id'], original['id'])
+        self.assertEqual(repair_original['id'], repair['step']['id'])
+        request = repair_continued['request']
+        self.assertNotIn('repair_of', request)
+        self.assertEqual(request['continuation_of']['repair_of']['review_id'], review['id'])
+        self.assertEqual(request['plan_choice']['actor_id'], 'ou-owner')
+        self.assertEqual(request['plan_choice']['choice_id'], 'keep')
+        self.assertTrue(request['requires_code_review'])
+        self.assertEqual(final['step']['kind'], 'code_review')
+        verify = self.queue.get_step(final['step']['request']['verify_step_id'])
+        for step in (verify, final['step']):
+            self.assertEqual(step['request']['implement_step_id'], repair_continued['id'])
+            self.assertEqual(step['request']['implement_hash'], digest(repair_continued['result']['text']))
+        self.assertNotEqual(final['flow']['attention']['delivery_id'], changes['delivery_id'])
+
+    def test_explicit_implementation_decision_errors_cannot_start_verification(self):
+        from control_everything.workspace.automation_planning import IMPLEMENT_DECISION_MARKER
+
+        self.configure_verification()
+        original = self.host.observe
+
+        def observe(binding, **kwargs):
+            result = original(binding, **kwargs)
+            if self.host.calls[-1]['model'] == 'gpt-6.1-sol':
+                result['status']['lastAssistantMessage'] = IMPLEMENT_DECISION_MARKER + '\n{"decision":{}}'
+            return result
+
+        self.host.observe = observe
+        cards = []
+        self.consumer.on_wait = cards.append
+        result = self.pump()
+        self.assertEqual((result['flow']['status'], result['flow']['phase']), ('waiting_user', 'implement'))
+        self.assertEqual(result['flow']['attention']['reason'], 'invalid_implementation_decision')
+        self.assertNotIn('choice_id', cards[-1]['body']['elements'][1]['value'])
+        self.assertFalse(self.verification_calls)
 
     def test_invalid_decision_does_not_generate_actionable_buttons(self):
         self.host.verdict = 'discuss'

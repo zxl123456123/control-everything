@@ -388,8 +388,11 @@ def waiting_card(flow):
                 {'tag': 'button', 'text': {'tag': 'plain_text', 'content': option['label']},
                  'value': {**shared, 'decision_id': decision['decision_id'], 'choice_id': option['id']}},
             ])
+        elements.append({'tag': 'button', 'text': {'tag': 'plain_text', 'content': '暂缓'},
+                         'value': {**shared, 'reason': 'human_decision_required'}})
+        title = '实现中需要决定' if flow.get('phase') == 'implement' else '需要决定'
         return {'project_id': flow['project_id'], 'schema': '2.0',
-                'header': {'title': {'tag': 'plain_text', 'content': '需要决定'}},
+                'header': {'title': {'tag': 'plain_text', 'content': title}},
                 'body': {'elements': elements}}
     if attention.get('release_ready') is True and not attention.get('questions'):
         question = '已审方案可以开始实现吗？'

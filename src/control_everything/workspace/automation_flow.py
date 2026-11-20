@@ -187,8 +187,10 @@ class AutomationQueue:
                 choice = request['plan_choice']
                 attention = json.loads(flow['attention_json'])
                 decision = attention.get('decision') or {}
-                if (kind != 'plan' or writes_project or flow['status'] != 'waiting_user'
-                        or flow['task_id'] != choice['task_id'] or previous['kind'] != 'plan_review'
+                continuation = kind == 'implement' and writes_project and previous['kind'] == 'implement'
+                replan = kind == 'plan' and not writes_project and previous['kind'] == 'plan_review'
+                if (not (continuation or replan) or flow['status'] != 'waiting_user'
+                        or flow['task_id'] != choice['task_id']
                         or previous['id'] != choice['decision_id'] or decision.get('decision_id') != choice['decision_id']
                         or attention.get('versions', {}).get('requirement_revision') != choice['requirement_revision']
                         or not any(option == {'id': choice['choice_id'], 'label': choice['label'],
@@ -222,8 +224,9 @@ class AutomationQueue:
                 (identity, flow['id'], previous['ordinal'] + 1, kind, 0, lease.generation, int(writes_project),
                  'reserved', operation, frozen, stamp, stamp))
             if choice_authority is not None:
-                connection.execute("UPDATE automation_flows SET status='running',phase=?,attention_json='{}',"
-                                   'revision=revision+1,updated_at=? WHERE id=?', (kind, stamp, flow['id']))
+                control = {'expected_revision': attention['expected_revision']} if continuation and 'expected_revision' in attention else {}
+                connection.execute("UPDATE automation_flows SET status='running',phase=?,attention_json=?,"
+                                   'revision=revision+1,updated_at=? WHERE id=?', (kind, packed(control), stamp, flow['id']))
             else:
                 connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
                                    (kind, stamp, flow['id']))
@@ -572,7 +575,7 @@ class AutomationQueue:
     def _flow_input_problem(connection, flow):
         # Review transitions advance the task revision while keeping the frozen plan.
         attention = flow['attention']
-        expected = attention.get('expected_revision') if attention.get('reason') == 'acceptance_changes_requested' else None
+        expected = attention.get('expected_revision')
         return AutomationQueue._input_problem(connection, flow['task_id'], flow['context'], expected_revision=expected)
 
     @staticmethod
@@ -647,7 +650,7 @@ class AutomationQueue:
                 attention = flow.get('attention') or {}
                 if attention.get('release_ready') is not True and not attention.get('decision'):
                     continue
-                problem = self._input_problem(connection, flow['task_id'], flow['context'])
+                problem = self._flow_input_problem(connection, flow)
                 if problem not in ('requirement_changed', 'project_directory_changed', 'project_unavailable'):
                     continue
                 attention = {'reason': problem, 'step_id': None if step is None else step['id']}
@@ -668,6 +671,10 @@ class AutomationQueue:
                     or view['flow']['revision'] != step['flow_revision']
                     or view['step']['status'] != step['status']):
                 fail('automation_step_changed')
+            if status == 'waiting_user' and step['kind'] == 'implement':
+                expected = view['flow']['attention'].get('expected_revision')
+                if expected is not None:
+                    attention = {**attention, 'expected_revision': expected}
             connection.execute('UPDATE automation_flows SET status=?,phase=?,attention_json=?,revision=revision+1,'
                 'updated_at=? WHERE id=?', (status, phase, packed(attention), now_utc(), step['flow_id']))
             return self._view(connection, step['flow_id'])
