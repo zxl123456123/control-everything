@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_flow import AutomationQueue, reviewer_may_integrate
-from control_everything.workspace.automation_delivery_reviews import _evidence
+from control_everything.workspace.automation_delivery_reviews import _delivery_verification, _evidence
 from control_everything.workspace.native_progress import body_fields, check_versions, digest, fail, packed, row_view, task_access
 from control_everything.workspace.store import now_utc
 
@@ -94,7 +94,7 @@ def register_target(service, task_id, body):
         connection.execute('BEGIN IMMEDIATE')
         item = task_access(connection,task_id,writable=True)
         view = AutomationQueue._view(connection,body['flow_id'])
-        flow, verify = view['flow'],view['step']
+        flow = view['flow']
         if not flow or flow['task_id'] != task_id or flow['project_id'] != item['project_id']:
             fail('automation_step_changed')
         previous = flow['attention'].get('integration_target')
@@ -104,6 +104,7 @@ def register_target(service, task_id, body):
             return {'flow':flow,'integration_target':previous,'recorded':True,'replayed':True}
         check_versions(item,body)
         delivery = row_view(connection.execute('SELECT * FROM task_deliveries WHERE id=? AND task_id=?',(body['delivery_id'],task_id)).fetchone())
+        verify = _delivery_verification(connection, delivery, view['step'])
         review = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=? AND task_id=?',(body['review_id'],task_id)).fetchone())
         attention = flow['attention']
         if (flow['revision'] != body['expected_flow_revision'] or flow['status'] != 'waiting_external' or flow['phase'] != 'integration'

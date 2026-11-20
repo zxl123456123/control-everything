@@ -163,7 +163,7 @@ class AutomationQueue:
                 if current['kind'] == 'integrate':
                     self._accepted(connection, row_view(flow), row_view(current))
                 else:
-                    problem = self._input_problem(connection, flow['task_id'], json.loads(flow['context_json']))
+                    problem = self._flow_input_problem(connection, row_view(flow))
                 if problem:
                     fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             stamp = now_utc()
@@ -191,8 +191,7 @@ class AutomationQueue:
             if (current['status'] != 'completed' or flow['status'] != 'running'
                     or current['flow_revision'] != previous['flow_revision']):
                 fail('automation_step_changed')
-            context = json.loads(flow['context_json'])
-            problem = self._input_problem(connection, flow['task_id'], context)
+            problem = self._flow_input_problem(connection, row_view(flow))
             if problem:
                 fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             if writes_project and connection.execute('SELECT 1 FROM automation_steps s '
@@ -235,7 +234,7 @@ class AutomationQueue:
             if used >= 2:
                 fail('repair_budget_exhausted')
             context = json.loads(flow['context_json'])
-            problem = self._input_problem(connection, flow['task_id'], context)
+            problem = self._flow_input_problem(connection, row_view(flow))
             if problem:
                 fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             if connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
@@ -279,11 +278,17 @@ class AutomationQueue:
                        if json.loads(row['request_json']).get('repair_of'))
             if used >= 2:
                 fail('repair_budget_exhausted')
+            problem = self._flow_input_problem(connection, flow)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             source = current
             if current['kind'] == 'code_review':
-                source = self._step(connection, current['request']['verify_step_id'])
+                source = row_view(self._step(connection, current['request']['verify_step_id']))
+            references = {key: source['request'][key] for key in
+                          ('plan_step_id', 'review_step_id', 'plan_hash', 'review_hash', 'versions')}
             frozen = packed({'context': flow['context'], **request, 'repair_of': {
                 'review_id': attention.get('review_id'), 'round': used + 1},
+                **references,
                 'requires_code_review': source['request'].get('requires_code_review') is True})
             identity, stamp = str(uuid4()), now_utc()
             connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
@@ -361,7 +366,7 @@ class AutomationQueue:
             if flow['status'] != 'running' or flow['revision'] != step['flow_revision']:
                 fail('automation_step_changed')
             context, request = flow['context'], current['request']
-            problem = self._input_problem(connection, flow['task_id'], context)
+            problem = self._flow_input_problem(connection, flow)
             if problem:
                 fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
             records = {kind: row_view(self._step(connection, request.get(kind + '_step_id'))) for kind in
@@ -461,8 +466,9 @@ class AutomationQueue:
                 fail('automation_step_changed')
             self._accepted(connection, flow)
             identity, stamp = str(uuid4()), now_utc()
+            verify = row_view(self._step(connection, snapshot['verify_step_id']))
             request = {'integration_target': snapshot, 'registered_flow_revision': flow['revision'],
-                       'verify_result': previous['result'], 'context': flow['context']}
+                       'verify_result': verify['result'], 'context': flow['context']}
             connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
                 'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
                 (identity,flow_id,previous['ordinal']+1,'integrate',0,lease.generation,1,'reserved',
@@ -539,10 +545,17 @@ class AutomationQueue:
             if step['kind'] == 'integrate':
                 self._accepted(connection, view['flow'], view['step'])
                 return None
-            return self._input_problem(connection, view['flow']['task_id'], view['flow']['context'])
+            return self._flow_input_problem(connection, view['flow'])
 
     @staticmethod
-    def _input_problem(connection, task_id, context):
+    def _flow_input_problem(connection, flow):
+        # Review transitions advance the task revision while keeping the frozen plan.
+        attention = flow['attention']
+        expected = attention.get('expected_revision') if attention.get('reason') == 'acceptance_changes_requested' else None
+        return AutomationQueue._input_problem(connection, flow['task_id'], flow['context'], expected_revision=expected)
+
+    @staticmethod
+    def _input_problem(connection, task_id, context, *, expected_revision=None):
         try:
             item = task_access(connection, task_id, writable=True)
         except ProfileError as error:
@@ -550,7 +563,8 @@ class AutomationQueue:
                 return 'project_unavailable'
             raise
         brief = dispatch._brief(connection, item['id'])
-        if (item['revision'] != context['requirement_revision'] or brief['revision'] != context['brief_revision']):
+        revision = context['requirement_revision'] if expected_revision is None else expected_revision
+        if (item['revision'] != revision or brief['revision'] != context['brief_revision']):
             return 'requirement_changed'
         try:
             directory = dispatch._directory(connection, item['project_id'], brief['execution_directory_id'])

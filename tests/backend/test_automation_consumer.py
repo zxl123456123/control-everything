@@ -704,6 +704,30 @@ class ConsumerTests(AutomationQueueFixture):
             repairs = [row for row in connection.execute("SELECT request_json FROM automation_steps WHERE kind='implement'")]
         self.assertEqual(sum(1 for row in repairs if json.loads(row['request_json']).get('repair_of')), 2)
 
+    def test_feature_acceptance_requests_repair_and_rechecks_second_delivery(self):
+        from control_everything.workspace.automation_human_decisions import apply_waiting_reply
+
+        self.host.kind = 'feature'
+        self.configure_verification()
+        self.service.check_verification = self.consumer.check_verification
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        release = cards[-1]['body']['elements'][1]['value']
+        apply_waiting_reply(self.consumer, waiting['flow'], release, 'owner')
+        first = self.pump()
+        self.assertEqual(first['flow']['status'], 'awaiting_acceptance')
+        self.assertEqual(first['step']['kind'], 'code_review')
+        changes = cards[-1]['body']['elements'][2]['value']
+        body = {key: changes[key] for key in ('delivery_id', 'verdict', 'expected_revision', 'progress_revision')}
+        self.service.review_task_delivery(self.item['id'], {
+            **body, 'reason': 'Correct the work', 'confirmed': True, 'client_token': 'first-review'})
+        second = self.pump()
+        self.assertEqual(second['flow']['status'], 'awaiting_acceptance')
+        self.assertEqual(second['flow']['id'], first['flow']['id'])
+        self.assertEqual(second['step']['kind'], 'code_review')
+        self.assertNotEqual(second['flow']['attention']['delivery_id'], body['delivery_id'])
+
     def _store_release(self, flow_id, revision, message_id='om-release'):
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
         binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,

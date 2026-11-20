@@ -1,4 +1,5 @@
 """Human local-owner decisions for verified automation deliveries."""
+import json
 from uuid import uuid4
 
 from control_everything.input_validation import ProfileError
@@ -18,7 +19,8 @@ def _current(connection, task_id, body):
         fail('delivery_changed')
     material = delivery['material']
     view = AutomationQueue._view(connection, material['flow_id'])
-    flow, verify = view['flow'],view['step']
+    flow, latest = view['flow'], view['step']
+    verify = _delivery_verification(connection, delivery, latest)
     if (not flow or not verify or flow['task_id'] != task_id or flow['project_id'] != item['project_id']
             or flow['status'] != 'awaiting_acceptance' or verify['kind'] != 'verify' or verify['status'] != 'completed'
             or verify['id'] != delivery['source_key'] or verify['id'] != material['verify_step_id']
@@ -28,6 +30,32 @@ def _current(connection, task_id, body):
         fail('delivery_changed')
     _evidence(connection, item, flow, verify, material)
     return item,delivery,flow,verify
+
+
+def _delivery_verification(connection, delivery, latest):
+    if not delivery or not latest:
+        return None
+    if (latest['kind'] == 'code_review' and latest['status'] == 'completed'
+            and latest['request'].get('verify_step_id') == delivery['source_key']):
+        verify = row_view(AutomationQueue._step(connection, delivery['source_key']))
+        return verify if verify and verify['flow_id'] == latest['flow_id'] else None
+    return latest
+
+
+def _review_approved(connection, verify):
+    gate = row_view(connection.execute(
+        'SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
+        (verify['flow_id'], verify['ordinal'] + 1)).fetchone())
+    if (not gate or gate['kind'] != 'code_review' or gate['status'] != 'completed'
+            or gate['request'].get('verify_step_id') != verify['id']
+            or gate['request'].get('implement_step_id') != verify['request'].get('implement_step_id')
+            or gate['request'].get('implement_hash') != verify['request'].get('implement_hash')):
+        return False
+    try:
+        verdict = json.loads(gate['result'].get('text'))
+    except (TypeError, ValueError):
+        return False
+    return isinstance(verdict, dict) and verdict.get('verdict') == 'approve'
 
 
 def _evidence(connection, item, flow, verify, material, *, exclude_step_id=None):
@@ -60,7 +88,12 @@ def _evidence(connection, item, flow, verify, material, *, exclude_step_id=None)
             or request['verification'] != context['input']['request'].get('verification')
             or any(request['scope'] != {key:record['request']['params'].get(key) for key in
                    ('runtimeId','environmentId','repoId','worktreeId','cwd')} for record in records.values())
-            or planning_outcome(plan,review)['action'] != 'implement'):
+            or verify['flow_id'] != flow['id']):
+        fail('automation_delivery_unverified')
+    outcome = planning_outcome(plan, review)
+    if ((outcome['requires_code_review'] or request.get('requires_code_review') is True)
+            and not _review_approved(connection, verify)
+            or outcome['action'] != 'implement' and outcome.get('release_ready') is not True):
         fail('automation_delivery_unverified')
     for record, model in ((plan,'gpt-6-astra'),(review,'gpt-6-astra'),(implement,'gpt-6.1-sol')):
         if (record['request']['params'].get('model') != model
