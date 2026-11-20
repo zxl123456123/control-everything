@@ -1,18 +1,24 @@
 """Automation intake storage and migration preserve project-owned facts."""
 
+import hashlib
 import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import sys
 from unittest.mock import Mock, patch
 from concurrent.futures import ThreadPoolExecutor
 
 from control_everything.profiles.profile import DEFAULT_CONFIG, Profile, ProfileError
 from control_everything.profiles import profile_import as backups, task_migration
 from control_everything.workspace import dispatch, task_schema
+from control_everything.workspace.automation_events import apply_feishu_assignments
+from control_everything.workspace.automation_identities import IdentityService, decision_authorized
+from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
 from control_everything.workspace.service import WorkspaceService
+from tests.backend.test_automation_queue import bind_actor
 from tests.backend.test_project_management import project_body
 
 
@@ -138,6 +144,93 @@ class AutomationEventStorageTests(unittest.TestCase):
             (identity, 'local', 'request-one', self.item['id'], self.project['id'], 'local-owner',
              'auto_enabled', 1, 0, 'frozen-hash', '{"request":"Explicit request"}', '2026-11-13T00:00:00Z'))
 
+    def assignment_context(self):
+        project = self.project['id']
+        device = {'hub_origin': 'https://hub.example.test', 'device_id': 'device',
+                  'generation': 1, 'credential_revision': 1}
+        ids = bind_actor(self.profile.store, project, 'initiator'), bind_actor(self.profile.store, project, 'reviewer')
+        identity = IdentityService(self.profile.store, lambda: device)
+        return device, ids, identity
+
+    def receive_assignment(self, device, event_id, **changes):
+        payload = {'kind': 'feishu_new_task', 'project_id': self.project['id'], 'app_id': 'app',
+                   'producer_id': 'father', 'channel_account_id': 'account', 'chat_id': 'chat',
+                   'actor_open_id': 'initiator', 'message_id': 'om-' + event_id,
+                   'assignment': {'namespace': 'control-everything.automation.v1', 'text': 'New title\nFull scope.'}}
+        payload.update(changes)
+        source = 'feishu:' + hashlib.sha256(b'["account","app"]').hexdigest()
+        RemoteAutomationInbox(self.profile.store).receive(device, {
+            'id': event_id, 'event_id': event_id, 'source': source, 'lease_id': 'fixture', 'lease_expires_at': 10,
+            'payload': payload})
+
+    def test_granted_new_assignment_creates_one_task_brief_acceptor_and_frozen_event(self):
+        device, ids, identity = self.assignment_context()
+        project = self.project['id']
+        store = self.profile.store
+        spec = {'argv': [sys.executable, 'verify.py'], 'source_files': ['verify.py'], 'timeout': 10}
+        self.service().set_project_automation_verification(project, {'directory_id': 'main', 'verification': spec})
+        identity.set_assignment_grant(project, *ids, 'main', True)
+        self.receive_assignment(device, 'new')
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(lambda _: apply_feishu_assignments(store, device)[0], range(6)))
+        event = results[0]['event']
+        task_id = event['task_id']
+        self.assertEqual(sum(not row['replayed'] for row in results), 1)
+        self.assertEqual({row['event']['id'] for row in results}, {event['id']})
+        self.assertEqual(self.profile.store.get_item(task_id)['title'], 'New title')
+        self.assertEqual(event['payload']['brief']['request_text'], 'New title\nFull scope.')
+        self.assertEqual(event['payload']['brief']['execution_directory_id'], 'main')
+        self.assertEqual(event['payload']['request'], {'agent': 'codex', 'worktree_id': 'main', 'verification': spec})
+        self.assertEqual(event['brief_revision'], 1)
+        self.assertEqual(event['actor_id'], 'initiator')
+        self.assertTrue(decision_authorized(store, 'reviewer', task_id=task_id,
+                        trusted={'project_id': project, 'app_id': 'app'}, device=device))
+        self.assertFalse(decision_authorized(store, 'initiator', task_id=task_id,
+                         trusted={'project_id': project, 'app_id': 'app'}, device=device))
+        self.service().set_project_automation_verification(project, {'directory_id': 'main', 'verification': None})
+        self.assertEqual(apply_feishu_assignments(store, device)[0]['event'], event)
+        from control_everything.workspace.automation_flow import AutomationQueue
+        queue = AutomationQueue(store)
+        claimed = queue.claim(queue.acquire(), event['id'])
+        self.assertEqual(claimed['flow']['context']['input']['request']['verification'], spec)
+        with store.connection() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM task_items').fetchone()[0], 2)
+            self.assertEqual(db.execute('SELECT count(*) FROM task_briefs').fetchone()[0], 1)
+            self.assertEqual(db.execute('SELECT count(*) FROM automation_task_acceptors').fetchone()[0], 1)
+
+    def test_binding_alone_old_messages_and_wrong_producer_cannot_initiate(self):
+        device, ids, identity = self.assignment_context()
+        store = self.profile.store
+        self.receive_assignment(device, 'before-grant')
+        self.assertEqual(apply_feishu_assignments(store, device), [])
+        identity.set_assignment_grant(self.project['id'], *ids, 'main', True)
+        self.receive_assignment(device, 'wrong-producer', producer_id='other')
+        self.receive_assignment(device, 'wrong-chat', chat_id='other')
+        self.receive_assignment(device, 'reviewer-only', actor_open_id='reviewer')
+        self.assertEqual(apply_feishu_assignments(store, device), [])
+        identity.set_assignment_grant(self.project['id'], *ids, 'main', False)
+        self.receive_assignment(device, 'after-revoke')
+        self.assertEqual(apply_feishu_assignments(store, device), [])
+        with store.connection() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM task_items').fetchone()[0], 1)
+
+    def test_missing_reviewer_or_changed_directory_blocks_new_assignment(self):
+        device, ids, identity = self.assignment_context()
+        store = self.profile.store
+        project = self.project['id']
+        with self.assertRaisesRegex(ValueError, 'assignment_binding_unavailable'):
+            identity.set_assignment_grant(project, ids[0], '0' * 32, 'main', True)
+        identity.set_assignment_grant(project, *ids, 'main', True)
+        with store.connection() as db:
+            db.execute('UPDATE project_directories SET path=? WHERE project_id=?', (str(self.root / 'changed'), project))
+        self.receive_assignment(device, 'changed-directory')
+        self.assertEqual(apply_feishu_assignments(store, device), [])
+        identity.set_assignment_grant(project, *ids, 'main', True)
+        with store.connection() as db:
+            db.execute("UPDATE automation_identity_bindings SET state='revoked' WHERE id=?", (ids[1],))
+        self.receive_assignment(device, 'revoked-reviewer')
+        self.assertEqual(apply_feishu_assignments(store, device), [])
+
     def test_source_event_is_unique_and_old_writers_cannot_change_receipts(self):
         with self.profile.store.connection() as connection:
             self.insert_event(connection)
@@ -185,8 +278,27 @@ class AutomationEventStorageTests(unittest.TestCase):
             task_schema.validate_schema(connection, 10)
             self.assertEqual(task_schema.table_facts(connection, 10), before)
         result = task_migration.migrate_tasks(str(root))
-        self.assertEqual(result['schema_version'], 17)
+        self.assertEqual(result['schema_version'], 18)
         self.assertEqual(backups.validate_backup(result['backup'])['schema_version'], 10)
         with Profile.open(str(root)).store.connection() as connection:
             self.assertEqual(task_schema.table_facts(connection, 10), before)
             self.assertEqual(connection.execute('SELECT COUNT(*) FROM automation_events').fetchone()[0], 0)
+
+    def test_schema17_upgrade_preserves_configured_verifier(self):
+        root = self.root / 'schema17'
+        root.mkdir()
+        (root / 'profile.json').write_text(json.dumps(DEFAULT_CONFIG), encoding='utf-8')
+        with closing(sqlite3.connect(root / 'workspace-state.sqlite3')) as db:
+            task_schema.install_schema16(db, fresh=True)
+            task_schema.install_schema17(db)
+            db.execute("INSERT INTO projects VALUES('project','Project',0,'then','then',0)")
+            db.execute("INSERT INTO project_directories VALUES('project','main','fixture','fixture',1)")
+            db.execute("INSERT INTO automation_project_verification VALUES('project','main','fixture','{}')")
+            db.commit()
+        result = task_migration.migrate_tasks(str(root))
+        self.assertEqual(result['schema_version'], 18)
+        self.assertEqual(backups.validate_backup(result['backup'])['schema_version'], 17)
+        with Profile.open(str(root)).store.connection() as db:
+            self.assertEqual(tuple(db.execute('SELECT * FROM automation_project_verification').fetchone()),
+                             ('project', 'main', 'fixture', '{}'))
+            self.assertEqual(db.execute('SELECT count(*) FROM automation_assignment_grants').fetchone()[0], 0)

@@ -567,12 +567,12 @@ index 0000000..20d510d
 +});
 diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feishu/src/automation-card-ingress.ts
 new file mode 100644
-index 0000000..9fd26c0
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,287 @@
+@@ -0,0 +1,322 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
++import type { FeishuMessageEvent } from "./event-types.js";
 +
 +
 +export function hubOriginAllowed(value: string): boolean {
@@ -671,6 +671,7 @@ index 0000000..9fd26c0
 +    "progress_revision",
 +    "verdict",
 +  ];
++  const choiceKeys = ["namespace", "task_id", "flow_id", "requirement_revision", "decision_id", "choice_id"];
 +  let posted: Record<string, unknown> | undefined;
 +  if (
 +    decision.namespace === "control-everything.identity.v1" &&
@@ -678,6 +679,9 @@ index 0000000..9fd26c0
 +    ["challenge_id", "nonce"].every(bounded)
 +  )
 +    posted = { binding: decision };
++  else if (decision.namespace === "control-everything.automation.v1" && exact(choiceKeys) &&
++    ["task_id", "flow_id", "decision_id", "choice_id"].every(bounded) && revision("requirement_revision"))
++    posted = { plan_choice: decision };
 +  else if (
 +    decision.namespace === "control-everything.automation.v1" &&
 +    (exact(decisionKeys) || exact([...decisionKeys, "flow_id"])) &&
@@ -730,27 +734,28 @@ index 0000000..9fd26c0
 +  )
 +    posted = {};
 +  if (!posted || !eventId || !message || !actor || chat !== config.chatId) return fail();
-+  const origin = new URL(config.hubOrigin);
-+  if (!hubOriginAllowed(config.hubOrigin)) return fail();
-+  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
 +  if (Object.keys(posted).length === 0) return;
++  await postAutomationEvent(config, active, signal, {
++    event_id: eventId, chat_id: chat, message_id: message, actor_open_id: actor, ...posted,
++  });
++}
++
++type Ingress = NonNullable<ResolvedFeishuAccount["automationIngress"]>;
++
++async function postAutomationEvent(config: Ingress, active: () => boolean,
++  signal: AbortSignal | undefined, event: Record<string, unknown>): Promise<void> {
++  if (!hubOriginAllowed(config.hubOrigin)) throw new Error("Invalid automation Hub origin");
++  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
 +  let response: Response;
 +  try {
-+    response = await fetch(`${origin.origin}/remote/producer/automation/receive`, {
++    response = await fetch(`${config.hubOrigin}/remote/producer/automation/receive`, {
 +      method: "POST",
 +      redirect: "error",
 +      signal: signal
 +        ? AbortSignal.any([signal, AbortSignal.timeout(15000)])
 +        : AbortSignal.timeout(15000),
 +      headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
-+      body: JSON.stringify({
-+        producer_id: config.producerId,
-+        event_id: eventId,
-+        chat_id: chat,
-+        message_id: message,
-+        actor_open_id: actor,
-+        ...posted,
-+      }),
++      body: JSON.stringify({ producer_id: config.producerId, ...event }),
 +    });
 +  } catch {
 +    throw new Error("Automation ingress transport failed");
@@ -761,15 +766,44 @@ index 0000000..9fd26c0
 +  try {
 +    receipt = await response.json();
 +  } catch {
-+    return fail();
++    throw new Error("Invalid automation card ingress");
 +  }
 +  if (
 +    !isRecord(receipt) ||
-+    !text(receipt.id) ||
++    typeof receipt.id !== "string" || !receipt.id.trim() ||
 +    typeof receipt.state !== "string" ||
 +    !["pending", "acknowledged"].includes(receipt.state)
 +  )
-+    return fail();
++    throw new Error("Invalid automation card ingress");
++}
++
++export async function receiveAutomationAssignment(event: FeishuMessageEvent, botOpenId: string | undefined,
++  config: Ingress | undefined, active: () => boolean, signal?: AbortSignal): Promise<boolean> {
++  const { message, sender } = event;
++  if (!config || !botOpenId || message.chat_type !== "group" || message.chat_id !== config.chatId ||
++      message.message_type !== "text" || message.parent_id || message.root_id || sender.sender_type !== "user")
++    return false;
++  const actor = sender.sender_id.open_id?.trim();
++  const mention = message.mentions?.find((entry) => entry.id.open_id === botOpenId)?.key;
++  if (!actor || actor === botOpenId || !mention || !message.message_id) return false;
++  let content: unknown;
++  try {
++    content = JSON.parse(message.content);
++  } catch {
++    return false;
++  }
++  if (!isRecord(content) || typeof content.text !== "string") return false;
++  const raw = content.text.trim();
++  if (!raw.startsWith(mention)) return false;
++  const command = raw.slice(mention.length).trimStart();
++  if (!/^开发[：:]/u.test(command)) return false;
++  const requirement = command.slice(3).trim();
++  if (!requirement || [...requirement].length > 4000 || requirement.includes("\0")) return false;
++  await postAutomationEvent(config, active, signal, {
++    event_id: message.message_id, message_id: message.message_id, chat_id: message.chat_id, actor_open_id: actor,
++    new_task: { namespace: "control-everything.automation.v1", text: requirement },
++  });
++  return true;
 +}
 +
 +const PLAN = "按已审方案实现";
@@ -1426,12 +1460,12 @@ index 0000000..5dd018f
 +}
 diff --git a/extensions/feishu/src/automation-reply.test.ts b/extensions/feishu/src/automation-reply.test.ts
 new file mode 100644
-index 0000000..2b31d50
 --- /dev/null
 +++ b/extensions/feishu/src/automation-reply.test.ts
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,122 @@
 +import { describe, expect, it, vi } from "vitest";
-+import { receiveAutomationReply } from "./automation-card-ingress.js";
++import { receiveAutomationAssignment, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
++import type { FeishuMessageEvent } from "./event-types.js";
 +
 +const config = {
 +  hubOrigin: "https://hub.example.test",
@@ -1439,6 +1473,63 @@ index 0000000..2b31d50
 +  chatId: "oc-chat",
 +  token: "producer-fixture",
 +};
++
++function command(text: string): FeishuMessageEvent {
++  return {
++    sender: { sender_type: "user", sender_id: { open_id: "ou-operator" } },
++    message: { chat_id: config.chatId, chat_type: "group", message_id: "om-request", message_type: "text",
++      content: JSON.stringify({ text }), mentions: [{ id: { open_id: "ou-bot" }, key: "@_user_1", name: "bot" }] },
++  };
++}
++
++describe("explicit development commands and choices", () => {
++  it("uses the original mention and message ID from a plain group text", async () => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++      Response.json({ id: "receipt", state: "pending" }));
++    try {
++      await expect(receiveAutomationAssignment(command("@_user_1 开发：新增任务筛选"), "ou-bot", config, () => true))
++        .resolves.toBe(true);
++      expect(fetch).toHaveBeenCalledTimes(1);
++      expect(JSON.parse(fetch.mock.calls[0][1]!.body as string)).toEqual({
++        producer_id: "father", event_id: "om-request", message_id: "om-request", chat_id: "oc-chat",
++        actor_open_id: "ou-operator",
++        new_task: { namespace: "control-everything.automation.v1", text: "新增任务筛选" },
++      });
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it.each(["ordinary", "no-mention", "quoted", "robot", "wrong-group"])("ignores %s", async (kind) => {
++    const fetch = vi.spyOn(globalThis, "fetch");
++    try {
++      const event = command(kind === "ordinary" ? "@_user_1 聊聊开发" : "@_user_1 开发：新增任务筛选");
++      if (kind === "no-mention") event.message.mentions = [];
++      if (kind === "quoted") event.message.parent_id = "om-quoted";
++      if (kind === "robot") event.sender.sender_type = "app";
++      if (kind === "wrong-group") event.message.chat_id = "oc-other";
++      await expect(receiveAutomationAssignment(event, "ou-bot", config, () => true)).resolves.toBe(false);
++      expect(fetch).not.toHaveBeenCalled();
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it("forwards only the selected option identity from the SDK callback", async () => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++      Response.json({ id: "receipt", state: "pending" }));
++    const value = { namespace: "control-everything.automation.v1", task_id: "task", flow_id: "flow",
++      requirement_revision: 4, decision_id: "decision", choice_id: "incremental" };
++    try {
++      await receiveAutomationCard({ data: { event_id: "evt", operator: { open_id: "ou-operator" },
++        context: { open_chat_id: config.chatId, open_message_id: "om-card" }, action: { value } },
++        config, active: () => true });
++      expect(JSON.parse(fetch.mock.calls[0][1]!.body as string).plan_choice).toEqual(value);
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++});
 +const planCard = {
 +  schema: "2.0",
 +  body: { elements: [{ tag: "markdown" }, { tag: "button", value: {
@@ -1602,17 +1693,20 @@ index 32a9caa..4228106 100644
 +    return { eventId, eventType, laneKey: `automation:${eventId}` };
 +  }
 diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
-index 1cb5164..e796bec 100644
 --- a/extensions/feishu/src/monitor.account.ts
 +++ b/extensions/feishu/src/monitor.account.ts
-@@ -10,0 +11,3 @@ import { raceWithTimeoutAndAbort } from "./async.js";
-+import { isAutomationCard, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
+@@ -10,0 +11,3 @@
++import { isAutomationCard, receiveAutomationAssignment, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
 +import { runIdentitySender } from "./automation-identity-sender.js";
 +import { runOutboundSender } from "./automation-outbound-sender.js";
-@@ -178,0 +182 @@ type RegisterEventHandlersContext = {
+@@ -178,0 +182 @@
 +  automationIngress?: ResolvedFeishuAccount["automationIngress"];
-@@ -332 +336,9 @@ function registerEventHandlers(
+@@ -332 +336,13 @@
 -      handleMessage: handleFeishuMessage,
++      handleAutomationAssignment: (event, botOpenId, signal) => receiveAutomationAssignment(
++        event, botOpenId, context.automationIngress, context.isAccountActive,
++        signal && context.abortSignal ? AbortSignal.any([signal, context.abortSignal]) : signal ?? context.abortSignal,
++      ),
 +      handleMessage: async (params) => {
 +        if (await receiveAutomationReply({
 +          event: params.event,
@@ -1622,7 +1716,7 @@ index 1cb5164..e796bec 100644
 +        })) return;
 +        await handleFeishuMessage(params);
 +      },
-@@ -355,0 +368,12 @@ function registerEventHandlers(
+@@ -355,0 +372,12 @@
 +      if (isAutomationCard(data)) {
 +        await receiveAutomationCard({
 +          data,
@@ -1635,7 +1729,7 @@ index 1cb5164..e796bec 100644
 +        await context.resolveIngressLifecycle(data)?.onAdopted();
 +        return;
 +      }
-@@ -474,0 +499,20 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
+@@ -474,0 +503,20 @@
 +    if (account.automationIngress) {
 +      trackTask(
 +        runIdentitySender({
@@ -1656,8 +1750,28 @@ index 1cb5164..e796bec 100644
 +        }),
 +      );
 +    }
-@@ -485,0 +530 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
+@@ -485,0 +534 @@
 +      automationIngress: account.automationIngress,
+diff --git a/extensions/feishu/src/monitor.message-handler.ts b/extensions/feishu/src/monitor.message-handler.ts
+--- a/extensions/feishu/src/monitor.message-handler.ts
++++ b/extensions/feishu/src/monitor.message-handler.ts
+@@ -32,0 +33,2 @@
++  handleAutomationAssignment?: (event: FeishuMessageEvent, botOpenId: string | undefined,
++    signal: AbortSignal | undefined) => Promise<boolean>;
+@@ -137,0 +140 @@
++  handleAutomationAssignment,
+@@ -404,0 +408,11 @@
++    try {
++      if (await handleAutomationAssignment?.(event, botOpenId, turnAdoptionLifecycle?.abortSignal)) {
++        if (claim.kind === "claimed") await claim.handle.commit();
++        await completeSuppressedIngress();
++        return undefined;
++      }
++    } catch (error) {
++      if (claim.kind === "claimed") claim.handle.release({ error });
++      await turnAdoptionLifecycle?.onAbandoned();
++      return { kind: "failed-retryable", error };
++    }
 diff --git a/extensions/feishu/src/secret-contract.test.ts b/extensions/feishu/src/secret-contract.test.ts
 index 176ef13..190f74a 100644
 --- a/extensions/feishu/src/secret-contract.test.ts

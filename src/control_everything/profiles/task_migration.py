@@ -345,7 +345,9 @@ def migrate_tasks(data_dir):
             if version < 16:
                 tasks.add_schema16(connection)
                 tasks.finish_schema16(connection)
-            tasks.install_schema17(connection)
+            if version < 17:
+                tasks.install_schema17(connection)
+            tasks.install_schema18(connection)
             phase = 'validate'
             tasks.validate_schema(connection, tasks.SCHEMA_VERSION)
             integrity(connection)

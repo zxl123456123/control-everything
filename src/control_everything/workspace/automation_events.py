@@ -1,5 +1,6 @@
 """Durable intake for explicit local-owner automation requests; never starts an agent."""
 
+import hashlib
 import json
 import math
 import os
@@ -9,9 +10,9 @@ from uuid import uuid4
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace import dispatch, task_messages
-from control_everything.workspace.automation_identities import decision_authorized, trusted_context
+from control_everything.workspace.automation_identities import confirmed_identity, decision_authorized, trusted_context
 from control_everything.workspace.native_progress import body_fields, check_versions, digest, packed, task_access
-from control_everything.workspace.store import now_utc
+from control_everything.workspace.store import WorkspaceError, now_utc
 
 
 def event_view(row):
@@ -28,7 +29,7 @@ def apply_feishu_assignments(store, binding):
     if any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
         return []
     with store.connection() as db:
-        rows = db.execute('''SELECT event_id, payload_json FROM automation_remote_inbox
+        rows = db.execute('''SELECT source,event_id,received_at,payload_json FROM automation_remote_inbox
             WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
             ORDER BY received_at,message_id''',
             (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
@@ -39,8 +40,18 @@ def apply_feishu_assignments(store, binding):
         except (TypeError, ValueError):
             continue
         assignment = payload.get('assignment') if type(payload) is dict else None
-        if (payload.get('kind') != 'feishu_assignment' or type(assignment) is not dict
-                or assignment.get('text') != ASSIGNMENT or not isinstance(payload.get('actor_open_id'), str)):
+        if type(payload) is not dict or type(assignment) is not dict:
+            continue
+        if payload.get('kind') == 'feishu_new_task':
+            try:
+                result = _accept_new_feishu_task(store, binding, row, payload)
+            except (ProfileError, WorkspaceError, UnicodeError):
+                continue
+            if result is not None:
+                applied.append(result)
+            continue
+        if (payload.get('kind') != 'feishu_assignment' or assignment.get('text') != ASSIGNMENT
+                or not isinstance(payload.get('actor_open_id'), str)):
             continue
         if not decision_authorized(store, payload['actor_open_id'], task_id=assignment.get('task_id'),
                                    trusted=trusted_context(payload), device=binding):
@@ -54,6 +65,82 @@ def apply_feishu_assignments(store, binding):
         if result['action'] == 'execute':
             applied.append(result)
     return applied
+
+
+def _project_verification(connection, project_id, directory):
+    saved = connection.execute(
+        'SELECT spec_json FROM automation_project_verification WHERE project_id=? AND binding_id=? AND directory_path=?',
+        (project_id, directory['binding_id'], directory['path'])).fetchone()
+    return json.loads(saved['spec_json']) if saved else None
+
+
+def _accept_new_feishu_task(store, device, inbox, payload):
+    assignment = payload['assignment']
+    context_fields = ('app_id', 'producer_id', 'channel_account_id', 'chat_id')
+    if (set(assignment) != {'namespace', 'text'}
+            or assignment['namespace'] != 'control-everything.automation.v1'
+            or not all(type(payload.get(key)) is str and payload[key]
+                       for key in (*context_fields, 'actor_open_id', 'project_id', 'message_id'))):
+        return None
+    text = task_messages._text(assignment['text'], 'assignment', 4000, required=True).strip()
+    account_app = json.dumps([payload['channel_account_id'], payload['app_id']], ensure_ascii=True, separators=(',', ':'))
+    if inbox['source'] != 'feishu:' + hashlib.sha256(account_app.encode('utf-8')).hexdigest():
+        return None
+    actor, project = payload['actor_open_id'], payload['project_id']
+    origin = 'feishu-new:' + digest([device['hub_origin'], inbox['source']])
+    event_id = inbox['event_id']
+    request_hash = digest(payload)
+    with store.connection() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        existing = connection.execute('SELECT * FROM automation_events WHERE source_instance=? AND source_event_id=?',
+                                      (origin, event_id)).fetchone()
+        if existing is not None:
+            if existing['request_hash'] != request_hash:
+                raise ProfileError('automation_event_conflict', status=409)
+            return {'action': 'execute', 'event': event_view(existing), 'replayed': True}
+        grants = connection.execute('''SELECT g.* FROM automation_assignment_grants g
+            JOIN projects p ON p.id=g.project_id JOIN automation_identity_bindings b ON b.id=g.binding_id
+            JOIN automation_identity_candidates c ON c.id=b.candidate_id
+            WHERE g.project_id=? AND p.archived=0 AND c.open_id=? AND c.app_id=? AND g.set_at<=?''',
+            (project, actor, payload['app_id'], inbox['received_at'])).fetchall()
+        expected_context = tuple(payload[key] for key in context_fields)
+        choices = []
+        for grant in grants:
+            initiator = confirmed_identity(connection, project, grant['binding_id'], device)
+            reviewer = confirmed_identity(connection, project, grant['reviewer_binding_id'], device)
+            if (initiator and reviewer and tuple(initiator)[1:] == tuple(reviewer)[1:] == expected_context):
+                choices.append((grant, reviewer))
+        if len(choices) != 1:
+            return None
+        grant, reviewer = choices[0]
+        directory = dispatch._directory(connection, project, grant['directory_id'])
+        if directory['path'] != grant['directory_path']:
+            return None
+        stamp = now_utc()
+        item = store._create_item(connection, {
+            'title': text.splitlines()[0], 'project_id': project, 'provider_id': None,
+            'state': 'todo', 'session_key': None
+        }, source='feishu', created_at=stamp, updated_at=stamp)
+        task_id = item['id']
+        connection.execute('''INSERT INTO task_briefs
+            (task_id,request_text,acceptance_text,constraints_text,references_json,execution_directory_id,revision,updated_at)
+            VALUES(?,?,?,?,?,?,1,?)''', (task_id, text, '', '', '[]', directory['binding_id'], stamp))
+        connection.execute('INSERT INTO automation_task_acceptors(task_id,app_id,open_id,set_at) VALUES(?,?,?,?)',
+                           (task_id, reviewer['app_id'], reviewer['open_id'], stamp))
+        request = {'agent': 'codex', 'worktree_id': directory['binding_id']}
+        verification = _project_verification(connection, project, directory)
+        if verification is not None:
+            request['verification'] = verification
+        queued = {'request': request, 'title': item['title'], 'brief': dispatch._brief(connection, task_id),
+                  'directory': directory, 'assignment_text': text}
+        identity = str(uuid4())
+        connection.execute('''INSERT INTO automation_events
+            (id,source_instance,source_event_id,task_id,project_id,actor_id,authorization,
+             requirement_revision,brief_revision,request_hash,payload_json,received_at)
+            VALUES(?,?,?,?,?,?,'explicit_assignment',?,?,?,?,?)''',
+            (identity, origin, event_id, task_id, project, actor, item['revision'], 1, request_hash, packed(queued), stamp))
+        return {'action': 'execute', 'event': event_view(connection.execute(
+            'SELECT * FROM automation_events WHERE id=?', (identity,)).fetchone()), 'replayed': False}
 
 
 def accept_feishu_assignment(store, task_id, message):
@@ -84,10 +171,7 @@ def accept_feishu_assignment(store, task_id, message):
         if existing:
             verification = event_view(existing)['payload']['request'].get('verification')
         else:
-            saved = connection.execute(
-                'SELECT spec_json FROM automation_project_verification WHERE project_id=? AND binding_id=? AND directory_path=?',
-                (item['project_id'], directory['binding_id'], directory['path'])).fetchone()
-            verification = json.loads(saved['spec_json']) if saved else None
+            verification = _project_verification(connection, item['project_id'], directory)
         if verification is not None:
             payload['request']['verification'] = verification
         request_hash = digest({'task_id': task_id, 'event_id': event_id, 'actor_id': actor, 'payload': payload})

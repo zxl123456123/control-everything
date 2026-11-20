@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from .identity import HubError, Identity, public_key_fingerprint
 from .automation_mailbox import AutomationMailbox
-from .automation_producer import AutomationProducers
+from .automation_producer import AutomationProducers, valid_plan_choice
 from .automation_identity_send import AutomationIdentitySend
 from .provisioning import validate_new_account
 from .sessions import BrowserSessions
@@ -21,14 +21,20 @@ from .store import ONLINE_WINDOW, RECOVERABLE, public_device
 
 def _card_identity(card):
     elements = ((card or {}).get('body') or {}).get('elements') if type(card) is dict else None
-    button = elements[1] if isinstance(elements, list) and len(elements) > 1 else None
+    if type(card) is not dict or card.get('schema') != '2.0' or not isinstance(elements, list):
+        raise HubError('invalid_waiting_card', 400)
+    for element in elements:
+        if type(element) is dict and element.get('tag') == 'button' and valid_plan_choice(element.get('value')):
+            choice = element['value']
+            return 'plan-choice:' + choice['flow_id'] + ':' + choice['decision_id'], choice['requirement_revision']
+    button = elements[1] if len(elements) > 1 else None
     value = button.get('value') if type(button) is dict else None
     text = lambda key: isinstance(value.get(key), str) and 1 <= len(value[key]) <= 256
     plan = {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'choice'}
     blocked = {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'reason'}
     acceptance = {'namespace', 'decision_id', 'task_id', 'delivery_id', 'flow_id',
                   'expected_revision', 'progress_revision', 'verdict'}
-    if type(card) is not dict or card.get('schema') != '2.0' or type(value) is not dict:
+    if type(value) is not dict:
         raise HubError('invalid_waiting_card', 400)
     if (set(value) == plan and value['namespace'] == 'control-everything.automation.v1'
             and value['choice'] == '按已审方案实现' and text('task_id') and text('flow_id')
@@ -376,6 +382,10 @@ class RemoteHubService:
         device = self.store.authenticate_control(token)
         flow_id, revision = _card_identity(card)
         matches = self.automation_producers.for_device(device['device_id'], device['generation'])
+        if flow_id.startswith('plan-choice:'):
+            project_id = card.get('project_id')
+            matches = [producer for producer in matches if producer['project_id'] == project_id]
+            card = {key: value for key, value in card.items() if key != 'project_id'}
         if len(matches) != 1:
             raise HubError('producer_unavailable', 409)
         producer = matches[0]

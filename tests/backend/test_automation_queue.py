@@ -224,7 +224,7 @@ class AutomationQueueStorageTests(AutomationQueueFixture):
             connection.commit()
             original = dict(connection.execute('SELECT * FROM automation_events').fetchone())
         result = task_migration.migrate_tasks(str(root))
-        self.assertEqual(result['schema_version'], 17)
+        self.assertEqual(result['schema_version'], 18)
         self.assertEqual(backups.validate_backup(result['backup'])['schema_version'], 11)
         with Profile.open(str(root)).store.connection() as connection:
             event = dict(connection.execute('SELECT * FROM automation_events').fetchone())

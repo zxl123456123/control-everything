@@ -379,6 +379,18 @@ def waiting_card(flow):
     revision = attention.get('versions', {}).get('requirement_revision')
     shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id,
               'flow_id': flow['id'], 'requirement_revision': revision}
+    decision = attention.get('decision')
+    if decision:
+        elements = [{'tag': 'div', 'text': {'tag': 'plain_text', 'content': decision['question']}}]
+        for option in decision['options']:
+            elements.extend([
+                {'tag': 'div', 'text': {'tag': 'plain_text', 'content': option['label'] + '：' + option['impact']}},
+                {'tag': 'button', 'text': {'tag': 'plain_text', 'content': option['label']},
+                 'value': {**shared, 'decision_id': decision['decision_id'], 'choice_id': option['id']}},
+            ])
+        return {'project_id': flow['project_id'], 'schema': '2.0',
+                'header': {'title': {'tag': 'plain_text', 'content': '需要决定'}},
+                'body': {'elements': elements}}
     if attention.get('release_ready') is True and not attention.get('questions'):
         question = '已审方案可以开始实现吗？'
         label = PLAN_RELEASE
@@ -490,6 +502,33 @@ def _stored_release(raw):
         return None
     return {'flow_id': release['flow_id'], 'requirement_revision': release['requirement_revision'],
             'actor_id': actor, 'trusted': trusted_context(payload)}
+
+
+def apply_plan_choices(store, consumer, binding):
+    if any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
+        return
+    with store.connection() as db:
+        rows = db.execute("""SELECT payload_json FROM automation_remote_inbox
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
+              AND json_extract(payload_json, '$.kind')='feishu_plan_choice'
+            ORDER BY received_at,message_id""",
+            (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
+    fields = {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'decision_id', 'choice_id'}
+    for row in rows:
+        payload = json.loads(row['payload_json'])
+        choice, actor = payload.get('plan_choice'), payload.get('actor_open_id')
+        if (type(choice) is not dict or set(choice) != fields
+                or choice['namespace'] != 'control-everything.automation.v1'
+                or type(choice['requirement_revision']) is not int or choice['requirement_revision'] < 0
+                or any(type(choice[key]) is not str or not choice[key]
+                       for key in ('task_id', 'flow_id', 'decision_id', 'choice_id'))
+                or type(actor) is not str or not actor):
+            continue
+        try:
+            consumer.select_plan_option(choice, actor, trusted_context(payload), binding)
+        except ProfileError as error:
+            if str(error) == 'automation_owner_lost':
+                raise
 
 
 def _flow_ends(store, flow_id):

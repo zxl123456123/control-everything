@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace import dispatch
+from control_everything.workspace.automation_identities import decision_authorized
 from control_everything.workspace.native_progress import check_versions, digest, fail, packed, row_view, task_access, touch
 from control_everything.workspace.store import now_utc
 from control_everything.workspace.automation_planning import planning_outcome
@@ -174,12 +175,28 @@ class AutomationQueue:
                                (stamp, current['flow_id']))
             return row_view(self._step(connection, step['id']))
 
-    def reserve_next(self, lease, previous, kind, request, *, writes_project=True):
+    def reserve_next(self, lease, previous, kind, request, *, writes_project=True, choice_authority=None):
         with self.store.connection() as connection:
             connection.execute('BEGIN IMMEDIATE')
             self._guard(connection, lease)
             flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (previous['flow_id'],)).fetchone()
             frozen = packed({'context': json.loads(flow['context_json']), **request})
+            expected_status = 'running'
+            if choice_authority is not None:
+                trusted, device = choice_authority
+                choice = request['plan_choice']
+                attention = json.loads(flow['attention_json'])
+                decision = attention.get('decision') or {}
+                if (kind != 'plan' or writes_project or flow['status'] != 'waiting_user'
+                        or flow['task_id'] != choice['task_id'] or previous['kind'] != 'plan_review'
+                        or previous['id'] != choice['decision_id'] or decision.get('decision_id') != choice['decision_id']
+                        or attention.get('versions', {}).get('requirement_revision') != choice['requirement_revision']
+                        or not any(option == {'id': choice['choice_id'], 'label': choice['label'],
+                                              'impact': choice['impact']} for option in decision.get('options', []))
+                        or not decision_authorized(self.store, choice['actor_id'], task_id=flow['task_id'],
+                                                   trusted=trusted, device=device)):
+                    fail('automation_step_changed')
+                expected_status = 'waiting_user'
             existing = connection.execute('SELECT id,kind,request_json,writes_project FROM automation_steps '
                 'WHERE flow_id=? AND ordinal=?', (flow['id'], previous['ordinal'] + 1)).fetchone()
             if existing:
@@ -188,7 +205,7 @@ class AutomationQueue:
                     fail('automation_step_conflict')
                 return row_view(self._step(connection, existing['id']))
             current = self._step(connection, previous['id'])
-            if (current['status'] != 'completed' or flow['status'] != 'running'
+            if (current['status'] != 'completed' or flow['status'] != expected_status
                     or current['flow_revision'] != previous['flow_revision']):
                 fail('automation_step_changed')
             problem = self._flow_input_problem(connection, row_view(flow))
@@ -204,8 +221,12 @@ class AutomationQueue:
                 'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
                 (identity, flow['id'], previous['ordinal'] + 1, kind, 0, lease.generation, int(writes_project),
                  'reserved', operation, frozen, stamp, stamp))
-            connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
-                               (kind, stamp, flow['id']))
+            if choice_authority is not None:
+                connection.execute("UPDATE automation_flows SET status='running',phase=?,attention_json='{}',"
+                                   'revision=revision+1,updated_at=? WHERE id=?', (kind, stamp, flow['id']))
+            else:
+                connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
+                                   (kind, stamp, flow['id']))
             return row_view(self._step(connection, identity))
 
     def reserve_repair(self, lease, previous, request):
@@ -310,7 +331,7 @@ class AutomationQueue:
             attention = view['flow']['attention'] or {}
             if (flow['status'] != 'waiting_user' or not current or current['kind'] != 'plan_review'
                     or current['status'] != 'completed' or attention.get('requires_code_review') is not True
-                    or attention.get('questions')):
+                    or attention.get('questions') or attention.get('decision')):
                 fail('automation_step_changed')
             existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
                                           (flow_id, current['ordinal'] + 1)).fetchone()
@@ -623,7 +644,8 @@ class AutomationQueue:
             for row in rows:
                 view = self._view(connection, row[0])
                 flow, step = view['flow'], view['step']
-                if flow.get('status') != 'waiting_user' or (flow.get('attention') or {}).get('release_ready') is not True:
+                attention = flow.get('attention') or {}
+                if attention.get('release_ready') is not True and not attention.get('decision'):
                     continue
                 problem = self._input_problem(connection, flow['task_id'], flow['context'])
                 if problem not in ('requirement_changed', 'project_directory_changed', 'project_unavailable'):

@@ -345,7 +345,7 @@ class NativeProgressTests(NativeFixture):
                     c.execute("INSERT INTO projects VALUES('project','Keep history',0,'then','then',0)")
                     c.commit()
                 result = migrate_tasks(str(root))
-                self.assertEqual(result['schema_version'], 17)
+                self.assertEqual(result['schema_version'], 18)
                 with closing(sqlite3.connect(db)) as c:
                     task_schema.validate_schema(c, task_schema.SCHEMA_VERSION)
                     self.assertEqual(c.execute("SELECT name FROM projects WHERE id='project'").fetchone()[0], 'Keep history')

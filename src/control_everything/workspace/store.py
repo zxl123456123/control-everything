@@ -86,6 +86,7 @@ class WorkspaceStore:
                             if not connection.execute("SELECT name FROM sqlite_master").fetchone():
                                 tasks.install_schema16(connection, fresh=True)
                                 tasks.install_schema17(connection)
+                                tasks.install_schema18(connection)
                             connection.commit()
                         except Exception:
                             connection.rollback()

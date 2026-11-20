@@ -14,6 +14,7 @@ class PlanningHost(FakeHost):
         self.kind, self.verdict, self.code_verdict, self.model = 'small', 'approve', 'approve', 'requested'
         self.code_text = None
         self.questions = []
+        self.decision = None
 
     def create(self, params, *, cancel_event=None):
         self.calls.append(copy.deepcopy(params))
@@ -28,6 +29,8 @@ class PlanningHost(FakeHost):
                  {'kind': self.kind, 'plan': 'Read code and verify.', 'needs_human': False, 'questions': self.questions}
                  if 'PLAN_REVIEW' not in prompt else
                  {'kind': self.kind, 'verdict': self.verdict, 'rationale': 'Scope checked.', 'questions': self.questions})
+        if prompt.startswith('PLAN_REVIEW') and self.decision is not None:
+            value['decision'] = self.decision
         reply = copy.deepcopy(self.reply)
         reply['binding'] = copy.deepcopy(binding)
         message = self.code_text if prompt.startswith('CODE_REVIEW') and self.code_text else json.dumps(value)
@@ -740,6 +743,78 @@ class ConsumerTests(AutomationQueueFixture):
                 'plan_release': {'namespace': 'control-everything.automation.v1', 'flow_id': flow_id,
                                  'text': '按已审方案实现', 'requirement_revision': revision}}})
         self.consumer.current_binding = lambda: binding
+
+    def test_plan_choice_resumes_only_the_current_decision_for_the_named_task(self):
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        from tests.backend.test_automation_queue import bind_actor, designate_actor
+
+        self.host.kind, self.host.verdict = 'feature', 'discuss'
+        self.host.decision = {'question': 'Which surface should change?', 'options': [
+            {'id': 'existing', 'label': 'Keep existing surface', 'impact': 'Existing links keep working.'},
+            {'id': 'separate', 'label': 'Add a separate surface', 'impact': 'New links require documentation.'},
+        ]}
+        cards = []
+        self.consumer.on_wait = cards.append
+        first = self.pump()
+        self.assertEqual(first['flow']['status'], 'waiting_user')
+        original_choice, alternate = [element['value'] for element in cards[-1]['body']['elements']
+                                      if element['tag'] == 'button']
+        self.assertEqual(original_choice['task_id'], self.item['id'])
+        self.assertEqual(cards[-1]['project_id'], self.project['id'])
+        self.assertEqual(original_choice['decision_id'], first['step']['id'])
+        self.assertEqual(alternate['choice_id'], 'separate')
+        self.assertIn('New links require documentation.', json.dumps(cards[-1]))
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        self.consumer.current_binding = lambda: binding
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        bind_actor(self.profile.store, self.project['id'], 'ou-other')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+        inbox = RemoteAutomationInbox(self.profile.store)
+
+        def receive(message_id, choice, actor='ou-owner'):
+            inbox.receive(binding, {'id': message_id, 'source': 'feishu:test', 'event_id': message_id,
+                'lease_id': 'lease', 'lease_expires_at': 10, 'payload': {
+                    'kind': 'feishu_plan_choice', 'project_id': self.project['id'], 'app_id': 'app',
+                    'actor_open_id': actor, 'plan_choice': choice}})
+
+        receive('om-unknown', {**original_choice, 'choice_id': 'bogus'})
+        receive('om-other-task', {**original_choice, 'task_id': 'wrong'})
+        receive('om-other-revision', {**original_choice,
+                                     'requirement_revision': original_choice['requirement_revision'] + 1})
+        receive('om-not-designated', original_choice, 'ou-other')
+        self.assertEqual(self.pump()['step']['id'], first['step']['id'])
+        receive('om-selected', original_choice)
+        second = self.pump()
+        next_choice = [element['value'] for element in cards[-1]['body']['elements'] if element['tag'] == 'button'][0]
+        self.assertEqual(second['flow']['id'], first['flow']['id'])
+        self.assertEqual(next_choice['requirement_revision'], original_choice['requirement_revision'])
+        self.assertNotEqual(next_choice['decision_id'], original_choice['decision_id'])
+        receive('om-stale-competing', alternate)
+        self.assertEqual(self.pump()['step']['id'], second['step']['id'])
+        with self.profile.store.connection() as connection:
+            steps = [tuple(row) for row in connection.execute(
+                'SELECT kind,request_json,binding_json FROM automation_steps ORDER BY ordinal')]
+        self.assertEqual([row[0] for row in steps], ['prepare', 'plan', 'plan_review', 'plan', 'plan_review'])
+        selected = json.loads(steps[3][1])['plan_choice']
+        self.assertEqual(selected['actor_id'], 'ou-owner')
+        self.assertEqual(selected['choice_id'], 'existing')
+        self.assertEqual(selected['impact'], 'Existing links keep working.')
+        self.assertIn(selected['impact'], self.host.calls[2]['prompt'])
+        self.assertNotIn('ou-owner', self.host.calls[2]['prompt'])
+        self.assertNotEqual(json.loads(steps[3][2])['providerSession']['id'],
+                            json.loads(steps[4][2])['providerSession']['id'])
+
+    def test_invalid_decision_does_not_generate_actionable_buttons(self):
+        self.host.verdict = 'discuss'
+        option = {'id': 'same', 'label': 'Same', 'impact': 'Same'}
+        self.host.decision = {'question': 'Duplicate choices?', 'options': [option, option]}
+        cards = []
+        self.consumer.on_wait = cards.append
+        final = self.pump()
+        self.assertEqual(final['flow']['attention']['reason'], 'invalid_planning_result')
+        self.assertFalse(any(element.get('value', {}).get('choice_id')
+                             for card in cards for element in card['body']['elements']))
 
     def test_stored_release_starts_the_named_wait_once(self):
         self.host.kind = 'feature'

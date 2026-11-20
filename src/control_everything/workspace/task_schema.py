@@ -31,7 +31,7 @@ CREATE TABLE manual_records (id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, pro
 SCHEMA1_TABLES = ("projects", "project_directories", "project_sources", "project_manual", "project_manual_history",
                      "todos", "tasks", "manual_records", "profile_imports")
 
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 STATES = ("todo", "doing", "blocked", "review", "done")
 MAX_REVISION = (1 << 53) - 1
 MAX_BODY_BYTES = 262144
@@ -53,6 +53,7 @@ SCHEMA15_TABLES = (*SCHEMA14_TABLES, "automation_identity_challenges",
                    "automation_identity_candidates", "automation_identity_bindings")
 SCHEMA16_TABLES = (*SCHEMA15_TABLES, "automation_task_acceptors")
 SCHEMA17_TABLES = (*SCHEMA16_TABLES, "automation_project_verification")
+SCHEMA18_TABLES = (*SCHEMA17_TABLES, "automation_assignment_grants")
 ITEM_COLUMNS = ("id", "origin", "origin_id", "title", "project_id", "provider_id", "state", "session_key",
                 "source", "created_at", "updated_at", "todo_position", "sort_index", "resume_state", "revision",
                 "priority", "focus", "assigned_agent_id")
@@ -122,7 +123,7 @@ VIEWS = (
 _SCHEMA_TABLES = {1: SCHEMA1_TABLES, 2: SCHEMA2_TABLES, 3: SCHEMA3_TABLES, 4: SCHEMA4_TABLES,
                   5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES,
                   10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES, 12: SCHEMA12_TABLES, 13: SCHEMA13_TABLES, 14: SCHEMA14_TABLES,
-                  15: SCHEMA15_TABLES, 16: SCHEMA16_TABLES, 17: SCHEMA17_TABLES}
+                  15: SCHEMA15_TABLES, 16: SCHEMA16_TABLES, 17: SCHEMA17_TABLES, 18: SCHEMA18_TABLES}
 
 
 def tables_for(version):
@@ -731,6 +732,21 @@ def install_schema17(connection):
     connection.execute('PRAGMA user_version=17')
 
 
+def install_schema18(connection):
+    connection.execute("""CREATE TABLE automation_assignment_grants(
+ binding_id TEXT PRIMARY KEY NOT NULL REFERENCES automation_identity_bindings(id),
+ reviewer_binding_id TEXT NOT NULL REFERENCES automation_identity_bindings(id),
+ project_id TEXT NOT NULL REFERENCES projects(id),
+ directory_id TEXT NOT NULL, directory_path TEXT NOT NULL, set_at TEXT NOT NULL)""")
+    register_writer(connection, 18)
+    for table in SCHEMA18_TABLES:
+        for action in ('insert', 'update', 'delete'):
+            connection.execute(f'DROP TRIGGER IF EXISTS guard_{table}_{action}')
+    for statement in guard_statements(18):
+        connection.execute(statement)
+    connection.execute('PRAGMA user_version=18')
+
+
 def schema_signature(connection):
     return [(kind, name, table, ' '.join(sql.split()) if sql is not None else None)
             for kind, name, table, sql in connection.execute(
@@ -775,8 +791,10 @@ def _expected_schema_signature(version):
             install_schema15(expected, fresh=True)
         else:
             install_schema16(expected, fresh=True)
-            if version == 17:
+            if version >= 17:
                 install_schema17(expected)
+            if version == 18:
+                install_schema18(expected)
         return tuple(schema_signature(expected))
     finally:
         expected.close()

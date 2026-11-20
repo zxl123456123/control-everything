@@ -270,6 +270,38 @@ class AutomationProducerHTTPTests(unittest.TestCase):
         self.assertEqual(self.request(ACK, dict(message_id=message['id'], lease_id=message['lease_id']))[0], 200)
         self.assertEqual(self.receive()[1]['state'], 'acknowledged')
 
+    def test_new_assignment_and_dynamic_choice_are_delivered_as_typed_events(self):
+        context = {key: value for key, value in self.body.items() if key != 'decision'}
+        context.update(event_id='om-new', message_id='om-new')
+        assignment = {'namespace': 'control-everything.automation.v1', 'text': '新增任务筛选'}
+        self.assertEqual(self.receive({**context, 'event_id': 'mismatch', 'new_task': assignment})[0], 400)
+        self.assertEqual(self.receive({**context, 'new_task': {**assignment, 'cwd': 'outside'}})[0], 400)
+        first = self.receive({**context, 'new_task': assignment})
+        self.assertEqual(first[0], 200)
+        self.assertEqual(self.receive({**context, 'new_task': assignment})[1], first[1])
+        with self.hub.store.transaction() as db:
+            db.execute('DELETE FROM automation_inbox WHERE id=?', (self.received['id'],))
+        item = self.request(CLAIM)[1]['message']
+        self.assertEqual(item['payload']['kind'], 'feishu_new_task')
+        self.assertEqual(item['payload']['project_id'], 'project-a')
+        self.assertEqual(item['payload']['assignment'], assignment)
+        self.assertEqual(self.request(ACK, dict(message_id=item['id'], lease_id=item['lease_id']))[0], 200)
+
+        choice = {'namespace': assignment['namespace'], 'task_id': 'task-a', 'flow_id': 'flow-a',
+                  'decision_id': 'decision-a', 'choice_id': 'minimal', 'requirement_revision': 1}
+        card = {'schema': '2.0', 'project_id': 'project-a', 'body': {'elements': [
+            {'tag': 'div'}, {'tag': 'div'}, {'tag': 'button', 'value': choice}]}}
+        self.assertEqual(self.request('/remote/desktop/automation/card', dict(card, project_id='other'))[0], 409)
+        self.assertEqual(self.request('/remote/desktop/automation/card', card)[0], 200)
+        outbound = self.request('/remote/producer/automation/outbound/claim',
+                                {'producer_id': 'producer-a'}, token=self.producer_token)
+        self.assertNotIn('project_id', outbound[1]['card'])
+        self.assertEqual(outbound[1]['card']['body']['elements'][2]['value'], choice)
+        self.assertEqual(self.receive({**context, 'event_id': 'click-1', 'plan_choice': choice})[0], 200)
+        payload = self.request(CLAIM)[1]['message']['payload']
+        self.assertEqual(payload['kind'], 'feishu_plan_choice')
+        self.assertEqual(payload['plan_choice'], choice)
+
     def test_producer_boundaries(self):
         self.assertEqual(self.request(RECEIVE, self.body)[0], 401)
         self.assertEqual(self.receive(dict(self.body, chat_id='other'))[0], 403)

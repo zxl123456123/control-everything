@@ -1,6 +1,7 @@
 """Compute planning advice from completed, independently bound step records."""
 
 import json
+import re
 
 from control_everything.workspace.native_progress import digest, fail
 
@@ -15,7 +16,8 @@ def _read(step, kind):
     except (KeyError, TypeError, ValueError):
         fail('invalid_planning_result')
     fields = {'kind', 'questions'} | ({'plan', 'needs_human'} if kind == 'plan' else {'verdict', 'rationale'})
-    if (type(value) is not dict or set(value) != fields or value['kind'] not in KINDS
+    optional = {'decision'} if kind == 'plan_review' else set()
+    if (type(value) is not dict or not fields <= set(value) <= fields | optional or value['kind'] not in KINDS
             or type(value['questions']) is not list
             or any(type(question) is not str or not question.strip() for question in value['questions'])):
         fail('invalid_planning_result')
@@ -27,7 +29,27 @@ def _read(step, kind):
             fail('invalid_planning_result')
     elif value['verdict'] not in ('approve', 'revise', 'discuss'):
         fail('invalid_planning_result')
+    if 'decision' in value:
+        if value['verdict'] != 'discuss' or not _valid_decision(value['decision']):
+            fail('invalid_planning_result')
     return value
+
+
+def _valid_decision(decision):
+    def valid_text(text, limit):
+        return type(text) is str and bool(text.strip()) and len(text) <= limit
+
+    if (type(decision) is not dict or set(decision) != {'question', 'options'}
+            or not valid_text(decision['question'], 300)
+            or type(decision['options']) is not list or len(decision['options']) != 2):
+        return False
+    first, second = decision['options']
+    return (all(type(option) is dict and set(option) == {'id', 'label', 'impact'}
+                and type(option['id']) is str and re.fullmatch(r'[a-z][a-z0-9_-]{0,31}', option['id'])
+                and valid_text(option['label'], 60) and valid_text(option['impact'], 400)
+                for option in (first, second))
+            and all(first[key].strip().casefold() != second[key].strip().casefold()
+                    for key in ('id', 'label', 'impact')))
 
 
 def read_plan(step):
@@ -63,6 +85,8 @@ def planning_outcome(plan_step, review_step):
     questions = list(dict.fromkeys(plan['questions'] + review['questions']))
     result = {'action': 'wait_for_user', 'questions': questions,
               'requires_code_review': plan['kind'] != 'small' or review['kind'] != 'small'}
+    if 'decision' in review:
+        result['decision'] = {'decision_id': review_step['id'], **review['decision']}
     if plan['needs_human'] or questions or review['verdict'] == 'discuss':
         return result
     if review['verdict'] == 'revise':
