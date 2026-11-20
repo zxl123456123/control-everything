@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from control_everything.input_validation import ProfileError
+from control_everything.workspace.automation_progress import task_workflow
 from control_everything.workspace.store import WorkspaceError, now_utc
 from control_everything.workspace.task_schema import MAX_REVISION, STATES
 from control_everything.workspace.dispatch import link_claim
@@ -184,7 +185,9 @@ def assignment_states(store, task_ids):
 def task_detail(store, task_id):
     with store.connection() as connection:
         connection.execute("BEGIN")
-        return _detail(connection, _item(connection, task_id))
+        detail = _detail(connection, _item(connection, task_id))
+        detail["automation"] = task_workflow(connection, task_id)
+        return detail
 
 
 def list_tasks(store, agent_id, state=None, project_ids=None):

@@ -1,4 +1,8 @@
 /* Platform presentation only; terminal sizing, drag geometry and saved layouts stay native. */
+.platform-task-workflow[data-slot="sheet-content"] {
+  background: var(--ce-workbench-glass);
+  backdrop-filter: var(--ce-workbench-content-backdrop);
+}
 :root:has(.platform-workspace-header) {
   --platform-header-height: 44px;
 }

@@ -79,6 +79,26 @@ class ConsumerTests(AutomationQueueFixture):
         self.host.kind = 'feature'
         self.assertEqual(self.pump()['flow']['status'], 'waiting_user')
 
+    def test_task_detail_reads_the_workflow_from_the_same_task(self):
+        from control_everything.workspace.agent_runs import task_detail
+
+        before = task_detail(self.profile.store, self.item['id'])['automation']
+        self.assertIsNotNone(before['pending_since'])
+        self.assertEqual(before['flows'], [])
+        self.pump()
+        after = task_detail(self.profile.store, self.item['id'])['automation']
+        self.assertIsNone(after['pending_since'])
+        flow, = after['flows']
+        self.assertEqual(flow['reason'], 'verification_not_configured')
+        self.assertEqual(next(step['review_verdict'] for step in flow['steps'] if step['kind'] == 'plan_review'), 'approve')
+        self.assertEqual([step['kind'] for step in flow['steps']], ['prepare', 'plan', 'plan_review', 'implement'])
+        self.assertNotIn('request', flow['steps'][-1])
+        self.assertNotIn('result', flow['steps'][-1])
+        other = self.profile.store.save_item({'title': 'Manual task', 'project_id': self.project['id'],
+            'provider_id': None, 'state': 'todo', 'session_key': None})
+        self.assertEqual(task_detail(self.profile.store, other['id'])['automation'],
+                         {'pending_since': None, 'flows': []})
+
     def test_questions_wait_for_user(self):
         self.host.questions = ['Which scope?']
         cards = []
@@ -673,6 +693,10 @@ class ConsumerTests(AutomationQueueFixture):
         apply_waiting_reply(self.consumer, waiting['flow'], cards[0]['body']['elements'][1]['value'], 'owner')
         result = self.pump()
         self.assertEqual(result['flow']['attention']['reason'], 'repair_budget_exhausted')
+        flow, = self.service.agent_task_detail(self.item['id'])['automation']['flows']
+        reviews = [step['review_verdict'] for step in flow['steps'] if step['kind'] == 'code_review']
+        self.assertTrue(reviews)
+        self.assertEqual(set(reviews), {'revise'})
         budget = [card for card in cards if card['body']['elements'][1]['value'].get('reason') == 'repair_budget_exhausted']
         self.assertEqual(budget[0]['body']['elements'][1]['value']['flow_id'], result['flow']['id'])
         self.assertNotIn('choice', budget[0]['body']['elements'][1]['value'])
