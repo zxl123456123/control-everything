@@ -6,19 +6,22 @@ from control_everything.http.workbench_remote import local_control_allowed
 from control_everything.input_validation import ProfileError
 from control_everything.sessions.source import canonical_uuid
 from control_everything.workspace.store import WorkspaceError
+from control_everything.workspace.validation import project_id_valid
 
 ROUTE = re.compile(r'/api/workspace/tasks/([^/]+)/(progress|automation-integration-target|automation-enable|automation-resume|native-start|native-resume|native-release|native-adopt|native-feedback|delivery-review|native-messages/([^/]+)/send)\Z')
+VERIFICATION_ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-verification\Z')
 
 
 def handle(handler, path, *, write=False):
     match = ROUTE.fullmatch(path.path)
-    if not match:
+    verification = VERIFICATION_ROUTE.fullmatch(path.path)
+    if not match and not verification:
         return False
     workspace = handler.server.workspace
     if workspace is None or handler.profile() is None:
         handler.reject(503, 'workspace_unavailable')
         return True
-    action = match[2]
+    action = match[2] if match else 'automation-verification'
     if write and not local_control_allowed(handler, write=True):
         handler.reject(403, 'local_control_required')
         return True
@@ -28,6 +31,13 @@ def handle(handler, path, *, write=False):
     try:
         if path.query:
             raise ValueError('invalid_query')
+        if verification:
+            project_id = verification[1]
+            if not project_id_valid(project_id):
+                raise ValueError('invalid_request')
+            body = handler.read_json_body(max_bytes=16384, strict=True)
+            handler.reply(200, workspace.set_project_automation_verification(project_id, body))
+            return True
         task_id = canonical_uuid(match[1])
         service = workspace.native_progress
         if not write:

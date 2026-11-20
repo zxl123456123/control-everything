@@ -559,6 +559,9 @@ class WorkspaceService:
     def get_task_brief(self, task_id):
         return dispatch.get_brief(self.profile, task_id)
 
+    def set_project_automation_verification(self, project_id, body):
+        return automation_events.set_project_verification(self.store, project_id, body)
+
     def enable_task_automation(self, task_id, body):
         return automation_events.enable_local(self.store, task_id, body)
 

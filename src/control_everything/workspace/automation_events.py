@@ -81,6 +81,15 @@ def accept_feishu_assignment(store, task_id, message):
         directory = dispatch._directory(connection, item['project_id'], brief['execution_directory_id'])
         payload = {'request': {'agent': 'codex', 'worktree_id': directory['binding_id']}, 'title': item['title'],
                    'brief': brief, 'directory': directory, 'assignment_text': text}
+        if existing:
+            verification = event_view(existing)['payload']['request'].get('verification')
+        else:
+            saved = connection.execute(
+                'SELECT spec_json FROM automation_project_verification WHERE project_id=? AND binding_id=? AND directory_path=?',
+                (item['project_id'], directory['binding_id'], directory['path'])).fetchone()
+            verification = json.loads(saved['spec_json']) if saved else None
+        if verification is not None:
+            payload['request']['verification'] = verification
         request_hash = digest({'task_id': task_id, 'event_id': event_id, 'actor_id': actor, 'payload': payload})
         if existing is not None:
             if existing['request_hash'] != request_hash or existing['task_id'] != task_id:
@@ -97,21 +106,47 @@ def accept_feishu_assignment(store, task_id, message):
             'SELECT * FROM automation_events WHERE id=?', (identity,)).fetchone()), 'replayed': False}
 
 
+def _validate_verification(spec):
+    if type(spec) is not dict or set(spec) != {'argv', 'source_files', 'timeout'}:
+        raise ProfileError('invalid_progress_request', 'verification')
+    argv, sources, timeout = spec['argv'], spec['source_files'], spec['timeout']
+    if (type(argv) is not list or not argv or any(type(arg) is not str or not arg.strip() or '\0' in arg for arg in argv)
+            or not Path(argv[0]).is_absolute() or type(sources) is not list or not sources
+            or any(type(name) is not str or not name.strip() or '\0' in name or Path(name).anchor
+                   or not Path(name).parts or '..' in Path(name).parts for name in sources)
+            or len({os.path.normcase(str(Path(name))) for name in sources}) != len(sources)
+            or type(timeout) not in (int, float) or not 0 < timeout <= 20 or not math.isfinite(timeout)):
+        raise ProfileError('invalid_progress_request', 'verification')
+
+
+def set_project_verification(store, project_id, body):
+    """The local owner authorizes a verifier for one registered directory."""
+    body_fields(body, ('directory_id', 'verification'))
+    task_messages._text(body['directory_id'], 'directory_id', 256, required=True)
+    spec = body['verification']
+    if spec is not None:
+        _validate_verification(spec)
+    with store.connection() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        project = connection.execute('SELECT archived FROM projects WHERE id=?', (project_id,)).fetchone()
+        if not project or project['archived']:
+            raise ProfileError('project_unavailable', status=409)
+        directory = dispatch._directory(connection, project_id, body['directory_id'])
+        key = (project_id, directory['binding_id'])
+        if spec is None:
+            connection.execute('DELETE FROM automation_project_verification WHERE project_id=? AND binding_id=?', key)
+        else:
+            connection.execute('INSERT INTO automation_project_verification VALUES(?,?,?,?) '
+                'ON CONFLICT(project_id,binding_id) DO UPDATE SET directory_path=excluded.directory_path, '
+                'spec_json=excluded.spec_json', (*key, directory['path'], packed(spec)))
+    return {'project_id': project_id, 'directory_id': body['directory_id'], 'configured': spec is not None}
+
+
 def enable_local(store, task_id, body):
     """The HTTP caller must establish local control; source/actor are never body fields."""
     body_fields(body, ('expected_revision', 'brief_revision', 'client_token', 'agent', 'worktree_id'), ('verification',))
     if 'verification' in body:
-        spec = body['verification']
-        if type(spec) is not dict or set(spec) != {'argv', 'source_files', 'timeout'}:
-            raise ProfileError('invalid_progress_request', 'verification')
-        argv, sources, timeout = spec['argv'], spec['source_files'], spec['timeout']
-        if (type(argv) is not list or not argv or any(type(arg) is not str or not arg.strip() or '\0' in arg for arg in argv)
-                or not Path(argv[0]).is_absolute() or type(sources) is not list or not sources
-                or any(type(name) is not str or not name.strip() or '\0' in name or Path(name).anchor
-                       or not Path(name).parts or '..' in Path(name).parts for name in sources)
-                or len({os.path.normcase(str(Path(name))) for name in sources}) != len(sources)
-                or type(timeout) not in (int, float) or not 0 < timeout <= 20 or not math.isfinite(timeout)):
-            raise ProfileError('invalid_progress_request', 'verification')
+        _validate_verification(body['verification'])
     if type(body['agent']) is not str or not re.fullmatch(r'[a-z][a-z0-9-]{0,31}', body['agent']):
         raise ProfileError('invalid_progress_request', 'agent')
     task_messages._text(body['worktree_id'], 'worktree_id', 256, required=True)

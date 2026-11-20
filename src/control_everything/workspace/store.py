@@ -85,11 +85,12 @@ class WorkspaceStore:
                             # A second process might have initialized while we waited.
                             if not connection.execute("SELECT name FROM sqlite_master").fetchone():
                                 tasks.install_schema16(connection, fresh=True)
+                                tasks.install_schema17(connection)
                             connection.commit()
                         except Exception:
                             connection.rollback()
                             raise
-                    elif version in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14):
+                    elif version in range(1, tasks.SCHEMA_VERSION):
                         self.validate_schema(connection, version)
                         raise WorkspaceError("migration_required")
                     self.checked_management_connection(connection)

@@ -16,6 +16,19 @@ from unittest.mock import patch
 
 
 class ProjectProgressAPITests(unittest.TestCase):
+    def test_project_verification_is_local_only(self):
+        route = urlsplit('/api/workspace/projects/p-' + '1' * 32 + '/automation-verification')
+        h = self.handler()
+        h.headers['X-CE-Proxy-Token'] = 'remote'
+        self.assertTrue(routes.handle(h, route, write=True))
+        h.reject.assert_called_once_with(403, 'local_control_required')
+        h.read_json_body.assert_not_called()
+        h = self.handler()
+        h.server.workspace.set_project_automation_verification = Mock(return_value={'configured': True})
+        self.assertTrue(routes.handle(h, route, write=True))
+        h.server.workspace.set_project_automation_verification.assert_called_once_with('p-' + '1' * 32, {})
+        h.reply.assert_called_once_with(200, {'configured': True})
+
     def handler(self):
         service = Mock()
         headers = Message()
