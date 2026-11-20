@@ -6,6 +6,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+import io
+import tarfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location('feishu_builder', ROOT / 'tools/packaging/build_openclaw_feishu.py')
@@ -15,6 +18,11 @@ SPEC.loader.exec_module(BUILDER)
 
 class FeishuSourceBoundaryTests(unittest.TestCase):
     def setUp(self):
+        self.pack_policy = {'assets': {}, 'licenseReadmes': {},
+                            'fsSafeNativeLicense': {'bindingSha256': {}}}
+        policy = mock.patch.object(BUILDER, 'pack_policy', return_value=self.pack_policy)
+        policy.start()
+        self.addCleanup(policy.stop)
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.source = Path(self.temporary.name)
@@ -33,6 +41,180 @@ class FeishuSourceBoundaryTests(unittest.TestCase):
 
     def git(self, *arguments):
         return subprocess.check_output(['git', *arguments], cwd=self.source, text=True, stderr=subprocess.STDOUT).strip()
+
+    def test_package_rejects_traversal_without_extracting(self):
+        archive = self.source / '.git' / 'unsafe.tgz'
+        with tarfile.open(archive, 'w:gz') as package:
+            member = tarfile.TarInfo('package/../../outside')
+            member.size = 1
+            package.addfile(member, io.BytesIO(b'x'))
+        with self.assertRaisesRegex(ValueError, 'Unsafe package path'):
+            BUILDER.inspect_package(archive)
+
+    def test_package_requires_license_inside_archive(self):
+        archive = self.source / '.git' / 'missing-license.tgz'
+        with tarfile.open(archive, 'w:gz') as package:
+            for name in ('package.json', 'openclaw.plugin.json', 'README.md'):
+                member = tarfile.TarInfo('package/' + name)
+                member.size = 2
+                package.addfile(member, io.BytesIO(b'{}'))
+        with self.assertRaisesRegex(ValueError, 'missing LICENSE'):
+            BUILDER.inspect_package(archive)
+
+    def package_fixture(self, extra=None, manifest=None):
+        archive = self.source / '.git' / 'fixture.tgz'
+        files = {'package.json': json.dumps(manifest or {}).encode(),
+                 'openclaw.plugin.json': b'{}', 'LICENSE': b'license', 'README.md': b'readme'}
+        files.update(extra or {})
+        with tarfile.open(archive, 'w:gz') as package:
+            for name, data in files.items():
+                member = tarfile.TarInfo('package/' + name)
+                member.size = len(data)
+                package.addfile(member, io.BytesIO(data))
+        return archive
+
+    def test_failed_pack_records_command_and_preserves_overlay_bytes(self):
+        output = self.source / '.git' / 'pack-output'
+        output.mkdir()
+        (output / 'tmp').mkdir()
+        node = self.source / '.git' / 'toolchain' / 'node.exe'
+        npm = node.parent / 'node_modules/npm/bin/npm-cli.js'
+        npm.parent.mkdir(parents=True)
+        npm.write_text('')
+        plugin = self.source / 'extensions/feishu'
+        plugin.mkdir(parents=True)
+        original = b'{ "original": true }\n'
+        for name in ('package.json', 'openclaw.plugin.json'):
+            (plugin / name).write_bytes(original)
+        receipt = {'commands': [], 'packageBuilt': False, 'installValidated': False}
+        with mock.patch.object(BUILDER.subprocess, 'check_output', return_value='11.19.1'), \
+                mock.patch.object(BUILDER.subprocess, 'run', return_value=subprocess.CompletedProcess([], 7)):
+            with self.assertRaises(subprocess.CalledProcessError):
+                BUILDER.pack_candidate(self.source, node, output, {}, receipt)
+        self.assertEqual(receipt['commands'][0]['exitCode'], 7)
+        self.assertFalse(receipt['packageBuilt'])
+        self.assertFalse(receipt['installValidated'])
+        self.assertEqual((plugin / 'package.json').read_bytes(), original)
+        self.assertTrue((output / 'pack.stdout.json').is_file())
+        self.assertTrue((output / 'pack.log').is_file())
+
+    def test_successful_pack_hashes_runtime_without_claiming_install_validation(self):
+        for mismatch in (False, True):
+            with self.subTest(mismatch=mismatch):
+                output = self.source / '.git' / ('pack-bad' if mismatch else 'pack-good')
+                output.mkdir()
+                (output / 'tmp').mkdir()
+                node = output / 'toolchain/node.exe'
+                npm = node.parent / 'node_modules/npm/bin/npm-cli.js'
+                npm.parent.mkdir(parents=True)
+                npm.write_text('')
+                plugin = self.source / 'extensions/feishu'
+                (plugin / 'dist').mkdir(parents=True, exist_ok=True)
+                for name in ('package.json', 'openclaw.plugin.json'):
+                    (plugin / name).write_bytes(b'{ "original": true }\n')
+                (plugin / 'dist/index.js').write_bytes(b'actual runtime')
+                archive = self.package_fixture({'dist/index.js': b'wrong' if mismatch else b'actual runtime'})
+                def pack(*args, **kwargs):
+                    import shutil
+                    shutil.copyfile(archive, output / 'tar/candidate.tgz')
+                    kwargs['stdout'].write(json.dumps([{'filename': 'candidate.tgz', 'integrity': 'sha512-fixture'}]).encode())
+                    return subprocess.CompletedProcess([], 0)
+                receipt = {'commands': [], 'packageBuilt': False, 'installValidated': False}
+                with mock.patch.object(BUILDER.subprocess, 'check_output', return_value='11.19.1'), \
+                        mock.patch.object(BUILDER.subprocess, 'run', side_effect=pack):
+                    if mismatch:
+                        with self.assertRaisesRegex(ValueError, 'Packed runtime differs'):
+                            BUILDER.pack_candidate(self.source, node, output, {}, receipt)
+                        self.assertFalse(receipt['packageBuilt'])
+                    else:
+                        BUILDER.pack_candidate(self.source, node, output, {}, receipt)
+                        self.assertTrue(receipt['packageBuilt'])
+                        self.assertEqual(receipt['npmIntegrity'], 'sha512-fixture')
+                self.assertFalse(receipt['installValidated'])
+
+    def test_runtime_fields_allow_original_typescript_sources(self):
+        archive = self.package_fixture({'dist/index.js': b'export {}'}, {'openclaw': {
+            'extensions': ['./index.ts'], 'runtimeExtensions': ['./dist/index.js']}})
+        self.assertIn('package/dist/index.js', BUILDER.inspect_package(archive)['files'])
+
+    def test_missing_runtime_entry_is_rejected(self):
+        archive = self.package_fixture(manifest={'openclaw': {'runtimeSetupEntry': './dist/setup.js'}})
+        with self.assertRaisesRegex(ValueError, 'missing runtime entry'):
+            BUILDER.inspect_package(archive)
+
+    def test_unknown_nested_dependency_is_not_owned_by_outer_package(self):
+        archive = self.package_fixture({
+            'node_modules/a/package.json': b'{}', 'node_modules/a/LICENSE': b'license',
+            'node_modules/a/node_modules/unknown/index.js': b'bad'}, {'bundledDependencies': ['a']})
+        with self.assertRaisesRegex(ValueError, 'Unexpected bundled file'):
+            BUILDER.inspect_package(archive)
+
+    def test_pack_assets_require_exact_names_and_bytes(self):
+        icon = {'assets/icon.png': b'published icon'}
+        self.pack_policy['assets'] = {'assets/icon.png': BUILDER.digest(icon['assets/icon.png'])}
+        BUILDER.inspect_package(self.package_fixture(icon))
+        for files, error in (
+            ({}, 'Missing or changed plugin asset'),
+            ({'assets/icon.png': b'changed'}, 'Missing or changed plugin asset'),
+            ({**icon, 'assets/other.png': b'other'}, 'Unexpected plugin file'),
+        ):
+            with self.subTest(files=files), self.assertRaisesRegex(ValueError, error):
+                BUILDER.inspect_package(self.package_fixture(files))
+
+    def test_bundle_resolves_present_optional_dependencies_but_requires_normal_dependencies(self):
+        root = {'bundledDependencies': ['a']}
+        required = {'node_modules/a/package.json': json.dumps({
+            'dependencies': {'nested': '1.0.0'},
+            'optionalDependencies': {'platform': '1.0.0', 'other-platform': '1.0.0'},
+        }).encode(), 'node_modules/a/LICENSE': b'license'}
+        nested = {'node_modules/a/node_modules/nested/package.json': b'{}',
+                  'node_modules/a/node_modules/nested/LICENSE': b'license'}
+        platform = {'node_modules/platform/package.json': b'{}',
+                    'node_modules/platform/LICENSE': b'license'}
+        BUILDER.inspect_package(self.package_fixture({**required, **nested, **platform}, root))
+        BUILDER.inspect_package(self.package_fixture({**required, **nested}, root))
+        with self.assertRaisesRegex(ValueError, 'Missing bundled dependency: node_modules/nested'):
+            BUILDER.inspect_package(self.package_fixture({**required, **platform}, root))
+        with self.assertRaisesRegex(ValueError, 'Missing dependency license: node_modules/platform'):
+            platform.pop('node_modules/platform/LICENSE')
+            BUILDER.inspect_package(self.package_fixture({**required, **nested, **platform}, root))
+
+    def test_readme_license_requires_published_bytes_for_the_known_version(self):
+        self.pack_policy['licenseReadmes'] = {
+            'a': {'version': '1.0.0', 'sha256': BUILDER.digest(b'published license in readme')},
+        }
+        root = {'bundledDependencies': ['a']}
+        valid = {'node_modules/a/package.json': b'{"name":"a","version":"1.0.0"}',
+                 'node_modules/a/README.md': b'published license in readme'}
+        BUILDER.inspect_package(self.package_fixture(valid, root))
+        for name, content in (
+            ('node_modules/a/README.md', b'other readme'),
+            ('node_modules/a/package.json', b'{"name":"a","version":"2.0.0"}'),
+        ):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Missing dependency license'):
+                BUILDER.inspect_package(self.package_fixture({**valid, name: content}, root))
+
+    def test_fs_safe_binding_requires_exact_binary_and_shared_license(self):
+        platform = '@openclaw/fs-safe-win32-x64-msvc'
+        self.pack_policy['fsSafeNativeLicense'] = {
+            'version': '0.26.5',
+            'bindingSha256': {platform: BUILDER.digest(b'published binary')},
+            'licenseSha256': BUILDER.digest(b'published shared license'),
+        }
+        root = {'bundledDependencies': ['@openclaw/fs-safe']}
+        binary = f'node_modules/{platform}/fs-safe-native.node'
+        license_file = 'node_modules/@openclaw/fs-safe/LICENSE'
+        files = {'node_modules/@openclaw/fs-safe/package.json': json.dumps({
+                    'optionalDependencies': {platform: '0.26.5'},
+                 }).encode(),
+                 f'node_modules/{platform}/package.json': json.dumps({
+                    'name': platform, 'version': '0.26.5',
+                 }).encode(),
+                 binary: b'published binary', license_file: b'published shared license'}
+        BUILDER.inspect_package(self.package_fixture(files, root))
+        for name in (binary, license_file):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Missing dependency license'):
+                BUILDER.inspect_package(self.package_fixture({**files, name: b'changed'}, root))
 
     def test_pristine_check_has_no_source_side_effect(self):
         self.assertEqual(BUILDER.verify_source(self.source, self.manifest, self.patch), 'pristine')
