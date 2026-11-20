@@ -33,7 +33,7 @@
   const retryButton = (label = '重试') => `<button type="button" class="ce-button ce-primary" data-action="refresh">${label}</button>`;
   function renderNavigation({ current }) {
     const link = (label, href, active, symbol) => `<a class="ce-nav${active ? ' is-current' : ''}" href="${href}"${active ? ' aria-current="page"' : ''} title="${escape(label)}" aria-label="${escape(label)}">${icon(symbol)}<span>${label}</span></a>`;
-    return `<div class="ce-brand"><span class="ce-monogram" aria-hidden="true">⌘</span><span>Control Everything</span></div><nav class="ce-navgroup" aria-label="主导航">${link('项目总览', '#home', current.view === 'home', 'folder')}${link('新闻', '#news', current.view === 'news', 'news')}</nav><div class="ce-rail-bottom"><nav class="ce-navgroup" aria-label="管理">${link('设置', '#settings/appearance', current.view === 'settings' && current.tab !== 'account', 'settings')}${link(labels.account, '#settings/account', current.view === 'settings' && current.tab === 'account' || current.view === 'mobile', 'account')}</nav></div>`;
+    return `<div class="ce-brand"><span>Control Everything</span></div><nav class="ce-navgroup" aria-label="主导航">${link('项目总览', '#home', current.view === 'home', 'folder')}${link('新闻', '#news', current.view === 'news', 'news')}</nav><div class="ce-rail-bottom"><nav class="ce-navgroup" aria-label="管理">${link('设置', '#settings/appearance', current.view === 'settings' && current.tab !== 'account', 'settings')}${link(labels.account, '#settings/account', current.view === 'settings' && current.tab === 'account' || current.view === 'mobile', 'account')}</nav></div>`;
   }
   function projectPhase(project) {
     if (project.archived) return 'archived';

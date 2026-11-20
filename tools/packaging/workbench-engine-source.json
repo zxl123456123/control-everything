@@ -328505,7 +328505,7 @@
     {
       "path": "src/renderer/src/web/preload-api/web-preferences-store.ts",
       "upstream_sha256": "4713b98be31fe678e656a1d48355ce11bb309ca816d5912e522ab55c25b62f4d",
-      "current_sha256": "7bfc266520f68ff60bafdbfdb7cf4b0f154d28abdbee8f020baf66897efcd965",
+      "current_sha256": "884fea2ea767ac020062737be3541102e5ad084187bc179cc9627461c8bc860f",
       "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences P4: immutable remote context and explicit scoped storage; local behavior retained."
     },
     {
@@ -328541,7 +328541,7 @@
     {
       "path": "src/renderer/src/web/web-preload-api-ui.test.ts",
       "upstream_sha256": "4b2f70fb94a280e40827decc34d7d09a13abee5e8bdaa136a0dcefd4c3e83eab",
-      "current_sha256": "13336baf1a139e3be68bd8de3a29bbaf9f571473a4394b6de99f3aa9bdb988ca",
+      "current_sha256": "9b99c27fc5934adc225a7bc495bbb3d314e5b93e86cfa42c0370390a9580250c",
       "reason": "Keep sidebar visibility browser-local and use narrow-screen defaults without overriding explicit preferences"
     },
     {
@@ -328865,7 +328865,7 @@
     {
       "path": "src/renderer/src/components/settings/AppearanceInterfaceSection.tsx",
       "upstream_sha256": "c260ccb6d5dc7223f94d315b0819b5611ebfdc3c1894b8bf11977904e1fd271c",
-      "current_sha256": "2d7683ca428b8d2f902ebbbb5306c73ee2406e2739e2e79e3cb3731a11c7310d",
+      "current_sha256": "84c437fec67ca04b09f7b52a09798c67beb005d1d2aafa4b6e5dffd1f213a2de",
       "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; AppearanceInterfaceSection.tsx.；暖色玻璃工作台及可持久透明度设置"
     },
     {
@@ -328949,7 +328949,7 @@
     {
       "path": "src/renderer/src/components/settings/appearance-search.ts",
       "upstream_sha256": "4dd156ae13bc2bfdd1fdbc7f5b4148e65011c315b42cedbb534636f58db8152e",
-      "current_sha256": "caa3911bd07962a54de6b55837053085defb0a6152d3b6361d652fa743095de5",
+      "current_sha256": "57ff6873540c1baf079499c5265b7c5ed5bb3ad4981b6d446af709221a595562",
       "reason": "UI r1 S1: fixed management theme, typography and scoped primitives; appearance-search.ts.；暖色玻璃工作台及可持久透明度设置；桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
     },
     {
@@ -329771,7 +329771,7 @@
     {
       "path": "src/renderer/src/components/settings/AppearancePane.tsx",
       "upstream_sha256": "a61f03ba66de0175b261211e13ef94852bdaae8234b159805b1d7bee08ac8a7a",
-      "current_sha256": "043e53a6afc0efd7757feabe719555e07a5e4131dd1d0ec01cb035ca28897256",
+      "current_sha256": "011314ff04e6455247f4ad39cc0924467ac5667374ace5ddb92d9793f2c9e6ac",
       "reason": "平台命令入口和帮助统一品牌，精简账号说明与工作台展示，保留兼容协议及原生功能。；暖色玻璃工作台及可持久透明度设置"
     },
     {
@@ -339089,7 +339089,7 @@
     {
       "path": "src/renderer/src/components/settings/appearance-search.test.ts",
       "upstream_sha256": "d2f86bd1e0b86c8f77b75c953057270ec90ecb7bf3960ba5138a98c847ffd65f",
-      "current_sha256": "57ce521108c38ba2ddb10fffb4eea50cd0e75ef2523a791507ef963178e3ea62",
+      "current_sha256": "3048267e693ddd3bcf99829e7a9de8f74b082ad7a40023fc4ad2f534fead94ea",
       "reason": "暖色玻璃工作台及可持久透明度设置"
     },
     {
@@ -339131,13 +339131,13 @@
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.test.ts",
       "upstream_sha256": "6d7d5bec13ce18d1d4ed74c0f99cb1b2f2ba415c4c07d656a383668dd6bb0a57",
-      "current_sha256": "3a836b22ced196d47f843ec64a9e140b29fc0521b38d9c675e687f6878028599",
+      "current_sha256": "a4aaac7414ac99f14b68570bd7238df9cd28e79e49ed036934e5464ef56cd80f",
       "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
     },
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.ts",
       "upstream_sha256": "37053d4596a6bf2f48d650fd7c8121805ab002b196b0aecefd12a1d9d2d6c22c",
-      "current_sha256": "cb8578658d64ee2bb6d2f0118be33c75d4a0222588d4d57b1171d78176178a44",
+      "current_sha256": "c916bba87190e0a5d0ad2f13a2bb174d4d1f29e4fa845655ae3b955184e6aca8",
       "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
     },
     {

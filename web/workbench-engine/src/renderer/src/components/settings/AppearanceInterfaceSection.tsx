@@ -21,7 +21,6 @@ import {
   getLanguageEntries,
   getMenuBarIconEntries,
   getSystemTrayEntries,
-  getSurfaceTransparencyEntries,
   getThemeEntries,
   getTitlebarEntries,
   getTypographyEntries,
@@ -36,7 +35,6 @@ import { translate } from '@/i18n/i18n'
 import type { UiLanguage } from '../../../../shared/ui-language'
 import { matchesSettingsSearch, normalizeSettingsSearchQuery } from './settings-search'
 import { usePluginLanguagePacks } from '@/store/plugin-language-packs'
-import { PlatformSurfaceTransparencyControl } from './PlatformSurfaceTransparencyControl'
 
 const noAppearanceSubscription = () => () => {}
 const noAppearanceSnapshot = () => null
@@ -111,7 +109,6 @@ export function AppearanceInterfaceSection({
   ]
   const showAdvanced = !isSearching || matchesSettingsSearch(searchQuery, advancedEntries)
   const languageTitle = translate('settings.appearance.language.title', 'Language')
-  const surfaceTransparencyEntry = getSurfaceTransparencyEntries()[0]
 
   return (
     <div className="ce-management-surface divide-y divide-border/40">
@@ -163,12 +160,6 @@ export function AppearanceInterfaceSection({
           </p>
         )}
       </SearchableSetting>
-
-      {platform ? (
-        <SearchableSetting {...surfaceTransparencyEntry} forceVisible={forceVisiblePrimary}>
-          <PlatformSurfaceTransparencyControl opacity={settings.workbenchSurfaceOpacity} />
-        </SearchableSetting>
-      ) : null}
 
       {SHOW_UI_LANGUAGE_SETTING ? (
         <SearchableSetting
