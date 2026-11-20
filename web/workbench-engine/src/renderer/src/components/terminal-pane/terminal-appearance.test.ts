@@ -189,7 +189,7 @@ describe('applyTerminalAppearance theme assignment', () => {
     expect(pane.terminal.options.fontSize).toBe(settings.terminalFontSize + 2)
   })
 
-  it('paints platform fills once without changing theme colors or rebuilding the palette on opacity changes', () => {
+  it('uses a fixed nonzero platform material without changing text colors or rebuilding the palette', () => {
     const surfaces = new Set(['.platform-project-entry', '.platform-workspace-header'])
     vi.stubGlobal('document', {
       querySelector: (selector: string) => (surfaces.has(selector) ? {} : null)
@@ -216,7 +216,7 @@ describe('applyTerminalAppearance theme assignment', () => {
       applyPlatform(0.82)
       const firstTheme = pane.terminal.options.theme
       expect(firstTheme).toMatchObject({
-        background: 'rgba(16, 32, 48, 0)',
+        background: 'rgba(16, 32, 48, 0.64)',
         foreground: '#d0e0f0',
         red: '#cc2233'
       })

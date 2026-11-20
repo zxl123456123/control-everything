@@ -87,6 +87,44 @@ describe('web UI preload API', () => {
     expect(ui.rightSidebarOpen).toBe(true)
   })
 
+  it.each([700, 1119, 1120, 1440])('opens a fresh Studio inspector only when wide at %s', async (width) => {
+    const globals = installBrowserGlobals('Linux')
+    globals.window.location.pathname = '/studio'
+    globals.window.matchMedia = vi.fn((query: string) => ({
+      matches: query === '(min-width: 1120px)' ? width >= 1120 : width <= 700,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => true)
+    }))
+    const { readLocalWebUIState } = await import('./preload-api/web-preferences-store')
+    expect(readLocalWebUIState().rightSidebarOpen).toBe(width >= 1120)
+  })
+
+  it.each(['settings', 'ui'])('keeps an explicit closed Studio inspector from %s', async (source) => {
+    const globals = installBrowserGlobals('Linux')
+    globals.window.location.pathname = '/studio'
+    globals.window.matchMedia = vi.fn((query: string) => ({
+      matches: query === '(min-width: 1120px)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => true)
+    }))
+    globals.storage.setItem(
+      `orca.web.${source}.v1`,
+      JSON.stringify(source === 'settings' ? { rightSidebarOpenByDefault: false } : { rightSidebarOpen: false })
+    )
+    const { readLocalWebUIState } = await import('./preload-api/web-preferences-store')
+    expect(readLocalWebUIState().rightSidebarOpen).toBe(false)
+  })
+
   it.each(
     [390, 700, 701, 844, 1280].flatMap((width) =>
       [false, true].map((legacy) => ({ width, legacy }))

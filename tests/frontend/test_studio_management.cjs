@@ -132,8 +132,11 @@ function archiveMenu(f, id) {
     || f.w.document.querySelector('.platform-project-dialog-host')?.shadowRoot.querySelector('[role="menu"]');
   assert.ok(menu, 'visible project menu');
   const actions = [...menu.querySelectorAll('[role="menuitem"]')];
-  assert.equal(actions.length, 1, 'overview only offers archive or restore');
-  const action = actions[0];
+  assert.equal(actions.length, 2, 'directory lookup and archive or restore remain separate');
+  assert.ok(actions[0].hasAttribute('data-project-directory'));
+  assert.ok((menu.getRootNode().activeElement || f.w.document.activeElement) === actions[0]);
+  actions[0].dispatchEvent(new f.w.KeyboardEvent('keydown', {key:'ArrowDown',bubbles:true,cancelable:true}));
+  const action = actions[1];
   assert.equal(action.tagName, 'BUTTON'); assert.equal(action.dataset.projectArchive, id);
   assert.ok(action.querySelector('svg')); assert.equal(menu.querySelector('a'), null);
   assert.doesNotMatch(menu.textContent, /项目信息|项目管理|项目设置|项目进展/);
@@ -150,7 +153,7 @@ test('catalog clearing while search is focused leaves a valid empty overview wit
   assert.equal(f.host.querySelector('#studio-project-search'), null);
   assert.equal(f.w.document.activeElement, f.node('h1'));
   assert.equal(f.node('#studio-status').classList.contains('error'), false, f.node('#studio-status').textContent);
-  assert.ok(f.host.querySelector('a[href="#workbench"]'));
+  assert.equal(f.host.querySelectorAll('[data-action="add-project"]').length, 0, 'standalone has no connected runtime');
   assert.equal(f.posts.length, 0);
 });
 
@@ -227,11 +230,20 @@ test('saved archive with failed confirmation keeps the old list and recovers by 
   assert.deepEqual(overviewIds(f), ['p-b']); assert.equal(f.posts.length, 1);
 });
 
-test('read-only, Codex and missing write capability expose no fake archive menu', async t => {
+test('read-only, Codex and missing write capability retain directory lookup without archive writes', async t => {
   const f = await fixture(t); f.projects[0].read_only = true; f.projects[1].source.kind = 'codex';
   f.node('[data-action="refresh"]').click(); await tick();
-  assert.deepEqual(overviewIds(f), ['p-a', 'p-b']); assert.equal(f.host.querySelector('[data-project-menu]'), null); assert.equal(f.posts.length, 0);
-  const readonly = await fixture(t, { writable: false }); assert.equal(readonly.host.querySelector('[data-project-menu]'), null); assert.equal(readonly.posts.length, 0);
+  assert.deepEqual(overviewIds(f), ['p-a', 'p-b']);
+  for (const id of ['p-a', 'p-b']) {
+    f.node(`[data-project-menu="${id}"]`).click();
+    assert.equal(f.host.querySelectorAll('[data-project-archive]').length, 0);
+    assert.equal(f.host.querySelectorAll('[data-project-directory]').length, 1);
+  }
+  assert.equal(f.posts.length, 0);
+  const readonly = await fixture(t, { writable: false });
+  assert.equal(readonly.host.querySelectorAll('[data-project-menu]').length, 0, 'failed bootstrap does not expose the catalog');
+  assert.equal(readonly.host.querySelectorAll('[data-project-archive]').length, 0);
+  assert.equal(readonly.posts.length, 0);
 });
 
 test('remote retirement during a pending archive rejects late publication and never replays', async t => {
@@ -250,17 +262,20 @@ test('archive menu keyboard focus returns to the trigger on Escape without writi
   assert.equal(trigger.getAttribute('aria-expanded'), 'false'); assert.equal(f.posts.length, 0);
 });
 
-test('normal and archived cards retain distinct colors and equal title size in cards and list for both themes', async t => {
+test('project titles stay neutral while archive state remains distinct in both themes and layouts', async t => {
   const f = await fixture(t, { unified: true });
+  f.w.document.body.classList.add('platform-project-entry');
   const sheets = ['workspace.css', 'project-monitor.css', 'studio-preview.css'].map(name => ({
     text: fs.readFileSync(path.join(root, 'web/workspace', name), 'utf8'), style: f.w.document.createElement('style')
   }));
+  sheets.push({text:fs.readFileSync(path.join(root, 'web/workbench-engine/src/renderer/src/web/platform-workbench.css'), 'utf8'),style:f.w.document.createElement('style')});
   for (const sheet of sheets) f.w.document.head.append(sheet.style);
   const rgb = value => {
     if (/^#[a-f0-9]{6}$/i.test(value)) return [1, 3, 5].map(index => parseInt(value.slice(index, index + 2), 16));
     const match = value.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/); assert.ok(match, `computed color ${value}`); return match.slice(1).map(Number);
   };
   for (const theme of ['light', 'dark']) for (const mode of ['cards', 'list']) {
+    f.w.document.documentElement.classList.toggle('dark', theme === 'dark');
     // The pinned simulator does not evaluate light-dark(); materialize only that standard function,
     // retaining the full production cascade and custom-property inheritance for each real theme.
     for (const sheet of sheets) sheet.style.textContent = sheet.text.replace(/light-dark\(\s*(#[a-f0-9]+)\s*,\s*(#[a-f0-9]+)\s*\)/gi,
@@ -269,19 +284,75 @@ test('normal and archived cards retain distinct colors and equal title size in c
     const normal = f.node('[data-project-card="p-a"]'), archived = f.node('[data-project-card="p-old"]');
     const normalTitle = f.w.getComputedStyle(normal.querySelector('.ce-project-title-link')), archivedTitle = f.w.getComputedStyle(archived.querySelector('.ce-project-title-link'));
     assert.equal(normalTitle.fontSize, '16px'); assert.equal(archivedTitle.fontSize, '16px');
-    const blue = rgb(normalTitle.color), amber = rgb(archivedTitle.color);
-    assert.ok(blue[2] > blue[0], `normal blue title at ${theme}/${mode}`); assert.ok(amber[0] > amber[2], `archive amber title at ${theme}/${mode}`);
-    assert.notEqual(normalTitle.backgroundColor, archivedTitle.backgroundColor);
-    assert.match(normal.textContent, /正常/); assert.match(archived.textContent, /已归档/);
+    assert.equal(normalTitle.color, archivedTitle.color);
+    assert.equal(normalTitle.backgroundColor, archivedTitle.backgroundColor);
+    const amber = rgb(f.w.getComputedStyle(archived.querySelector('.ce-project-status')).color);
+    assert.ok(amber[0] > amber[2], `archive amber state at ${theme}/${mode}`);
+    assert.equal(normal.querySelectorAll('.ce-project-status').length, 0);
+    assert.match(archived.textContent, /已归档/);
     assert.doesNotMatch(normal.textContent + archived.textContent, /尚无事项记录|本机项目|来源项目/);
     assert.equal(normal.querySelector('.ce-project-title-link').getAttribute('href'), '#project/p-a/workspace');
   }
 });
 
+test('directory lookup shows full paths without entering a project or exposing markup', async t => {
+  const f = await fixture(t);
+  f.projects[0].directories[0].path = 'E:/projects/<shared>&demo';
+  f.node('[data-action="refresh"]').click(); await tick();
+  const trigger = f.node('[data-project-menu="p-a"]'); trigger.click();
+  f.node('[data-project-directory]').click();
+  const dialog = f.node('dialog.ce-project-settings');
+  assert.ok(dialog.open); assert.equal(dialog.querySelector('p').textContent, 'E:/projects/<shared>&demo');
+  assert.equal(dialog.querySelectorAll('shared').length, 0);
+  assert.equal(f.w.location.hash, '#home'); assert.equal(f.posts.length, 0);
+  dialog.close(); assert.equal(f.w.document.activeElement, trigger);
+});
+
+test('only recorded project completion produces a green state, never an agent or item ending', async t => {
+  const f = await fixture(t);
+  Object.assign(f.projects[0], {state:'完成',manual_recorded:false,task_counts:{done:2,total:2},sessions:[{status:'done'}]});
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(f.node('[data-project-card="p-a"]').dataset.projectPhase, 'idle');
+  for (const [state, phase, label] of [['在做','running','进行中'],['等我','attention','需处理'],['完成','done','已完成'],['未开始','planned','未开始']]) {
+    Object.assign(f.projects[0], {state,manual_recorded:true});
+    f.node('[data-action="refresh"]').click(); await tick();
+    const card = f.node('[data-project-card="p-a"]');
+    assert.equal(card.dataset.projectPhase, phase);
+    assert.equal(card.querySelectorAll('.ce-project-status').length, 1);
+    assert.equal(card.querySelector('.ce-project-status').textContent, label);
+  }
+  Object.assign(f.projects[0], {state:'完成',binding_available:false});
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(f.node('[data-project-card="p-a"]').dataset.projectPhase, 'unavailable');
+  f.projects[0].archived = true;
+  f.node('[data-action="all-projects"]').click();
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(f.node('[data-project-card="p-a"]').dataset.projectPhase, 'archived');
+  assert.equal(f.posts.length, 0);
+});
+
+test('completion announces once without stealing focus or replaying on refresh and layout changes', async t => {
+  const f = await fixture(t);
+  const card = () => f.node('[data-project-card="p-a"]');
+  assert.equal(card().classList.contains('ce-state-changed'), false);
+  f.node('#studio-project-search').focus();
+  Object.assign(f.projects[0], {state:'完成',manual_recorded:true});
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(card().classList.contains('ce-state-changed'), true);
+  assert.equal(f.w.document.activeElement.id, 'studio-project-search');
+  assert.equal(f.node('#studio-project-announcement').textContent, '同名项目，已完成');
+  card().dispatchEvent(new f.w.Event('animationend', {bubbles:true}));
+  f.node('[data-action="refresh"]').click(); await tick();
+  assert.equal(card().classList.contains('ce-state-changed'), false);
+  f.node('[data-action="view-list"]').click();
+  assert.equal(card().classList.contains('ce-state-changed'), false);
+  assert.equal(card().dataset.projectPhase, 'done');
+});
+
 test('project addition enters the native workbench and delegates without loading another form', async t => {
   const f = await fixture(t, { unified: true, registration: true });
   let opens = 0; f.w.addEventListener('platform-open-add-repo', () => { opens++; });
-  f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();
+  f.node('[data-action="add-project"]').click(); await tick();
   assert.equal(f.w.location.hash, '#workbench'); assert.equal(opens, 0);
   await f.route('#workbench');
   f.w.dispatchEvent(new f.w.Event('platform-add-project')); await tick();

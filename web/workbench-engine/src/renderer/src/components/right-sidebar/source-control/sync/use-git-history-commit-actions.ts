@@ -3,6 +3,7 @@ import { requireGitOwnerTarget } from '../../worktree-git-owner-target'
 import type { RuntimeClientTarget } from '../../../../../../shared/runtime-client-target'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
+import { platformReviewTargetGroup } from '@/lib/platform-review-target'
 import { getRuntimeGitCommitCompare } from '@/runtime/runtime-git-diff-client'
 import { getRuntimeGitRemoteCommitUrl } from '@/runtime/runtime-git-working-tree-client'
 import { getConnectionId } from '@/lib/connection-context'
@@ -149,7 +150,8 @@ export function useGitHistoryCommitActions({
       if (!cached) {
         return
       }
-      const targetGroupId = resolveSplitTargetGroupId(event)
+      const explicitSplitGroupId = resolveSplitTargetGroupId(event)
+      const targetGroupId = explicitSplitGroupId ?? platformReviewTargetGroup(activeWorktreeId)
       openCommitDiff(
         activeWorktreeId,
         worktreePath,
@@ -163,7 +165,7 @@ export function useGitHistoryCommitActions({
           message: item.message
         },
         detectLanguage(entry.path),
-        { targetGroupId, preview: shouldOpenSourceControlRowAsPreview(event, targetGroupId) }
+        { targetGroupId, preview: shouldOpenSourceControlRowAsPreview(event, explicitSplitGroupId) }
       )
     },
     [activeWorktreeId, openCommitDiff, resolveSplitTargetGroupId, worktreePath]

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { openWorkspaceFile } from '@/lib/workspace-file-open'
+import { platformReviewTargetGroup } from '@/lib/platform-review-target'
 import { useAppStore } from '@/store'
 import type {
   GitBranchChangeEntry,
@@ -67,7 +68,8 @@ export function useSourceControlRowOpening({
       if (!activeWorktreeId || !worktreePath) {
         return
       }
-      const targetGroupId = resolveSplitTargetGroupId(event)
+      const explicitSplitGroupId = resolveSplitTargetGroupId(event)
+      const targetGroupId = explicitSplitGroupId ?? platformReviewTargetGroup(activeWorktreeId)
       openWorkspaceFile({
         kind: 'uncommitted',
         worktreeId: activeWorktreeId,
@@ -75,7 +77,7 @@ export function useSourceControlRowOpening({
         entry,
         options: {
           targetGroupId,
-          preview: shouldOpenSourceControlRowAsPreview(event, targetGroupId)
+          preview: shouldOpenSourceControlRowAsPreview(event, explicitSplitGroupId)
         }
       })
     },
@@ -92,7 +94,8 @@ export function useSourceControlRowOpening({
       ) {
         return
       }
-      const targetGroupId = resolveSplitTargetGroupId(event)
+      const explicitSplitGroupId = resolveSplitTargetGroupId(event)
+      const targetGroupId = explicitSplitGroupId ?? platformReviewTargetGroup(activeWorktreeId)
       openWorkspaceFile({
         kind: 'branch',
         worktreeId: activeWorktreeId,
@@ -101,7 +104,7 @@ export function useSourceControlRowOpening({
         compare: branchSummary,
         options: {
           targetGroupId,
-          preview: shouldOpenSourceControlRowAsPreview(event, targetGroupId)
+          preview: shouldOpenSourceControlRowAsPreview(event, explicitSplitGroupId)
         }
       })
     },

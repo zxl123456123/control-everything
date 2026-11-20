@@ -84,7 +84,10 @@ export function getStoredSettings(): GlobalSettings {
     {
       ...defaults,
       floatingTerminalEnabled: false,
-      rightSidebarOpenByDefault: false,
+      rightSidebarOpenByDefault:
+        window.location.pathname === '/studio' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(min-width: 1120px)').matches,
       activeRuntimeEnvironmentId: null
     },
     migratedStored
