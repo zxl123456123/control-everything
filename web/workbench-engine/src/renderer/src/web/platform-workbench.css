@@ -18,10 +18,12 @@
   --ce-workbench-ink: #242830;
   --ce-workbench-muted: #596270;
   --ce-workbench-effective-opacity: 0.72;
-  --ce-workbench-editor-opacity: 0.88;
-  --ce-workbench-terminal-opacity: 0.82;
+  --ce-workbench-editor-opacity: 0.78;
+  --ce-workbench-terminal-opacity: 0.64;
+  --ce-workbench-terminal-canvas-color: transparent;
   --ce-workbench-glass: rgb(var(--ce-workbench-panel-rgb) / var(--ce-workbench-effective-opacity));
   --ce-workbench-blur: 24px;
+  --ce-workbench-content-backdrop: blur(var(--ce-workbench-blur));
   background: var(--ce-workbench-chrome);
 }
 
@@ -40,8 +42,10 @@
   --ce-workbench-ink: #ede8ef;
   --ce-workbench-muted: #beb4c2;
   --ce-workbench-effective-opacity: 0.68;
-  --ce-workbench-editor-opacity: 0.82;
-  --ce-workbench-terminal-opacity: 0.82;
+  --ce-workbench-editor-opacity: 0.64;
+  --ce-workbench-content-backdrop: blur(var(--ce-workbench-blur)) brightness(0.62);
+  --ce-workbench-terminal-opacity: 0.64;
+  --ce-workbench-terminal-canvas-color: var(--ce-workbench-editor);
 }
 
 .platform-project-entry {
@@ -283,23 +287,27 @@
   backdrop-filter: none;
 }
 .platform-project-entry [data-workbench-terminal-surface] {
-  backdrop-filter: blur(var(--ce-workbench-blur));
+  backdrop-filter: var(--ce-workbench-content-backdrop);
   background: color-mix(
     in srgb,
     var(--ce-terminal-opaque-background) calc(var(--ce-workbench-terminal-opacity) * 100%),
     transparent
   ) !important;
 }
-/* WebGL paints its own fixed tint. DOM rendering uses the container tint instead. */
+/* Keep the WebGL canvas over the editor tint in dark mode so bright backdrops stay legible. */
 .platform-project-entry [data-workbench-terminal-surface]:has(.xterm-screen canvas) {
-  background: transparent !important;
+  background: color-mix(
+    in srgb,
+    var(--ce-workbench-terminal-canvas-color) calc(var(--ce-workbench-terminal-opacity) * 100%),
+    transparent
+  ) !important;
 }
 .platform-project-entry [data-workbench-terminal-surface]
   :is(.xterm, .xterm-viewport, .xterm-scrollable-element) {
   background-color: transparent !important;
 }
 .platform-project-entry [data-workbench-workspace='true'] .monaco-editor {
-  backdrop-filter: blur(var(--ce-workbench-blur));
+  backdrop-filter: var(--ce-workbench-content-backdrop);
   background-color: color-mix(
     in srgb,
     var(--editor-surface) calc(var(--ce-workbench-editor-opacity) * 100%),
@@ -314,6 +322,7 @@
 .platform-project-entry [data-workbench-workspace='true'] .editor-header {
   min-height: 28px;
   padding-block: 2px;
+  backdrop-filter: var(--ce-workbench-content-backdrop);
   background: color-mix(
     in srgb,
     var(--editor-surface) calc(var(--ce-workbench-editor-opacity) * 100%),
@@ -441,11 +450,15 @@
   background: var(--ce-workbench-hover);
 }
 
-/* Keep scrolled rows legible behind a pinned label without an isolated dark strip. */
+/* The navigation column owns the material; a nested filter isolates this title from its backdrop. */
 .platform-project-entry [data-worktree-sticky-header-active] {
   border-radius: 9px;
+  background: transparent;
+  backdrop-filter: none;
+}
+.platform-project-entry [data-repo-header-id]:hover {
+  border-radius: 9px;
   background: var(--ce-workbench-control);
-  backdrop-filter: blur(var(--ce-workbench-blur));
 }
 .platform-project-entry [data-workbench-sidebar-heading] {
   margin: 0 12px 6px;
@@ -850,6 +863,7 @@
     --ce-workbench-terminal-opacity: 1;
     --ce-workbench-backdrop: var(--ce-workbench-chrome);
     --ce-workbench-blur: 0px;
+    --ce-workbench-content-backdrop: none;
   }
   :root:has(.platform-workspace-header)
     .platform-project-entry

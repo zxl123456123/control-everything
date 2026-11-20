@@ -159,7 +159,7 @@ export function applyTerminalAppearance(
   // show through. Terminal colors remain independent of the application theme.
   const renderTheme =
     platformBackground && theme
-      ? { ...theme, background: `rgba(${platformBackground.rgb.join(', ')}, 0.82)` }
+      ? { ...theme, background: `rgba(${platformBackground.rgb.join(', ')}, 0.64)` }
       : theme
 
   const terminalFontWeights = resolveTerminalFontWeights(

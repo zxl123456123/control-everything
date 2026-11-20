@@ -339131,14 +339131,14 @@
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.test.ts",
       "upstream_sha256": "6d7d5bec13ce18d1d4ed74c0f99cb1b2f2ba415c4c07d656a383668dd6bb0a57",
-      "current_sha256": "a4aaac7414ac99f14b68570bd7238df9cd28e79e49ed036934e5464ef56cd80f",
-      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
+      "current_sha256": "a21725c877f353b79bfd3c53c762e5c6d991ef0a9e760542e4e5e49eeb3a9b5d",
+      "reason": "验证平台终端使用固定的半透明主题背景，并保留普通终端的主题设置"
     },
     {
       "path": "src/renderer/src/components/terminal-pane/terminal-appearance.ts",
       "upstream_sha256": "37053d4596a6bf2f48d650fd7c8121805ab002b196b0aecefd12a1d9d2d6c22c",
-      "current_sha256": "c916bba87190e0a5d0ad2f13a2bb174d4d1f29e4fa845655ae3b955184e6aca8",
-      "reason": "精简顶部骨架并统一终端和编辑器玻璃底层，修复透明默认背景下WebGL矩形alpha并同步既有生成补丁和锁文件；平台终端恢复不透明绘制，避免WebGL重绘残影与输入笔画变淡"
+      "current_sha256": "a20b7afb7fc2ba338683f4f27c9ea6294873f068992c1bfdcc87272b7980ddb1",
+      "reason": "平台终端使用固定的半透明主题背景，保留非零 alpha 以支持 WebGL 重绘，并沿用原有 ANSI 颜色及主题上报"
     },
     {
       "path": "config/patches/xterm-src/@xterm__addon-webgl@0.20.0-beta.300.src.patch",

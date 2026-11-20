@@ -216,7 +216,7 @@ describe('applyTerminalAppearance theme assignment', () => {
       applyPlatform(0.82)
       const firstTheme = pane.terminal.options.theme
       expect(firstTheme).toMatchObject({
-        background: 'rgba(16, 32, 48, 0.82)',
+        background: 'rgba(16, 32, 48, 0.64)',
         foreground: '#d0e0f0',
         red: '#cc2233'
       })
