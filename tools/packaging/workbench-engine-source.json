@@ -327183,6 +327183,8 @@
     "src/renderer/src/components/stats/ShareUsageCard.branding.test.tsx",
     "src/renderer/src/web/PlatformWorkspaceHeader.tsx",
     "src/renderer/src/web/platform-workbench.css",
+    "src/renderer/src/lib/platform-review-target.ts",
+    "src/renderer/src/lib/platform-review-target.test.ts",
     "src/main/credentials/credential-root.ts",
     "src/main/credentials/credential-root.test.ts",
     "src/renderer/src/web/PlatformWorkspaceToolbar.tsx",
@@ -327302,6 +327304,36 @@
     "src/main/daemon/daemon-pty-exact-stop.test.ts"
   ],
   "adapted_files": [
+    {
+      "path": "src/renderer/src/components/right-sidebar/AiVaultPanel.tsx",
+      "upstream_sha256": "047e13790d1a8fe8190e302629869fbb63be7d1f6819dbc49b02a7b006b339b9",
+      "current_sha256": "a9f9a93b9afc35c1852cb40f41a21c6edb86f779f85eda410673a87072225edb",
+      "reason": "平台会话历史复用侧栏玻璃底材。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/search-match-open.ts",
+      "upstream_sha256": "bd03ce4e3068670e1dc122c8e2d0a2af4ed4c5b8a0f4f5571160c4e6e2c2c149",
+      "current_sha256": "bfd5f9328d91935e693733e2a451c6328463f5551ddd18daf81b53459b9fd1d2",
+      "reason": "平台右栏从当前工作树的文件和 Git 入口复用审阅分组，并保留原有打开和工作树归属规则。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/listing/use-row-opening.ts",
+      "upstream_sha256": "e8e23431f432f11ddd7fb6e27644f71690cd6b03848aecae52e352a76dcad5f9",
+      "current_sha256": "19f9d217d3e63896b060389b0f2b97f612747ce5123c27e6a972fdf56fdccb82",
+      "reason": "平台右栏从当前工作树的文件和 Git 入口复用审阅分组，并保留原有打开和工作树归属规则。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/source-control/sync/use-git-history-commit-actions.ts",
+      "upstream_sha256": "970865456e6abe924deaf1bca4659522131148d1468fdeff2cfb76c06fcc3ca8",
+      "current_sha256": "a9f27e7fded0f467a7b9b89dacdf0e1f9ef529c2a79f06602825f93a898562c1",
+      "reason": "平台右栏从当前工作树的文件和 Git 入口复用审阅分组，并保留原有打开和工作树归属规则。"
+    },
+    {
+      "path": "src/renderer/src/components/right-sidebar/useFileExplorerHandlers.ts",
+      "upstream_sha256": "c413f38f796d8d31898d8460fcc7c91bd53afc216fd3871f11a2b16286340150",
+      "current_sha256": "8903476055297f26dcc516b4a8ed76384446db7f07673e839b810a30393b9f13",
+      "reason": "平台右栏从当前工作树的文件和 Git 入口复用审阅分组，并保留原有打开和工作树归属规则。"
+    },
     {
       "path": "src/main/runtime/agent-terminal-startup-prompt.test.ts",
       "upstream_sha256": "1c24a53760c5dbcafa3aaa137d7d1b9b66a123ebf2a31442c6932ae975fe0ebe",
@@ -329219,7 +329251,7 @@
     {
       "path": "src/renderer/src/components/right-sidebar/source-control/panel/panel-content.tsx",
       "upstream_sha256": "765ed0aa6636eb4807b6e9a2fe5bafdd3b99f5c1dd103118f7c5a79ae3dc9d37",
-      "current_sha256": "7b9071cee40452f259e894609c2722fb528fb631fa2471f6702df636d5db7aea",
+      "current_sha256": "072703eaaf9bfe45239a25704fc799bb9dfc7bc98bdbe94686d9cb9408efbc0c",
       "reason": "DEV-VIEWS: bounded on-demand repository graph and self-backed tab lifecycle adapted from stablyai/orca PR 6746 at 7ebd5727916d95181089effb393d5338a1a73bf5; current owner routing and layout contracts retained."
     },
     {
@@ -329693,7 +329725,7 @@
     {
       "path": "src/renderer/src/components/right-sidebar/activity-bar-buttons.tsx",
       "upstream_sha256": "f74a579b519cec4ac22435530c150ea03f13c1f65c87d1ef299d2cc16b574551",
-      "current_sha256": "540bc7277d5d57b582fb3538bf8cb695b159399de380f5a5ad27fdc45a910c35",
+      "current_sha256": "e5efadc30347f9bf4001abe057d70c2eb89111b25abef54eca5897f115f9662d",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     },
     {
@@ -329705,13 +329737,13 @@
     {
       "path": "src/renderer/src/components/right-sidebar/activity-bar-overflow.ts",
       "upstream_sha256": "d307463a1a941b38937db801a5a79da0c7614a3fcb684ea5e2d7355dcd5c597b",
-      "current_sha256": "fd1bc4a955f487c63b849951838cad2e0576084ca035b0d46c89a9a5692467d7",
+      "current_sha256": "7d71a568c4233544b55a3d98f17dac66ebf8eb9781d1e33a11f45f7b54b09655",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。；暖色玻璃工作台及可持久透明度设置"
     },
     {
       "path": "src/renderer/src/components/right-sidebar/index.tsx",
       "upstream_sha256": "7523f5a241c9ad935bbb33d660b71fa901b53443b6aada1fd0827a3a935894e6",
-      "current_sha256": "dc82fec890c64d693ab4566218d37eab2fcb1f14edd388a7adadd5dc08cc6e31",
+      "current_sha256": "5dacdb9839c6364e2fcb8ab1701a70bef6c9ae3ddcf5435321e3cbad1594d2f0",
       "reason": "平台工作台统一视觉与品牌展示；保留原生功能与独立模式。"
     },
     {

@@ -306,7 +306,16 @@
   :is(.xterm, .xterm-viewport, .xterm-scrollable-element) {
   background-color: transparent !important;
 }
-.platform-project-entry [data-workbench-workspace='true'] .monaco-editor {
+.platform-project-entry [data-workbench-workspace='true']
+  [data-retained-pane-host]:not([inert]):has([data-workbench-terminal-surface]) {
+  backdrop-filter: var(--ce-workbench-content-backdrop);
+}
+.platform-project-entry [data-workbench-workspace='true']
+  [data-retained-pane-host] [data-workbench-terminal-surface] {
+  backdrop-filter: none;
+}
+.platform-project-entry [data-workbench-workspace='true']
+  :is(.monaco-diff-editor, .monaco-editor:not(.monaco-diff-editor .monaco-editor)) {
   backdrop-filter: var(--ce-workbench-content-backdrop);
   background-color: color-mix(
     in srgb,
@@ -316,7 +325,7 @@
 }
 .platform-project-entry
   [data-workbench-workspace='true']
-  :is(.monaco-editor-background, .monaco-editor .margin, .monaco-diff-editor) {
+  :is(.monaco-editor-background, .monaco-editor .margin, .monaco-diff-editor .monaco-editor) {
   background-color: transparent;
 }
 .platform-project-entry [data-workbench-workspace='true'] .editor-header {
@@ -328,6 +337,19 @@
     var(--editor-surface) calc(var(--ce-workbench-editor-opacity) * 100%),
     transparent
   );
+}
+/* Keep non-focused visible panes from creating a backdrop root when reviewing beside them. */
+.platform-project-entry [data-workbench-workspace='true']
+  :is([data-retained-pane-host]:not([inert]), :has(> [data-tab-group-strip-id])) {
+  opacity: 1 !important;
+}
+.platform-project-entry [data-workbench-workspace='true'] [data-workbench-git-graph] {
+  background: color-mix(
+    in srgb,
+    var(--editor-surface) calc(var(--ce-workbench-editor-opacity) * 100%),
+    transparent
+  );
+  backdrop-filter: var(--ce-workbench-content-backdrop);
 }
 .platform-project-entry [data-workbench-navigation-column='open'] {
   border: 0;
@@ -576,23 +598,37 @@
 .platform-project-entry [data-workbench-tools] :has(> [data-slot='toggle-group'][data-ignore-file-explorer-keys]) {
   background: var(--ce-workbench-control);
 }
+.platform-project-entry [data-workbench-tools] [data-workbench-session-history] {
+  background: transparent;
+}
 .platform-project-entry [data-workbench-tools] [data-ignore-file-explorer-keys] [data-slot='toggle-group-item'][data-state='on'] {
   background: var(--ce-workbench-selected);
   color: var(--ce-workbench-ink);
 }
 
 .platform-project-entry [data-workbench-tool] {
-  gap: 6px;
-  padding-inline: 6px;
-  font-size: 14px;
+  height: 28px;
+  gap: 5px;
+  padding-inline: 5px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 13px;
 }
 .platform-project-entry [data-workbench-tool] > span {
   margin-left: 0;
   font-size: inherit;
 }
+.platform-project-entry [data-workbench-tool]:hover {
+  background: var(--ce-workbench-hover);
+}
 .platform-project-entry [data-workbench-tool][data-active='true'] {
+  border-color: var(--ce-workbench-line);
   background: var(--ce-workbench-selected);
   color: var(--ce-workbench-ink);
+}
+.platform-project-entry [data-workbench-tool]:focus-visible {
+  outline: 1px solid var(--ce-workbench-ring);
+  outline-offset: -2px;
 }
 
 .platform-project-entry [data-workbench-landing] {

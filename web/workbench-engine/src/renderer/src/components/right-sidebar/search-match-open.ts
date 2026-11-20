@@ -1,4 +1,5 @@
 import { detectLanguage } from '@/lib/language-detect'
+import { platformReviewTargetGroup } from '@/lib/platform-review-target'
 import type { FileSearchResultOwner } from '@/lib/file-search-result-owner'
 import type { SearchFileResult, SearchMatch } from '../../../../shared/code-search-types'
 
@@ -22,7 +23,7 @@ export function openMatchResult(params: {
       mode: 'edit'
       runtimeEnvironmentId: string | null
     },
-    options: { suppressActiveRuntimeFallback: boolean }
+    options: { suppressActiveRuntimeFallback: boolean; targetGroupId?: string }
   ) => void
   setPendingEditorReveal: (
     reveal: {
@@ -49,6 +50,7 @@ export function openMatchResult(params: {
     return
   }
 
+  const targetGroupId = platformReviewTargetGroup(resultOwner.worktreeId)
   openFile(
     {
       filePath: fileResult.filePath,
@@ -59,6 +61,7 @@ export function openMatchResult(params: {
       mode: 'edit'
     },
     {
+      ...(targetGroupId ? { targetGroupId } : {}),
       suppressActiveRuntimeFallback: resultOwner.runtimeEnvironmentId === null
     }
   )

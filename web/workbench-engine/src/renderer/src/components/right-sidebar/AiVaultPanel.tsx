@@ -260,6 +260,7 @@ export default function AiVaultPanel({
   return (
     <div
       className="@container/ai-vault flex h-full min-h-0 flex-col bg-sidebar outline-none"
+      data-workbench-session-history=""
       {...aiVaultPanelKeyboardRootProps(keyboardRows ? listKeyboardRef : undefined)}
     >
       <AiVaultPanelHeader
