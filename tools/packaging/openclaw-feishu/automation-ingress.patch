@@ -997,10 +997,9 @@ index 0000000..70c40d8
 +});
 diff --git a/extensions/feishu/src/automation-identity-sender.test.ts b/extensions/feishu/src/automation-identity-sender.test.ts
 new file mode 100644
-index 0000000..0e9d46a
 --- /dev/null
 +++ b/extensions/feishu/src/automation-identity-sender.test.ts
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,83 @@
 +import { describe, expect, it, vi } from "vitest";
 +import { runIdentitySender } from "./automation-identity-sender.js";
 +
@@ -1055,11 +1054,14 @@ index 0000000..0e9d46a
 +    await runIdentitySender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
 +    expect(sendCard).toHaveBeenCalledTimes(1);
 +    expect(sendCard.mock.calls[0]?.[0].uuid).toBe(attempt.attempt_id);
-+    expect(sendCard.mock.calls[0]?.[0].card.body.elements[1].value).toEqual({
-+      namespace: "control-everything.identity.v1",
-+      challenge_id: attempt.challenge_id,
-+      nonce: attempt.nonce,
-+    });
++    expect(sendCard.mock.calls[0]?.[0].card.body.elements[1].behaviors).toEqual([{
++      type: "callback",
++      value: {
++        namespace: "control-everything.identity.v1",
++        challenge_id: attempt.challenge_id,
++        nonce: attempt.nonce,
++      },
++    }]);
 +    const resultCalls = vi.mocked(fetch).mock.calls.filter((call) => String(call[0]).endsWith("/result"));
 +    expect(resultCalls).toHaveLength(2);
 +    expect(JSON.parse(resultCalls[0]?.[1]?.body as string)).toEqual(JSON.parse(resultCalls[1]?.[1]?.body as string));
@@ -1083,10 +1085,9 @@ index 0000000..0e9d46a
 +});
 diff --git a/extensions/feishu/src/automation-identity-sender.ts b/extensions/feishu/src/automation-identity-sender.ts
 new file mode 100644
-index 0000000..631ae72
 --- /dev/null
 +++ b/extensions/feishu/src/automation-identity-sender.ts
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,182 @@
 +import { hubOriginAllowed } from "./automation-card-ingress.js";
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ClawdbotConfig } from "../runtime-api.js";
@@ -1118,11 +1119,14 @@ index 0000000..631ae72
 +          tag: "button",
 +          text: { tag: "plain_text", content: "确认是我" },
 +          type: "primary",
-+          value: {
-+            namespace: "control-everything.identity.v1",
-+            challenge_id: attempt.challenge_id,
-+            nonce: attempt.nonce,
-+          },
++          behaviors: [{
++            type: "callback",
++            value: {
++              namespace: "control-everything.identity.v1",
++              challenge_id: attempt.challenge_id,
++              nonce: attempt.nonce,
++            },
++          }],
 +        },
 +      ],
 +    },
@@ -1268,10 +1272,9 @@ index 0000000..631ae72
 +}
 diff --git a/extensions/feishu/src/automation-outbound-sender.test.ts b/extensions/feishu/src/automation-outbound-sender.test.ts
 new file mode 100644
-index 0000000..78dfd96
 --- /dev/null
 +++ b/extensions/feishu/src/automation-outbound-sender.test.ts
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,74 @@
 +import { describe, expect, it, vi } from "vitest";
 +import { runOutboundSender } from "./automation-outbound-sender.js";
 +
@@ -1281,7 +1284,8 @@ index 0000000..78dfd96
 +  chatId: "oc-chat",
 +  token: "producer-fixture",
 +};
-+const card = { schema: "2.0", body: { elements: [{ tag: "markdown" }] } };
++const value = { namespace: "control-everything.automation.v1", choice_id: "keep" };
++const card = { schema: "2.0", body: { elements: [{ tag: "markdown" }, { tag: "button", value }] } };
 +const claimed = { id: "card-1", lease_id: "lease-1", card };
 +
 +function json(body: unknown, status = 200): Response {
@@ -1317,7 +1321,10 @@ index 0000000..78dfd96
 +    await runOutboundSender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
 +    expect(sendCard).toHaveBeenCalledTimes(1);
 +    expect(sendCard.mock.calls[0]?.[0].uuid).toBe(claimed.id);
-+    expect(sendCard.mock.calls[0]?.[0].card).toEqual(card);
++    expect(sendCard.mock.calls[0]?.[0].card).toEqual({
++      schema: "2.0",
++      body: { elements: [{ tag: "markdown" }, { tag: "button", behaviors: [{ type: "callback", value }] }] },
++    });
 +    const receipts = vi.mocked(fetch).mock.calls.filter((call) => String(call[0]).endsWith("/sent"));
 +    expect(receipts).toHaveLength(2);
 +    expect(JSON.parse(receipts[0]?.[1]?.body as string)).toEqual({
@@ -1344,10 +1351,9 @@ index 0000000..78dfd96
 +});
 diff --git a/extensions/feishu/src/automation-outbound-sender.ts b/extensions/feishu/src/automation-outbound-sender.ts
 new file mode 100644
-index 0000000..5dd018f
 --- /dev/null
 +++ b/extensions/feishu/src/automation-outbound-sender.ts
-@@ -0,0 +1,110 @@
+@@ -0,0 +1,120 @@
 +import { hubOriginAllowed } from "./automation-card-ingress.js";
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ClawdbotConfig } from "../runtime-api.js";
@@ -1392,6 +1398,16 @@ index 0000000..5dd018f
 +  if (Object.keys(value).length !== keys.length || keys.some((key) => !(key in value))) return undefined;
 +  if (!text(value.id) || !text(value.lease_id) || !isRecord(value.card)) return undefined;
 +  return { id: text(value.id), lease_id: text(value.lease_id), card: value.card };
++}
++
++function cardForFeishu(card: Record<string, unknown>): Record<string, unknown> {
++  if (!isRecord(card.body) || !Array.isArray(card.body.elements)) return card;
++  const elements = card.body.elements.map((element) => {
++    if (!isRecord(element) || element.tag !== "button" || !isRecord(element.value)) return element;
++    const { value, ...button } = element;
++    return { ...button, behaviors: [{ type: "callback", value }] };
++  });
++  return { ...card, body: { ...card.body, elements } };
 +}
 +
 +async function mark(config: Ingress, signal: AbortSignal, claimed: Claimed, messageId: string): Promise<void> {
@@ -1445,7 +1461,7 @@ index 0000000..5dd018f
 +    let messageId = sent.get(claimed.id) ?? "";
 +    if (!sent.has(claimed.id)) {
 +      try {
-+        messageId = text((await sendCard({ uuid: claimed.id, card: claimed.card })).messageId);
++        messageId = text((await sendCard({ uuid: claimed.id, card: cardForFeishu(claimed.card) })).messageId);
 +      } catch {
 +        messageId = "";
 +      }
