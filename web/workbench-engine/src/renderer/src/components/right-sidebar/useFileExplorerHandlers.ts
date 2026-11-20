@@ -13,6 +13,7 @@ import {
 } from './file-explorer-operation-owner'
 import { runtimeTargetEnvironmentId } from '@/runtime/runtime-client-target'
 import type { WorkspaceFileOpener } from '@/lib/workspace-file-open'
+import { platformReviewTargetGroup } from '@/lib/platform-review-target'
 
 type UseFileExplorerHandlersParams = {
   activeWorktreeId: string | null
@@ -136,6 +137,7 @@ export async function activateFileExplorerNode(args: {
       mode: 'edit'
     },
     options: {
+      targetGroupId: platformReviewTargetGroup(activeWorktreeId),
       preview: true,
       // Why: activating an Explorer file is a focus handoff even if the rich
       // editor finishes mounting after the row receives browser focus.

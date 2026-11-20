@@ -78,6 +78,14 @@ function RightSidebarInner(): React.JSX.Element {
     setWidth: setRightSidebarWidth
   })
   const topActivityStripRef = useMeasuredWidth(setTopActivityStripWidth)
+  const activityItems = useMemo(() => {
+    if (!platformMode) {
+      return visibleItems
+    }
+    const primary = ['explorer', 'source-control', 'workspaces', 'vault']
+    const orderedItems = primary.flatMap((id) => visibleItems.filter((item) => item.id === id))
+    return [...orderedItems, ...visibleItems.filter((item) => !primary.includes(item.id))]
+  }, [platformMode, visibleItems])
 
   const panelContent = rightSidebarOpen ? (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden scrollbar-sleek-parent">
@@ -99,15 +107,15 @@ function RightSidebarInner(): React.JSX.Element {
   const topActivityLayout = useMemo(
     () =>
       getTopActivityBarLayout(
-        visibleItems,
+        activityItems,
         topActivityStripWidth,
         effectiveTab,
         platformMode ? LABELLED_ACTIVITY_BUTTON_WIDTH : undefined
       ),
-    [visibleItems, topActivityStripWidth, effectiveTab, platformMode]
+    [activityItems, topActivityStripWidth, effectiveTab, platformMode]
   )
 
-  const sideActivityBarIcons = visibleItems.map((item) => (
+  const sideActivityBarIcons = activityItems.map((item) => (
     <ActivityBarButton
       key={item.id}
       item={item}

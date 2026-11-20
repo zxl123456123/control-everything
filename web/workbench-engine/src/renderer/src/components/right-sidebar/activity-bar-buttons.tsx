@@ -172,7 +172,7 @@ export function ActivityBarButton({
             />
           )}
 
-          {active && isTop && (
+          {active && isTop && !showLabel && (
             <div className="absolute bottom-0 left-[25%] right-[25%] h-[2px] bg-foreground rounded-t" />
           )}
           {active && !isTop && (

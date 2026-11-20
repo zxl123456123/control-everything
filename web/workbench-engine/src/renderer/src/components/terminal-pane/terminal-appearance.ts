@@ -155,11 +155,11 @@ export function applyTerminalAppearance(
     typeof document !== 'undefined' && document.querySelector('.platform-project-entry')
       ? parseCssColor(paneBackground)
       : null
-  // WebGL clears by painting the terminal background. Alpha-zero fills leave old
-  // glyphs behind on synchronous redraws and weaken antialiased text on light themes.
+  // Keep a nonzero background for WebGL redraws while letting the platform backdrop
+  // show through. Terminal colors remain independent of the application theme.
   const renderTheme =
     platformBackground && theme
-      ? { ...theme, background: `rgb(${platformBackground.rgb.join(', ')})` }
+      ? { ...theme, background: `rgba(${platformBackground.rgb.join(', ')}, 0.64)` }
       : theme
 
   const terminalFontWeights = resolveTerminalFontWeights(
@@ -184,11 +184,10 @@ export function applyTerminalAppearance(
       pane.container.style.removeProperty('--ce-terminal-background')
       pane.container.style.removeProperty('--ce-terminal-opaque-background')
     }
-    // Keep platform terminal cells opaque; surrounding workbench surfaces retain their opacity.
+    // Platform material is fixed; legacy saved surface opacity must not affect terminal cells.
     pane.terminal.options.allowTransparency =
-      !platformBackground &&
-      settings.terminalBackgroundOpacity !== undefined &&
-      settings.terminalBackgroundOpacity < 1
+      Boolean(platformBackground) ||
+      (settings.terminalBackgroundOpacity !== undefined && settings.terminalBackgroundOpacity < 1)
     // Why value-gated: writing options.theme rebuilds the palette, discarding TUI OSC 4/10/11/12 mutations; skip on no-op change.
     if (renderTheme && !composedTerminalThemesEqual(pane.terminal.options.theme, renderTheme)) {
       pane.terminal.options.theme = renderTheme

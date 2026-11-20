@@ -4,7 +4,7 @@ import { i18n } from '@/i18n/i18n'
 import {
   getFollowSymlinkedDirectoriesEntry,
   getLanguageEntries,
-  getSurfaceTransparencyEntries
+  getAppearancePaneSearchEntries
 } from './appearance-search'
 import { matchesSettingsSearch } from './settings-search'
 
@@ -54,11 +54,10 @@ describe('getLanguageEntries', () => {
   })
 })
 
-describe('workspace surface transparency search', () => {
-  it.each(['透明度', '玻璃', 'opacity', 'transparency', 'glass'])(
-    'finds the control using %s',
-    (query) => {
-      expect(matchesSettingsSearch(query, getSurfaceTransparencyEntries())).toBe(true)
-    }
-  )
+describe('fixed workspace material search', () => {
+  it('does not advertise an interface transparency control', async () => {
+    await i18n.changeLanguage('en')
+    const entries = getAppearancePaneSearchEntries()
+    expect(entries.some((entry) => entry.title === 'Interface Transparency')).toBe(false)
+  })
 })

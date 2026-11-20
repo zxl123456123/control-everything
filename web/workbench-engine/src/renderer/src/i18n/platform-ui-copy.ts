@@ -145,7 +145,7 @@ const zh: Record<keyof typeof en, string> = {
   opencodeKeyHelp: '可选。默认先使用 /connect 保存的密钥，再使用 OPENCODE_API_KEY。',
   toolFiles: '文件',
   toolSessions: '会话',
-  toolChanges: '更改',
+  toolChanges: 'Git 更改',
   toolChecks: '检查',
   setupCommand: '添加新建工作树时运行的设置命令。',
   detectedSetupCommand: '保存检测到的命令，在每次创建工作树时运行。',

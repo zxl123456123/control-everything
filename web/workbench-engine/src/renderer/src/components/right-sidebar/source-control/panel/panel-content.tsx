@@ -1,5 +1,6 @@
 import { GitHistoryPanel } from '../sync/git-history-panel'
 import { useAppStore } from '@/store'
+import { platformReviewTargetGroup } from '@/lib/platform-review-target'
 import { shouldShowSourceControlCompareUnavailableCard } from './header-toolbar'
 import { shouldRenderCommitArea } from '../commit/component-gates'
 import { SourceControlBranchSection } from '../listing/branch-section'
@@ -218,7 +219,16 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
             collapsed={collapsedSections.has('history')}
             onToggle={() => toggleSection('history')}
             onRefresh={() => void refreshGitHistory()}
-            onOpenGraph={() => openGitGraph(currentWorktreeId)}
+            onOpenGraph={() => {
+              const graph = useAppStore
+                .getState()
+                .unifiedTabsByWorktree[currentWorktreeId]?.find(
+                  (tab) => tab.contentType === 'git-graph'
+                )
+              openGitGraph(currentWorktreeId, {
+                targetGroupId: graph ? undefined : platformReviewTargetGroup(currentWorktreeId)
+              })
+            }}
             onOpenCommit={(item) => void openHistoryCommitDiff(item)}
             onLoadCommitFiles={loadCommitFiles}
             onOpenCommitFile={openCommitFile}

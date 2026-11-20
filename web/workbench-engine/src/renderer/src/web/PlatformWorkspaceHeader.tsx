@@ -13,11 +13,6 @@ export function PlatformWorkspaceHeader({
 }): React.JSX.Element {
   return (
     <header className={active ? 'platform-workspace-header' : undefined} hidden={!active}>
-      <div className="platform-workspace-brand" aria-label="掌控一切">
-        <span className="platform-workspace-monogram" aria-hidden="true">
-          CE
-        </span>
-      </div>
       <nav
         className="platform-project-tabs"
         aria-label={projectName ? '项目工作区导航' : '项目工作台导航'}
