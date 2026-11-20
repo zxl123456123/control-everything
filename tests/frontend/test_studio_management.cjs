@@ -283,7 +283,7 @@ test('project titles stay neutral while archive state remains distinct in both t
     f.host.dataset.theme = theme; f.node('[data-action="all-projects"]').click(); f.node(`[data-action="view-${mode}"]`).click();
     const normal = f.node('[data-project-card="p-a"]'), archived = f.node('[data-project-card="p-old"]');
     const normalTitle = f.w.getComputedStyle(normal.querySelector('.ce-project-title-link')), archivedTitle = f.w.getComputedStyle(archived.querySelector('.ce-project-title-link'));
-    assert.equal(normalTitle.fontSize, '18px'); assert.equal(archivedTitle.fontSize, '18px');
+    assert.equal(normalTitle.fontSize, '16px'); assert.equal(archivedTitle.fontSize, '16px');
     assert.equal(normalTitle.color, archivedTitle.color);
     assert.equal(normalTitle.backgroundColor, archivedTitle.backgroundColor);
     const amber = rgb(f.w.getComputedStyle(archived.querySelector('.ce-project-status')).color);

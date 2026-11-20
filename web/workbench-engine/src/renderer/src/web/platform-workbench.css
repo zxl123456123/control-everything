@@ -441,9 +441,11 @@
   background: var(--ce-workbench-hover);
 }
 
-/* Sticky labels need to cover the rows that scroll underneath them. */
+/* Keep scrolled rows legible behind a pinned label without an isolated dark strip. */
 .platform-project-entry [data-worktree-sticky-header-active] {
-  background: color-mix(in srgb, var(--ce-workbench-panel), var(--ce-workbench-ink) 5%);
+  border-radius: 9px;
+  background: var(--ce-workbench-control);
+  backdrop-filter: blur(var(--ce-workbench-blur));
 }
 .platform-project-entry [data-workbench-sidebar-heading] {
   margin: 0 12px 6px;
@@ -477,8 +479,18 @@
   background: var(--ce-workbench-selected);
   border-color: var(--ce-workbench-line);
 }
-.platform-project-entry [data-workbench-tabs] {
+.platform-project-entry [data-workbench-canvas] [data-terminal-focus-release-surface='true'] {
   background: var(--ce-workbench-glass);
+  backdrop-filter: blur(var(--ce-workbench-blur));
+}
+.platform-project-entry [data-workbench-tabs] {
+  background: transparent;
+}
+.platform-project-entry [data-setup-script-prompt-layer] > div {
+  border-radius: 14px;
+  background: var(--ce-workbench-glass);
+  backdrop-filter: blur(var(--ce-workbench-blur));
+  box-shadow: 0 4px 14px #00000012;
 }
 /* The page header already identifies the workspace; collapsed chrome only needs its controls. */
 .platform-project-entry .titlebar-left-floating .titlebar-app-name {
@@ -505,9 +517,13 @@
 .platform-project-entry .terminal-tab-strip [data-tab-id] {
   height: calc(100% - 8px);
   margin: 4px 2px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
+  background: transparent;
   color: var(--ce-workbench-muted);
+}
+.platform-project-entry .terminal-tab-strip [data-tab-id]:hover {
+  background: var(--ce-workbench-hover);
 }
 .platform-project-entry .terminal-tab-strip [data-tab-id][data-active='true'] {
   background: var(--ce-workbench-selected);
@@ -697,7 +713,10 @@
 .platform-project-entry [data-workbench-status] {
   min-height: 28px;
   font-size: 13px;
-  background: var(--ce-workbench-chrome);
+  background: var(--ce-workbench-glass);
+  backdrop-filter: blur(var(--ce-workbench-blur));
+  border-color: var(--ce-workbench-line);
+  color: var(--ce-workbench-muted);
 }
 .platform-project-entry [data-workbench-status] :is(.text-xs, .text-\[11px\], .text-\[10px\]) {
   font-size: 13px;

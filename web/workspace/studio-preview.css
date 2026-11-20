@@ -605,25 +605,25 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-overview-toolbar .ce-search input{appearance:none;width:100%;height:100%;min-height:0;padding:6px 0;border:0;border-radius:0;background:transparent;font-size:15px;line-height:24px;box-shadow:none}
 #ce-studio .ce-overview-toolbar .ce-search input:focus-visible{outline:none;box-shadow:none}
 #ce-studio .ce-overview-toolbar select{height:36px;padding:6px 10px;border:1px solid var(--ce-input-border);border-radius:7px;background:var(--ce-bg)}
-#ce-studio .ce-project-sort-control{position:relative;display:grid;place-items:center;width:36px;min-height:36px;border:1px solid var(--ce-line);border-radius:7px;background:var(--ce-bg);flex:none}
+#ce-studio .ce-project-sort-control{position:relative;display:flex;align-items:center;min-height:36px;border:0;border-radius:10px;background:transparent;flex:none}
 #ce-studio .ce-project-sort-control:hover{background:var(--ce-hover)}
 #ce-studio .ce-project-sort-control:focus-within{outline:2px solid var(--ce-ring);outline-offset:3px}
-#ce-studio .ce-overview-toolbar .ce-project-sort-control select{position:absolute;inset:0;width:100%;height:100%;min-width:0;padding:0;opacity:0;cursor:pointer}
-#ce-studio .ce-overview-toolbar .ce-segment{border:1px solid var(--ce-line);background:var(--ce-bg);border-radius:8px;padding:3px;gap:2px;margin-right:0}
+#ce-studio .ce-overview-toolbar .ce-project-sort-control select{position:static;width:auto;min-width:116px;height:36px;padding:6px 10px;opacity:1;cursor:pointer;border:0;background:transparent;color:var(--ce-sub)}
+#ce-studio .ce-overview-toolbar .ce-segment{border:0;background:transparent;border-radius:10px;padding:3px;gap:2px;margin-right:0}
 #ce-studio .ce-overview-toolbar .ce-segment button{display:inline-flex;align-items:center;justify-content:center;min-height:32px;min-width:32px;padding:5px 12px;font-size:14px;line-height:22px;border-radius:5px}
 #ce-studio .ce-overview-toolbar .ce-segment button:hover{background:var(--ce-hover);color:var(--ce-text)}
 #ce-studio .ce-segment button[aria-pressed=true]{background:var(--ce-soft);box-shadow:0 1px 2px var(--ce-shadow);color:var(--ce-text)}
 #ce-studio .ce-overview-count{margin:0 0 16px;color:var(--ce-sub);font-size:14px;line-height:22px}
-#ce-studio .ce-overview-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-#ce-studio .ce-overview-card{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:104px;padding:24px;border:1px solid var(--ce-line);border-radius:12px;background:var(--ce-soft);box-shadow:none;transition:border-color 180ms,background-color 180ms}
+#ce-studio .ce-overview-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#ce-studio .ce-overview-card{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:80px;padding:18px 20px;border:1px solid color-mix(in srgb,var(--ce-line) 60%,transparent);border-radius:14px;background:light-dark(#776b5310,#e8dcc408);box-shadow:none;transition:border-color 180ms,background-color 180ms}
 #ce-studio .ce-overview-card:hover,#ce-studio .ce-overview-card:focus-within{border-color:var(--ce-ring);background:var(--ce-hover)}
 #ce-studio .ce-overview-title{display:flex;align-items:center;gap:12px;min-width:0}
-#ce-studio .ce-overview-title h2{min-width:0;overflow-wrap:anywhere;font-size:18px;line-height:26px;font-weight:600;letter-spacing:normal}
+#ce-studio .ce-overview-title h2{min-width:0;overflow-wrap:anywhere;font-size:16px;line-height:24px;font-weight:500;letter-spacing:normal}
 #ce-studio .ce-project-title-link{display:inline-block;color:var(--ce-text);text-decoration:none;padding:0}
 #ce-studio .ce-project-title-link::after{content:"";position:absolute;inset:0;border-radius:inherit}
 #ce-studio .ce-overview-card:has(.ce-project-title-link:focus-visible){outline:2px solid var(--ce-ring);outline-offset:3px}
 #ce-studio .ce-overview-title>[data-project-menu]{position:relative;z-index:1;margin-left:auto;flex:none}
-#ce-studio .ce-card-arrow{margin-left:auto;display:flex;color:var(--ce-sub);opacity:0;transform:translateX(-4px);transition:opacity 180ms,transform 180ms;pointer-events:none}
+#ce-studio .ce-card-arrow{margin-left:auto;display:flex;color:var(--ce-sub);opacity:.65;transition:opacity 180ms;pointer-events:none}
 #ce-studio .ce-card-arrow+[data-project-menu]{margin-left:0}
 #ce-studio .ce-overview-card:hover .ce-card-arrow,#ce-studio .ce-overview-card:focus-within .ce-card-arrow{opacity:1;transform:none}
 #ce-studio .ce-recent-title{display:block;font-size:15px;line-height:24px;font-weight:400;overflow-wrap:anywhere}
@@ -680,7 +680,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
  #ce-studio .ce-overview-toolbar{gap:8px}
  #ce-studio .ce-overview-toolbar .ce-segment button{min-height:44px;min-width:44px;padding:5px 10px}
  #ce-studio .ce-overview-toolbar .ce-search input{font-size:16px}
- #ce-studio .ce-project-sort-control{width:44px;min-height:44px}
+ #ce-studio .ce-project-sort-control{min-height:44px}
  #ce-studio :is(.ce-button,.ce-iconbtn){min-height:44px;min-width:44px}
  #ce-studio .ce-iconbtn{width:44px;height:44px}
  #ce-studio .ce-overview-list[data-view=list] .ce-overview-card{display:flex;gap:16px}
@@ -692,7 +692,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 @media(pointer:coarse){#ce-studio .ce-overview-toolbar .ce-search{height:44px;min-height:44px}}
 @media(pointer:coarse){#ce-studio #onboarding-dialog :is(button,input:not([type=checkbox]),select){min-height:44px;min-width:44px}}
 @media(forced-colors:active){#ce-studio .ce-overview-toolbar .ce-search:has(input:focus-visible){outline-color:Highlight}}
-@media(pointer:coarse){#ce-studio .ce-project-sort-control{width:44px;min-height:44px}}
+@media(pointer:coarse){#ce-studio .ce-project-sort-control{min-height:44px}}
 
 /* Keep navigation and the reader mounted when changing the available content width. */
 #ce-studio .ce-news-surface{min-width:0;width:100%;height:calc(100dvh - 112px)}
@@ -733,7 +733,10 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio .ce-rail,#ce-studio .ce-topbar{background:transparent}
 #ce-studio .ce-topbar{min-height:52px;padding-block:8px}
 #ce-studio .ce-main{padding:28px;max-width:1190px}
-#ce-studio .ce-overview-list:has(>.ce-overview-card:only-child){grid-template-columns:minmax(0,1fr)}
+#ce-studio .ce-overview-heading h1{font-size:25px;font-weight:550}
+#ce-studio .ce-overview-toolbar .ce-search{border-color:var(--ce-line);border-radius:12px;box-shadow:none}
+#ce-studio .ce-overview-toolbar .ce-segment button{border-radius:8px}
+#ce-studio .ce-overview-list[data-view=cards]:has(>.ce-overview-card:only-child){grid-template-columns:minmax(0,36rem)}
 #ce-studio .ce-overview-toolbar .ce-search{flex-basis:300px;width:300px;background:var(--ce-soft)}
 #ce-studio .ce-overview-toolbar .ce-segment{background:transparent}
 #ce-studio .ce-project-settings p{white-space:pre-wrap;overflow-wrap:anywhere}
@@ -744,7 +747,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio[data-rail-collapsed=true] .ce-rail-bottom .ce-nav svg{padding:0;border:0;background:transparent}
 #ce-studio .ce-topbar .ce-crumbs>span{color:var(--ce-text)}
 #ce-studio .ce-topbar .ce-crumbs>a:hover{color:var(--ce-text)}
-#ce-studio[data-unified=true] :is(.ce-button:not(.ce-plain),.ce-search,.ce-project-sort-control){background:var(--ce-workbench-control);box-shadow:none}
+#ce-studio[data-unified=true] :is(.ce-button:not(.ce-plain),.ce-search){background:var(--ce-workbench-control);box-shadow:none}
 #ce-studio[data-unified=true] .ce-button.ce-primary{background:var(--ce-soft);border-color:var(--ce-line);color:var(--ce-text)}
 #ce-studio[data-unified=true] .ce-button.ce-primary:hover{background:var(--ce-hover)}
 #ce-studio[data-unified=true] :is(.ce-button:not(.ce-primary),.ce-iconbtn,.ce-project-sort-control):hover{background:var(--ce-hover)}
@@ -865,7 +868,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
  #ce-studio .ce-shell{grid-template-columns:minmax(0,1fr)}
  #ce-studio .ce-main{padding:24px 16px}
  #ce-studio .ce-overview-list{grid-template-columns:minmax(0,1fr)}
- #ce-studio .ce-overview-card{padding:20px;min-height:96px}
+ #ce-studio .ce-overview-card{padding:16px;min-height:76px}
  #ce-studio .ce-overview-title{flex-wrap:wrap;gap:8px}
  #ce-studio .ce-overview-title h2{flex:1 1 50%}
  #ce-studio .ce-card-arrow{display:none}
