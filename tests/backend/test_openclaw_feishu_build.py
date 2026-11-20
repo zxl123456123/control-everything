@@ -99,9 +99,9 @@ class FeishuSourceBoundaryTests(unittest.TestCase):
         self.assertTrue((output / 'pack.log').is_file())
 
     def test_successful_pack_hashes_runtime_without_claiming_install_validation(self):
-        for mismatch in (False, True):
+        for mismatch in (None, 'runtime', 'channel-schema'):
             with self.subTest(mismatch=mismatch):
-                output = self.source / '.git' / ('pack-bad' if mismatch else 'pack-good')
+                output = self.source / '.git' / ('pack-' + (mismatch or 'good'))
                 output.mkdir()
                 (output / 'tmp').mkdir()
                 node = output / 'toolchain/node.exe'
@@ -110,10 +110,19 @@ class FeishuSourceBoundaryTests(unittest.TestCase):
                 npm.write_text('')
                 plugin = self.source / 'extensions/feishu'
                 (plugin / 'dist').mkdir(parents=True, exist_ok=True)
-                for name in ('package.json', 'openclaw.plugin.json'):
-                    (plugin / name).write_bytes(b'{ "original": true }\n')
+                (plugin / 'package.json').write_bytes(b'{ "original": true }\n')
+                channel = {'schema': {'type': 'object', 'additionalProperties': False},
+                           'uiHints': {'accounts.*.automationProducerToken': {'sensitive': True}}}
+                (plugin / 'openclaw.plugin.json').write_text(
+                    json.dumps({'channelConfigs': {'feishu': channel}}), encoding='utf-8')
                 (plugin / 'dist/index.js').write_bytes(b'actual runtime')
-                archive = self.package_fixture({'dist/index.js': b'wrong' if mismatch else b'actual runtime'})
+                published = ({**channel, 'schema': {'type': 'object'}} if mismatch == 'channel-schema'
+                             else {**channel, 'label': 'Feishu'})
+                archive = self.package_fixture({
+                    'dist/index.js': b'wrong' if mismatch == 'runtime' else b'actual runtime',
+                    'openclaw.plugin.json': json.dumps({'id': 'feishu',
+                        'channelConfigs': {'feishu': published}}).encode(),
+                })
                 def pack(*args, **kwargs):
                     import shutil
                     shutil.copyfile(archive, output / 'tar/candidate.tgz')
@@ -123,7 +132,8 @@ class FeishuSourceBoundaryTests(unittest.TestCase):
                 with mock.patch.object(BUILDER.subprocess, 'check_output', return_value='11.19.1'), \
                         mock.patch.object(BUILDER.subprocess, 'run', side_effect=pack):
                     if mismatch:
-                        with self.assertRaisesRegex(ValueError, 'Packed runtime differs'):
+                        expected = 'Packed runtime differs' if mismatch == 'runtime' else 'Packed Feishu channel schema differs'
+                        with self.assertRaisesRegex(ValueError, expected):
                             BUILDER.pack_candidate(self.source, node, output, {}, receipt)
                         self.assertFalse(receipt['packageBuilt'])
                     else:

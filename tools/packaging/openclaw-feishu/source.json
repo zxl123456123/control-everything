@@ -3,7 +3,7 @@
   "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
   "version": "2026.11.2",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
-  "patchSha256": "6b09d181d2c343ce9ef3fedb8e9b6795ddeb14d7a217216d4a7f5d231750c378",
+  "patchSha256": "6b38a40e56d21d59ddacb894008f6e5e62b146540c585d7ce2a269419609f16c",
   "patchFormat": "unified-zero-context; git apply --unidiff-zero",
   "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
   "npm": {
@@ -54,13 +54,17 @@
     }
   },
   "files": {
+    "extensions/feishu/openclaw.plugin.json": {
+      "originalSha256": "2f97dc3cda60716356e736235cdc0016861a1392dd99635c6658f3afc3462bad",
+      "patchedSha256": "760e7e6d85eafcfa6b93cc80f1b45f01613783eba9db45bb41b036fc27285290"
+    },
     "extensions/feishu/src/accounts.ts": {
       "originalSha256": "944c3d3f0c8a8e2760cabd3f411dbac77abd0503b4ce83c1e17b4e71d6a9c7a8",
       "patchedSha256": "e17e8de90de7f8165597cdf448f2d36b2b950dfade3566955b58ff19da39e2f3"
     },
     "extensions/feishu/src/automation-config.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "5ef0cb887baea56e9f9b2c8eeaf7141502df97d35d4b5aeda60bba77479fbd8a"
+      "patchedSha256": "eeeef166af10768127ed74496c37ceedadc1e332162770ac68ddc652128c8517"
     },
     "extensions/feishu/src/config-schema.ts": {
       "originalSha256": "8cbf3bc318627ecda0c52c9df483a62c359f183049c81b3680b9f96ae18a8277",

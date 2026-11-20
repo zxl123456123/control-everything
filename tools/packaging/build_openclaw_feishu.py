@@ -144,6 +144,9 @@ def pack_candidate(source, node, output, environment, receipt):
         [str(node), str(npm), '--version'], env=isolated, text=True).strip()
     tar_dir = output / 'tar'
     tar_dir.mkdir()
+    plugin = source / 'extensions/feishu'
+    before = {name: (plugin / name).read_bytes() for name in ('package.json', 'openclaw.plugin.json')}
+    channel = json.loads(before['openclaw.plugin.json']).get('channelConfigs', {}).get('feishu')
     # Official overlay invokes this callback from its temporary bundled package.
     shim = output / 'pack-with-license.mjs'
     shim.write_text("import fs from 'node:fs'; import path from 'node:path'; "
@@ -154,6 +157,14 @@ def pack_candidate(source, node, output, environment, receipt):
                     "if(!relative || relative.startsWith('..') || path.isAbsolute(relative)) "
                     "throw new Error('Pack callback outside owned temporary staging');\n"
                     f"fs.copyFileSync({json.dumps(str(RECIPE / 'LICENSE'))},path.join(cwd,'LICENSE'));\n"
+                    # Use the pinned newer account schema even when the official catalog overlays its older snapshot.
+                    f"const feishuChannel={json.dumps(channel)};\n"
+                    "if(feishuChannel){const file=path.join(cwd,'openclaw.plugin.json'); "
+                    "const manifest=JSON.parse(fs.readFileSync(file,'utf8')); "
+                    "const existing=manifest.channelConfigs?.feishu ?? {}; "
+                    "manifest.channelConfigs={...manifest.channelConfigs,feishu:{...existing,...feishuChannel,"
+                    "uiHints:{...existing.uiHints,...feishuChannel.uiHints}}}; "
+                    "fs.writeFileSync(file,JSON.stringify(manifest,null,2)+'\\n');}\n"
                     f"const result=spawnSync(process.execPath,[{json.dumps(str(npm))},'pack','--json',"
                     f"'--ignore-scripts','--pack-destination',{json.dumps(str(tar_dir))}],"
                     "{cwd,env:process.env,stdio:'inherit'}); "
@@ -161,8 +172,6 @@ def pack_candidate(source, node, output, environment, receipt):
                     encoding='utf-8')
     command = [str(node), 'scripts/lib/plugin-npm-package-manifest.mjs', '--run',
                'extensions/feishu', '--', str(node), str(shim)]
-    plugin = source / 'extensions/feishu'
-    before = {name: (plugin / name).read_bytes() for name in ('package.json', 'openclaw.plugin.json')}
     log = output / 'pack.log'
     try:
         with log.open('wb') as stream, (output / 'pack.stdout.json').open('wb') as stdout:
@@ -182,6 +191,11 @@ def pack_candidate(source, node, output, environment, receipt):
         raise ValueError('npm pack JSON does not identify the candidate')
     receipt['npmIntegrity'] = pack_json[0]['integrity']
     inspection = inspect_package(archives[0])
+    if channel:
+        published = inspection['pluginJson'].get('channelConfigs', {}).get('feishu', {})
+        if (published.get('schema') != channel['schema'] or any(
+                published.get('uiHints', {}).get(name) != hint for name, hint in channel.get('uiHints', {}).items())):
+            raise ValueError('Packed Feishu channel schema differs from pinned source')
     runtime = source / 'extensions/feishu/dist'
     for path in runtime.rglob('*'):
         if path.is_file():
