@@ -111,9 +111,7 @@ def _workbench_csp(manager, access=None):
 
 
 def handle_get(handler, path):
-    if (path.path == "/workspace" and not path.query
-            and getattr(handler.server, "workbench_runtime", None) is not None
-            and getattr(handler.server, "workbench_assets", None) is not None):
+    if path.path == "/workspace" and not path.query:
         # Browsers retain the original fragment when Location has none.
         handler.send_response(302)
         handler.send_header("Location", "/studio")

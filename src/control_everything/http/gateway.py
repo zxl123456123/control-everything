@@ -179,7 +179,6 @@ WEB_ASSETS = {
     "/product": ("product/index.html", "text/html; charset=utf-8"),
     "/product.css": ("product/product.css", "text/css; charset=utf-8"),
     "/product.js": ("product/product.js", "text/javascript; charset=utf-8"),
-    "/workspace": ("workspace/workspace.html", "text/html; charset=utf-8"),
     "/workspace.js": ("workspace/workspace.js", "text/javascript; charset=utf-8"),
     "/onboarding.js": ("workspace/onboarding.js", "text/javascript; charset=utf-8"),
     "/agents.js": ("workspace/agents.js", "text/javascript; charset=utf-8"),
@@ -356,7 +355,7 @@ class PanelHandler(BaseHTTPRequestHandler):
             return self.reply(200, {"app": APP, "protocol_version": 1})
         if path.path == "/progress" and not path.query and self.profile() is not None:
             self.send_response(302)
-            self.send_header("Location", "/workspace#projects")
+            self.send_header("Location", "/studio#projects")
             self.send_header("Content-Length", "0")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()

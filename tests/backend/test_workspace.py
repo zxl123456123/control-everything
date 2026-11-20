@@ -297,7 +297,7 @@ class WorkspaceGatewayTests(unittest.TestCase):
 
     def test_http_static_routes_are_exact(self):
         with TemporaryDirectory() as directory, patch("control_everything.http.gateway.WEB", Path(directory)):
-            for route, name in (("/workspace", "workspace.html"), ("/workspace.js", "workspace.js"), ("/workspace.css", "workspace.css")):
+            for route, name in (("/workspace.js", "workspace.js"), ("/workspace.css", "workspace.css")):
                 (Path(directory) / "workspace").mkdir(exist_ok=True)
                 (Path(directory) / "workspace" / name).write_bytes(b"fixture")
                 self.assertEqual(self.request(route), (200, b"fixture"))
