@@ -34,10 +34,10 @@ index 38b57a4..b16de52 100644
 +    automationIngress,
 diff --git a/extensions/feishu/src/automation-card-ingress.test.ts b/extensions/feishu/src/automation-card-ingress.test.ts
 new file mode 100644
-index 0000000..0ca4810
+index 0000000..20d510d
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.test.ts
-@@ -0,0 +1,499 @@
+@@ -0,0 +1,527 @@
 +import "./lifecycle.test-support.js";
 +import fs from "node:fs/promises";
 +import os from "node:os";
@@ -88,6 +88,23 @@ index 0000000..0ca4810
 +      action: { tag: "button", value: { ...decision } },
 +    },
 +  };
++}
++
++function mockMonitorReceive(receive: typeof globalThis.fetch) {
++  const receiveFetch = vi.fn(receive);
++  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
++    switch (url) {
++      case "https://hub.example.test/remote/producer/identity-send/claim":
++        return Response.json({ attempt: null });
++      case "https://hub.example.test/remote/producer/automation/outbound/claim":
++        return Response.json({ card: null });
++      case "https://hub.example.test/remote/producer/automation/receive":
++        return receiveFetch(url, options);
++      default:
++        throw new Error("Unexpected monitor fetch URL");
++    }
++  });
++  return receiveFetch;
 +}
 +
 +async function startMonitor(configured = true, producerToken = "producer-fixture") {
@@ -163,7 +180,7 @@ index 0000000..0ca4810
 +  it("awaits the Hub receipt before completing the real durable SDK event", async () => {
 +    const received = createDeferred<void>();
 +    const response = createDeferred<Response>();
-+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
++    const fetch = mockMonitorReceive(async () => {
 +      received.resolve();
 +      return response.promise;
 +    });
@@ -171,26 +188,29 @@ index 0000000..0ca4810
 +    const { transport, queue } = await startMonitor();
 +    const data = envelope();
 +    await transport.invoke(data, { needCheck: false });
-+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-+    await received.promise;
-+    expect(await queue.listClaims()).toHaveLength(1);
-+    expect(fetch.mock.calls[0]?.[0]).toBe(
-+      "https://hub.example.test/remote/producer/automation/receive",
-+    );
-+    const options = fetch.mock.calls[0]?.[1];
-+    expect(options?.redirect).toBe("error");
-+    expect(JSON.parse(options?.body as string)).toEqual({
-+      producer_id: "father",
-+      event_id: "evt-card",
-+      chat_id: "oc-chat",
-+      message_id: "om-card",
-+      actor_open_id: "ou-operator",
-+      decision,
-+    });
-+    expect(ordinary).not.toHaveBeenCalled();
-+    response.resolve(
-+      new Response(JSON.stringify({ id: "receipt", state: "pending" }), { status: 200 }),
-+    );
++    try {
++      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++      await received.promise;
++      expect(await queue.listClaims()).toHaveLength(1);
++      expect(fetch.mock.calls[0]?.[0]).toBe(
++        "https://hub.example.test/remote/producer/automation/receive",
++      );
++      const options = fetch.mock.calls[0]?.[1];
++      expect(options?.redirect).toBe("error");
++      expect(JSON.parse(options?.body as string)).toEqual({
++        producer_id: "father",
++        event_id: "evt-card",
++        chat_id: "oc-chat",
++        message_id: "om-card",
++        actor_open_id: "ou-operator",
++        decision,
++      });
++      expect(ordinary).not.toHaveBeenCalled();
++    } finally {
++      response.resolve(
++        new Response(JSON.stringify({ id: "receipt", state: "pending" }), { status: 200 }),
++      );
++    }
 +    await vi.waitFor(async () =>
 +      expect(await queue.enqueue("evt-card", {})).toMatchObject({ kind: "completed" }),
 +    );
@@ -199,7 +219,9 @@ index 0000000..0ca4810
 +  });
 +
 +  it("propagates CE failure through real SDK invoke even with default fire-and-forget", async () => {
-+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("synthetic transport unavailable"));
++    mockMonitorReceive(async () => {
++      throw new Error("synthetic transport unavailable");
++    });
 +    const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
 +    const { sdk } = await startMonitor();
 +    await expect(sdk.invoke(envelope(), { needCheck: false })).rejects.toThrow();
@@ -264,12 +286,15 @@ index 0000000..0ca4810
 +
 +it("does not adopt an in-flight durable card after account stop", async () => {
 +  const response = createDeferred<Response>();
-+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => response.promise);
++  const fetch = mockMonitorReceive(async () => response.promise);
 +  const { transport, queue } = await startMonitor();
 +  await transport.invoke(envelope("stopped-event"), { needCheck: false });
-+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-+  controller.abort();
-+  response.resolve(new Response(JSON.stringify({ id: "receipt", state: "pending" })));
++  try {
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    controller.abort();
++  } finally {
++    response.resolve(new Response(JSON.stringify({ id: "receipt", state: "pending" })));
++  }
 +  await monitoring;
 +  expect(await queue.enqueue("stopped-event", {})).not.toMatchObject({ kind: "completed" });
 +});
@@ -284,7 +309,7 @@ index 0000000..0ca4810
 +      const originalFetch = globalThis.fetch;
 +      const delivered = createDeferred<void>();
 +      const release = createDeferred<void>();
-+      const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
++      const fetch = mockMonitorReceive(async (url, options) => {
 +        try {
 +          expect(url).toBe("https://hub.example.test/remote/producer/automation/receive");
 +          const requestBody = JSON.parse(String(options?.body));
@@ -380,23 +405,26 @@ index 0000000..0ca4810
 +};
 +it("durably receives identity through SDK monitor before adoption", async () => {
 +  const response = createDeferred<Response>();
-+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => response.promise);
++  const fetch = mockMonitorReceive(async () => response.promise);
 +  const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
 +  const { transport, queue } = await startMonitor();
 +  const data = envelope("identity-event");
 +  data.event.action.value = binding as unknown as typeof decision;
 +  await transport.invoke(data, { needCheck: false });
-+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-+  expect(await queue.listClaims()).toHaveLength(1);
-+  expect(JSON.parse(fetch.mock.calls[0]?.[1]?.body as string)).toEqual({
-+    producer_id: "father",
-+    event_id: "identity-event",
-+    chat_id: "oc-chat",
-+    message_id: "om-card",
-+    actor_open_id: "ou-operator",
-+    binding,
-+  });
-+  response.resolve(new Response(JSON.stringify({ id: "receipt", state: "acknowledged" })));
++  try {
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    expect(await queue.listClaims()).toHaveLength(1);
++    expect(JSON.parse(fetch.mock.calls[0]?.[1]?.body as string)).toEqual({
++      producer_id: "father",
++      event_id: "identity-event",
++      chat_id: "oc-chat",
++      message_id: "om-card",
++      actor_open_id: "ou-operator",
++      binding,
++    });
++  } finally {
++    response.resolve(new Response(JSON.stringify({ id: "receipt", state: "acknowledged" })));
++  }
 +  await vi.waitFor(async () =>
 +    expect(await queue.enqueue("identity-event", {})).toMatchObject({ kind: "completed" }),
 +  );
@@ -471,8 +499,8 @@ index 0000000..0ca4810
 +});
 +
 +it("posts a plan release and an assignment without choosing execution", async () => {
-+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-+    new Response(JSON.stringify({ id: "receipt", state: "pending" })),
++  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++    Response.json({ id: "receipt", state: "pending" }),
 +  );
 +  const release = { ...envelope().event, event_id: "plan-release" };
 +  release.action.value = {
