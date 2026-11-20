@@ -721,7 +721,7 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
  --ce-soft:var(--ce-workbench-selected);--ce-hover:var(--ce-workbench-hover);
  --ce-text:var(--ce-workbench-ink);--ce-sub:var(--ce-workbench-muted);
  --ce-faint:var(--ce-workbench-line);--ce-line:var(--ce-workbench-line);
- --ce-input-border:var(--ce-workbench-muted);--ce-ring:var(--ce-workbench-ring);--ce-primary:var(--ce-workbench-accent);
+ --ce-input-border:var(--ce-workbench-line);--ce-ring:var(--ce-workbench-ring);--ce-primary:var(--ce-workbench-accent);
  --ce-on-primary:light-dark(#f8f9fb,#20242c);
  font-size:14px;line-height:22px;
  background:var(--ce-glass);backdrop-filter:blur(var(--ce-blur));
@@ -744,7 +744,9 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
 #ce-studio[data-rail-collapsed=true] .ce-rail-bottom .ce-nav svg{padding:0;border:0;background:transparent}
 #ce-studio .ce-topbar .ce-crumbs>span{color:var(--ce-text)}
 #ce-studio .ce-topbar .ce-crumbs>a:hover{color:var(--ce-text)}
-#ce-studio[data-unified=true] :is(.ce-button:not(.ce-primary):not(.ce-plain),.ce-search,.ce-project-sort-control){background:var(--ce-soft);box-shadow:inset 0 1px 0 var(--ce-line)}
+#ce-studio[data-unified=true] :is(.ce-button:not(.ce-plain),.ce-search,.ce-project-sort-control){background:var(--ce-workbench-control);box-shadow:none}
+#ce-studio[data-unified=true] .ce-button.ce-primary{background:var(--ce-soft);border-color:var(--ce-line);color:var(--ce-text)}
+#ce-studio[data-unified=true] .ce-button.ce-primary:hover{background:var(--ce-hover)}
 #ce-studio[data-unified=true] :is(.ce-button:not(.ce-primary),.ce-iconbtn,.ce-project-sort-control):hover{background:var(--ce-hover)}
 #ce-studio[data-unified=true] .ce-nav.is-current,#ce-studio[data-unified=true] .ce-segment button[aria-pressed=true]{background:var(--ce-soft);box-shadow:inset 0 0 0 1px var(--ce-line)}
 #ce-studio[data-unified=true] .ce-nav{color:var(--ce-sub)}

@@ -12,7 +12,9 @@
   --ce-workbench-line: #30374324;
   --ce-workbench-hover: #3037430d;
   --ce-workbench-selected: #30374317;
-  --ce-workbench-ring: #586b86;
+  --ce-workbench-ring: #626578;
+  --ce-workbench-control: #30374309;
+  --ce-workbench-editor: #f6f5f5;
   --ce-workbench-ink: #242830;
   --ce-workbench-muted: #596270;
   --ce-workbench-effective-opacity: 0.72;
@@ -24,17 +26,19 @@
 }
 
 :root.dark:has(.platform-project-entry) {
-  --ce-workbench-chrome: #171a20;
-  --ce-workbench-backdrop: linear-gradient(125deg, #16191f, #2b313b 48%, #1b1f27);
-  --ce-workbench-accent: #e2e7ef;
-  --ce-workbench-panel-rgb: 32 36 44;
-  --ce-workbench-panel: #20242c;
-  --ce-workbench-line: #d8e2f124;
-  --ce-workbench-hover: #d8e2f10d;
-  --ce-workbench-selected: #d8e2f117;
-  --ce-workbench-ring: #acbed6;
-  --ce-workbench-ink: #edf0f5;
-  --ce-workbench-muted: #b1bac8;
+  --ce-workbench-chrome: #1e1c21;
+  --ce-workbench-backdrop: linear-gradient(125deg, #26232b, #37313b 48%, #231f27);
+  --ce-workbench-accent: #ded8e2;
+  --ce-workbench-panel-rgb: 35 32 38;
+  --ce-workbench-panel: #232026;
+  --ce-workbench-line: #f3edf21c;
+  --ce-workbench-hover: #f3edf21a;
+  --ce-workbench-selected: #f3edf224;
+  --ce-workbench-ring: #beb2c3;
+  --ce-workbench-control: #f3edf20d;
+  --ce-workbench-editor: #201b24;
+  --ce-workbench-ink: #ede8ef;
+  --ce-workbench-muted: #beb4c2;
   --ce-workbench-effective-opacity: 0.68;
   --ce-workbench-editor-opacity: 0.82;
   --ce-workbench-terminal-opacity: 0.82;
@@ -207,7 +211,17 @@
   --secondary-foreground: var(--ce-workbench-ink);
   --accent: var(--ce-workbench-hover);
   --accent-foreground: var(--ce-workbench-ink);
+  --primary: var(--ce-workbench-accent);
+  --primary-foreground: var(--ce-workbench-panel);
   --sidebar: var(--ce-workbench-chrome);
+  --sidebar-primary: var(--ce-workbench-accent);
+  --sidebar-primary-foreground: var(--ce-workbench-panel);
+  --sidebar-accent: var(--ce-workbench-hover);
+  --sidebar-accent-foreground: var(--ce-workbench-ink);
+  --sidebar-border: var(--ce-workbench-line);
+  --sidebar-ring: var(--ce-workbench-ring);
+  --worktree-sidebar-ring: var(--ce-workbench-ring);
+  --editor-surface: var(--ce-workbench-editor);
   --worktree-sidebar: var(--ce-workbench-chrome);
   --worktree-sidebar-accent: var(--ce-workbench-selected);
   --worktree-sidebar-border: var(--ce-workbench-line);
@@ -419,9 +433,17 @@
 }
 .platform-project-entry [data-contextual-tour-target='sidebar-navigation'] > button:first-child {
   margin-bottom: 4px;
-  background: var(--ce-workbench-chrome);
+  background: var(--ce-workbench-control);
   border: 1px solid var(--ce-workbench-line);
   color: var(--ce-workbench-muted);
+}
+.platform-project-entry [data-contextual-tour-target='sidebar-navigation'] > button:first-child:hover {
+  background: var(--ce-workbench-hover);
+}
+
+/* Sticky labels need to cover the rows that scroll underneath them. */
+.platform-project-entry [data-worktree-sticky-header-active] {
+  background: color-mix(in srgb, var(--ce-workbench-panel), var(--ce-workbench-ink) 5%);
 }
 .platform-project-entry [data-workbench-sidebar-heading] {
   margin: 0 12px 6px;
@@ -521,6 +543,15 @@
 .platform-project-entry [data-workbench-tools-tabs] {
   background: var(--ce-workbench-chrome);
 }
+.platform-project-entry [data-workbench-tools] :has(> [data-explorer-query-input]),
+.platform-project-entry [data-workbench-tools] :has(> [data-slot='toggle-group'][data-ignore-file-explorer-keys]) {
+  background: var(--ce-workbench-control);
+}
+.platform-project-entry [data-workbench-tools] [data-ignore-file-explorer-keys] [data-slot='toggle-group-item'][data-state='on'] {
+  background: var(--ce-workbench-selected);
+  color: var(--ce-workbench-ink);
+}
+
 .platform-project-entry [data-workbench-tool] {
   gap: 6px;
   padding-inline: 6px;
