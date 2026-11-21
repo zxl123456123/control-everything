@@ -28,6 +28,77 @@ def _inside(root, name):
     return path
 
 
+def _clean(root, expected, git_run, text):
+    _require(text(root,'rev-parse','HEAD')==expected,'integration_head_changed')
+    _require(not git_run(root,'status','--porcelain=v1','--untracked-files=all'), 'integration_worktree_dirty')
+    _require(not git_run(root,'ls-files','--others','-z'), 'integration_untracked_files')
+    for marker in ('MERGE_HEAD','CHERRY_PICK_HEAD','REVERT_HEAD','rebase-merge','rebase-apply','sequencer'):
+        _require(not Path(text(root,'rev-parse','--path-format=absolute','--git-path',marker)).exists(),
+                 'integration_unfinished_git_operation')
+
+
+def _target_base(source_root, target, git_run, text):
+    source=Path(source_root).resolve()
+    candidate=Path(target['candidate_worktree_path']).resolve()
+    develop=Path(target['target_worktree_path']).resolve()
+    repository=Path(target['repository_path']).resolve()
+    for root in (source,candidate,develop,repository):
+        _require(root.is_dir(),'integration_root_missing')
+    for left,right in ((source,candidate),(source,develop),(candidate,develop)):
+        _require(not left.is_relative_to(right) and not right.is_relative_to(left),'integration_roots_overlap')
+    remote=Path(target['remote_url'])
+    _require(remote.is_absolute() and remote.is_dir(),'integration_local_remote_required')
+    remote=remote.resolve()
+    for root in (source,candidate,develop):
+        _require(not remote.is_relative_to(root) and not root.is_relative_to(remote),'integration_remote_overlaps_worktree')
+    _require(text(remote,'rev-parse','--is-bare-repository')=='true','integration_remote_not_bare')
+    common=[Path(text(root,'rev-parse','--path-format=absolute','--git-common-dir')).resolve()
+            for root in (repository,develop,candidate)]
+    _require(common[0]==common[1]==common[2],'integration_repository_mismatch')
+    for root in (repository,develop,candidate):
+        _require(Path(text(root,'rev-parse','--show-toplevel')).resolve()==root,'integration_worktree_root_mismatch')
+    _require(text(develop,'symbolic-ref','HEAD')=='refs/heads/develop','integration_branch_mismatch')
+    _require(text(candidate,'symbolic-ref','HEAD') not in ('refs/heads/develop','refs/heads/main','refs/heads/master','refs/heads/publicrelease'),
+             'integration_candidate_branch_mismatch')
+    _require(text(develop,'rev-parse','--symbolic-full-name','@{upstream}')==
+             'refs/remotes/'+target['remote_name']+'/develop','integration_upstream_mismatch')
+    for option in ((),('--push',)):
+        _require(text(develop,'remote','get-url',*option,'--all',target['remote_name'])==target['remote_url'],
+                 'integration_remote_url_changed')
+    base = text(develop,'rev-parse','HEAD')
+    _require(base == target.get('expected_base', base),'integration_head_changed')
+    _clean(candidate,base,git_run,text)
+    _clean(develop,base,git_run,text)
+    _require(text(remote,'rev-parse','--verify','refs/heads/develop')==base,'integration_remote_advanced')
+    for pair in target['files']:
+        _inside(source,pair['source_path'])
+        _inside(candidate,pair['target_path'])
+        _inside(develop,pair['target_path'])
+    _require(not git_run(candidate,'check-attr','-z','--all','--',*(pair['target_path'] for pair in target['files'])),
+             'integration_attributes_not_supported')
+    return base
+
+
+def preflight_develop_target(source_root, target, *, git_executable):
+    git = Path(git_executable)
+    _require(git.is_absolute() and git.is_file(), 'integration_git_unavailable')
+    environment = {key: value for key, value in os.environ.items() if not key.upper().startswith('GIT_')}
+    environment.update(GIT_OPTIONAL_LOCKS='0', GIT_TERMINAL_PROMPT='0')
+    deadline = time.monotonic() + 5
+
+    def git_run(root, *args):
+        return subprocess.run([str(git), '--literal-pathspecs', '-c', 'core.fsmonitor=false',
+                               '-c', 'core.hooksPath=' + os.devnull, *args],
+                              cwd=root, stdin=subprocess.DEVNULL, capture_output=True, check=True,
+                              env=environment, timeout=max(.01, deadline - time.monotonic()),
+                              creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0).stdout
+
+    def text(root, *args):
+        return git_run(root,*args).decode('utf-8').strip()
+
+    return _target_base(source_root, target, git_run, text)
+
+
 def run_develop_integration(step, flow, *, git_executable, output_dir, source_output_dir,
                             cancel_event=None, checkpoint):
     """Local remotes and reaped direct processes only; no process-tree guarantee."""
@@ -41,7 +112,6 @@ def run_develop_integration(step, flow, *, git_executable, output_dir, source_ou
     source=Path(snapshot['source_root']).resolve()
     candidate=Path(target['candidate_worktree_path']).resolve()
     develop=Path(target['target_worktree_path']).resolve()
-    repository=Path(target['repository_path']).resolve()
     git=Path(git_executable)
     _require(git.is_absolute() and git.is_file(), 'integration_git_unavailable')
     git_environment={key:value for key,value in os.environ.items() if not key.upper().startswith('GIT_')}
@@ -112,14 +182,6 @@ def run_develop_integration(step, flow, *, git_executable, output_dir, source_ou
         _require(receipt==step['request']['verify_result']['receipt'],'integration_source_receipt_changed')
         return {name:_file_identity(_inside(source,name)) for name in spec['source_files']}
 
-    def clean(root, expected):
-        _require(text(root,'rev-parse','HEAD')==expected,'integration_head_changed')
-        _require(not git_run(root,'status','--porcelain=v1','--untracked-files=all'), 'integration_worktree_dirty')
-        _require(not git_run(root,'ls-files','--others','-z'), 'integration_untracked_files')
-        for marker in ('MERGE_HEAD','CHERRY_PICK_HEAD','REVERT_HEAD','rebase-merge','rebase-apply','sequencer'):
-            _require(not Path(text(root,'rev-parse','--path-format=absolute','--git-path',marker)).exists(),
-                     'integration_unfinished_git_operation')
-
     def remote_head():
         lines=text(develop,'ls-remote','--refs',target['remote_name'],'refs/heads/develop',stage='remote-readback').splitlines()
         _require(len(lines)==1 and lines[0].split()[1]=='refs/heads/develop','integration_remote_ref_missing')
@@ -138,32 +200,7 @@ def run_develop_integration(step, flow, *, git_executable, output_dir, source_ou
                 'exit_code':commands[-1]['exit_code'],'command_directory':commands[-1]['directory']}
 
     try:
-        for root in (source,candidate,develop,repository):
-            _require(root.is_dir(),'integration_root_missing')
-        for left,right in ((source,candidate),(source,develop),(candidate,develop)):
-            _require(not left.is_relative_to(right) and not right.is_relative_to(left),'integration_roots_overlap')
-        # The first bounded execution contract supports only a local bare remote.
-        remote=Path(target['remote_url'])
-        _require(remote.is_absolute() and remote.is_dir(),'integration_local_remote_required')
-        remote=remote.resolve()
-        for root in (source,candidate,develop):
-            _require(not remote.is_relative_to(root) and not root.is_relative_to(remote),'integration_remote_overlaps_worktree')
-        _require(text(remote,'rev-parse','--is-bare-repository')=='true','integration_remote_not_bare')
-        common=[Path(text(root,'rev-parse','--path-format=absolute','--git-common-dir')).resolve()
-                for root in (repository,develop,candidate)]
-        _require(common[0]==common[1]==common[2],'integration_repository_mismatch')
-        for root in (repository,develop,candidate):
-            _require(Path(text(root,'rev-parse','--show-toplevel')).resolve()==root,'integration_worktree_root_mismatch')
-        _require(text(develop,'symbolic-ref','HEAD')=='refs/heads/develop','integration_branch_mismatch')
-        _require(text(candidate,'symbolic-ref','HEAD') not in ('refs/heads/develop','refs/heads/main','refs/heads/master','refs/heads/publicrelease'),
-                 'integration_candidate_branch_mismatch')
-        _require(text(develop,'rev-parse','--symbolic-full-name','@{upstream}')==
-                 'refs/remotes/'+target['remote_name']+'/develop','integration_upstream_mismatch')
-        for option in ((),('--push',)):
-            _require(text(develop,'remote','get-url',*option,'--all',target['remote_name'])==target['remote_url'],
-                     'integration_remote_url_changed')
-        clean(candidate,target['expected_base'])
-        clean(develop,target['expected_base'])
+        _target_base(source,target,git_run,text)
         _require(remote_head()==target['expected_base'],'integration_remote_advanced')
         approved=source_check()
         _require(approved==snapshot['source_hash'],'integration_source_changed')
@@ -207,12 +244,12 @@ def run_develop_integration(step, flow, *, git_executable, output_dir, source_ou
         sha=text(candidate,'rev-parse','HEAD')
         _require(text(candidate,'rev-list','--count',target['expected_base']+'..'+sha)=='1','integration_commit_range_changed')
         _require(text(candidate,'rev-parse',sha+'^')==target['expected_base'],'integration_parent_changed')
-        clean(candidate,sha)
-        clean(develop,target['expected_base'])
+        _clean(candidate,sha,git_run,text)
+        _clean(develop,target['expected_base'],git_run,text)
         source_check()
         git_run(develop,'merge','--ff-only',sha,stage='fast-forward-develop')
         target_test=test(develop,'develop-test')
-        clean(develop,sha)
+        _clean(develop,sha,git_run,text)
         source_check()
         _require(remote_head()==target['expected_base'],'integration_remote_advanced')
         _require(text(develop,'rev-list','--count',target['expected_base']+'..HEAD')=='1','integration_push_range_changed')

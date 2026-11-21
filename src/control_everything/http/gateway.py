@@ -1295,10 +1295,12 @@ class PanelServer(ThreadingHTTPServer):
             from control_everything.workspace.automation_flow import AutomationQueue
             from control_everything.workspace.automation_consumer import AutomationConsumer, AutomationConsumerService
             from control_everything.execution.verification import run_verification, read_verification_receipt
-            from control_everything.execution.develop_integration import run_develop_integration
+            from control_everything.execution.develop_integration import preflight_develop_target, run_develop_integration
+            from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
             adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
             self.workspace.native_progress.adapter = adapter
             self.workspace.check_verification = None
+            self.workspace.integration_preflight = None
             if runtime is not None:
                 profile = self.profile
                 def verify(step, flow):
@@ -1319,10 +1321,18 @@ class PanelServer(ThreadingHTTPServer):
                     source_output = profile.data_dir / 'automation-verification' / flow['id'] / step['request']['integration_target']['verify_step_id']
                     return run_develop_integration(step, flow, git_executable=runtime.config.git_executable,
                         output_dir=output, source_output_dir=source_output, cancel_event=cancel_event, checkpoint=checkpoint)
+                def preflight(source, target):
+                    return preflight_develop_target(source, target, git_executable=runtime.config.git_executable)
+
+                def prepare_integration(flow):
+                    return prepare_acceptance_offer(self.workspace, flow)
+
                 self.workspace.check_verification = check_verification
+                self.workspace.integration_preflight = preflight
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
                 consumer = AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification,
-                                              integration=getattr(self, "automation_integration", None) or integrate)
+                                              integration=getattr(self, "automation_integration", None) or integrate,
+                                              prepare_integration=prepare_integration)
                 consumer.review_service = self.workspace
                 self.automation_consumer_service = AutomationConsumerService(consumer)
                 try:

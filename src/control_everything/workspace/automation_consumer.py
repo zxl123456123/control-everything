@@ -30,7 +30,8 @@ from control_everything.workspace.native_progress import digest, fail, packed
 
 
 class AutomationConsumer:
-    def __init__(self, queue, adapter, *, verification=None, check_verification=None, integration=None, on_wait=None):
+    def __init__(self, queue, adapter, *, verification=None, check_verification=None, integration=None,
+                 on_wait=None, prepare_integration=None):
         self.queue, self.adapter = queue, adapter
         self.launch = AutomationLaunch(queue, adapter)
         self.cursor = None
@@ -39,6 +40,7 @@ class AutomationConsumer:
         self.check_verification = check_verification
         self.integration = integration
         self.on_wait = on_wait
+        self.prepare_integration = prepare_integration
 
     def run_once(self, *, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set():
@@ -249,7 +251,9 @@ class AutomationConsumer:
     def _emit_acceptance(self, view):
         if self.on_wait is not None and view['flow']['status'] == 'awaiting_acceptance':
             try:
-                self.on_wait(acceptance_card(view['flow']))
+                flow = view['flow']
+                approval = self.prepare_integration(flow) if self.prepare_integration else None
+                self.on_wait(acceptance_card(flow, approval=approval))
             except Exception as error:
                 logging.getLogger(__name__).error('Automation acceptance card failed: %s', type(error).__name__)
         return view

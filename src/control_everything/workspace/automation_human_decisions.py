@@ -9,6 +9,7 @@ from control_everything.workspace.native_progress import row_view
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
 ACCEPTANCE_REPLIES = {
+    '通过验收': 'approved',
     '这个版本通过，集成 develop': 'approved',
     '这一版要修改': 'changes_requested',
     '这一版不通过': 'rejected',
@@ -349,7 +350,7 @@ def target_wait_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '验收已记录。还没有 develop 集成目标，所以不会开始集成。'}, button]}}
 
 
-def acceptance_card(flow):
+def acceptance_card(flow, *, approval=None):
     """A card for the current delivery. It does not accept by being sent."""
     attention = (flow or {}).get('attention') or {}
     delivery_id = attention.get('delivery_id')
@@ -360,14 +361,21 @@ def acceptance_card(flow):
     shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'delivery_id': delivery_id,
               'flow_id': flow['id'], 'expected_revision': attention['expected_revision'],
               'progress_revision': attention['progress_revision']}
+    choices = [
+        ('record-' + delivery_id, 'approved', '通过验收'),
+        ('change-' + delivery_id, 'changes_requested', '这一版要修改'),
+        ('reject-' + delivery_id, 'rejected', '这一版不通过'),
+    ]
+    description = '当前交付可以验收。通过后完成任务。'
+    if approval:
+        choices.insert(0, (approval['decision_id'], 'approved', '这个版本通过，集成 develop'))
+        destination = approval['target']['remote_name'] + '/develop'
+        description = ('可通过并集成到 `' + destination + '`。目标不可用时，也可选「通过验收」完成任务，仅记录验收。')
     buttons = [{'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary',
-                'value': {**shared, 'decision_id': prefix + delivery_id, 'verdict': verdict}}
-               for prefix, verdict, label in (
-                   ('accept-', 'approved', '这个版本通过，集成 develop'),
-                   ('change-', 'changes_requested', '这一版要修改'),
-                   ('reject-', 'rejected', '这一版不通过'))]
+                'value': {**shared, 'decision_id': decision_id, 'verdict': verdict}}
+               for decision_id, verdict, label in choices]
     return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '待验收'}},
-            'body': {'elements': [{'tag': 'markdown', 'content': '当前交付可以验收。通过后只集成 develop。'}, *buttons]}}
+            'body': {'elements': [{'tag': 'markdown', 'content': description}, *buttons]}}
 
 
 def waiting_card(flow):
@@ -426,7 +434,8 @@ def apply_acceptance_decisions(store, service, binding):
                 store, decision['actor_id'], task_id=decision['task_id'], trusted=decision['trusted'], device=binding):
             continue
         try:
-            applied.append(review_delivery(service, decision['task_id'], decision['body'], reviewer=decision['actor_id']))
+            applied.append(review_delivery(service, decision['task_id'], decision['body'],
+                                           reviewer=decision['actor_id'], approval=decision['approval']))
         except ProfileError as error:
             if str(error) == 'automation_owner_lost':
                 raise
@@ -449,11 +458,19 @@ def _stored_acceptance(raw):
             or any(type(decision.get(key)) is not int or decision[key] < 0 for key in ('expected_revision', 'progress_revision'))
             or type(actor) is not str or not actor or trusted_context(payload) is None):
         return None
-    reason = {'approved': '这个版本通过，集成 develop', 'changes_requested': '飞书要求修改', 'rejected': '飞书拒绝'}
-    return {'task_id': decision['task_id'], 'trusted': trusted_context(payload), 'body': {
+    decision_id, verdict = decision['decision_id'], decision['verdict']
+    approval = None
+    if verdict == 'approved':
+        if decision_id.startswith('integrate-'):
+            approval = 'integrate'
+        elif decision_id.startswith('record-'):
+            approval = 'record'
+    reason = {'approved': '通过验收' if approval == 'record' else '这个版本通过，集成 develop',
+              'changes_requested': '飞书要求修改', 'rejected': '飞书拒绝'}
+    return {'task_id': decision['task_id'], 'trusted': trusted_context(payload), 'approval': approval, 'body': {
         'expected_revision': decision['expected_revision'], 'progress_revision': decision['progress_revision'],
-        'delivery_id': decision['delivery_id'], 'verdict': decision['verdict'], 'reason': reason[decision['verdict']],
-        'confirmed': True, 'client_token': decision['decision_id']}, 'actor_id': actor}
+        'delivery_id': decision['delivery_id'], 'verdict': verdict, 'reason': reason[verdict],
+        'confirmed': True, 'client_token': decision_id}, 'actor_id': actor}
 
 
 def apply_plan_releases(store, consumer, binding):

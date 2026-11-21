@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace import dispatch, task_messages
+from control_everything.workspace.automation_integration_targets import validate_project_target
 from control_everything.workspace.automation_identities import confirmed_identity, decision_authorized, trusted_context
 from control_everything.workspace.native_progress import body_fields, check_versions, digest, packed, task_access
 from control_everything.workspace.store import WorkspaceError, now_utc
@@ -71,7 +72,11 @@ def _project_verification(connection, project_id, directory):
     saved = connection.execute(
         'SELECT spec_json FROM automation_project_verification WHERE project_id=? AND binding_id=? AND directory_path=?',
         (project_id, directory['binding_id'], directory['path'])).fetchone()
-    return json.loads(saved['spec_json']) if saved else None
+    if not saved:
+        return None
+    spec = json.loads(saved['spec_json'])
+    spec.pop('integration', None)
+    return spec
 
 
 def _accept_new_feishu_task(store, device, inbox, payload):
@@ -205,11 +210,18 @@ def _validate_verification(spec):
 
 def set_project_verification(store, project_id, body):
     """The local owner authorizes a verifier for one registered directory."""
-    body_fields(body, ('directory_id', 'verification'))
+    body_fields(body, ('directory_id', 'verification'), ('integration', 'confirmed'))
     task_messages._text(body['directory_id'], 'directory_id', 256, required=True)
     spec = body['verification']
     if spec is not None:
         _validate_verification(spec)
+    target = body.get('integration')
+    if 'integration' in body and body.get('confirmed') is not True:
+        raise ProfileError('invalid_integration_target')
+    if target is not None:
+        if spec is None:
+            raise ProfileError('invalid_integration_target')
+        validate_project_target(target)
     with store.connection() as connection:
         connection.execute('BEGIN IMMEDIATE')
         project = connection.execute('SELECT archived FROM projects WHERE id=?', (project_id,)).fetchone()
@@ -220,6 +232,17 @@ def set_project_verification(store, project_id, body):
         if spec is None:
             connection.execute('DELETE FROM automation_project_verification WHERE project_id=? AND binding_id=?', key)
         else:
+            saved = connection.execute(
+                'SELECT spec_json FROM automation_project_verification WHERE project_id=? AND binding_id=? AND directory_path=?',
+                (*key, directory['path'])).fetchone()
+            previous = json.loads(saved['spec_json']) if saved else {}
+            configured = previous.pop('integration', None)
+            if 'integration' not in body and configured and previous == spec:
+                target = configured['target']
+            if target is not None:
+                generation = (configured['generation'] if configured and configured['target'] == target and previous == spec
+                              else uuid4().hex)
+                spec = {**spec, 'integration': {'generation': generation, 'target': target}}
             connection.execute('INSERT INTO automation_project_verification VALUES(?,?,?,?) '
                 'ON CONFLICT(project_id,binding_id) DO UPDATE SET directory_path=excluded.directory_path, '
                 'spec_json=excluded.spec_json', (*key, directory['path'], packed(spec)))

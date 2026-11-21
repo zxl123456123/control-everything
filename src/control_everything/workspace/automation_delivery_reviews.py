@@ -4,7 +4,8 @@ from uuid import uuid4
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace import dispatch, task_messages
-from control_everything.workspace.automation_flow import AutomationQueue
+from control_everything.workspace.automation_flow import AutomationQueue, reviewer_may_integrate
+from control_everything.workspace.automation_integration_targets import _target, _text, prepare_offer, project_target
 from control_everything.workspace.automation_planning import planning_outcome
 from control_everything.workspace.native_progress import body_fields, check_versions, digest, fail, packed, row_view, task_access, touch
 from control_everything.workspace.store import now_utc
@@ -104,7 +105,72 @@ def _evidence(connection, item, flow, verify, material, *, exclude_step_id=None)
             "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",(flow['project_id'],exclude_step_id,exclude_step_id)).fetchone():
         fail('automation_project_busy')
 
-def review_delivery(service, task_id, body, *, reviewer='local_owner'):
+def prepare_acceptance_offer(service, flow):
+    body = {k: flow['attention'][k] for k in ('delivery_id', 'expected_revision', 'progress_revision')}
+    try:
+        with service.store.connection() as connection:
+            _, _, current, verify = _current(connection, flow['task_id'], body)
+            return prepare_offer(service, connection, current, verify)
+    except ProfileError:
+        return None
+
+
+def integration_snapshot(target, verify, delivery_id, review_id, client_token, request_hash,
+                         control_revision, progress_revision, flow_revision):
+    return {'client_token': client_token, 'request_hash': request_hash, 'actor': 'local_owner',
+            'recorded_at': now_utc(), 'target': target, 'delivery_id': delivery_id, 'review_id': review_id,
+            'verify_step_id': verify['id'], 'verify_hash': digest(verify['result']),
+            'source_root': verify['request']['scope']['cwd'], 'verification': verify['request']['verification'],
+            'source_hash': verify['result']['receipt']['source_before'], 'accepted_control_revision': control_revision,
+            'accepted_progress_revision': progress_revision, 'accepted_flow_revision': flow_revision}
+
+
+def register_target(service, task_id, body):
+    body_fields(body,('flow_id','expected_flow_revision','expected_revision','progress_revision','delivery_id','review_id','client_token','confirmed','target'))
+    if body['confirmed'] is not True or any(type(body[k]) is not int or body[k] < 0 for k in ('expected_flow_revision','expected_revision','progress_revision')):
+        raise ProfileError('invalid_integration_target')
+    for key in ('flow_id','delivery_id','review_id','client_token'):
+        _text(body[key])
+    request_hash = digest({'task_id':task_id,'body':body})
+    with service.store.connection() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        item = task_access(connection,task_id,writable=True)
+        view = AutomationQueue._view(connection,body['flow_id'])
+        flow = view['flow']
+        if not flow or flow['task_id'] != task_id or flow['project_id'] != item['project_id']:
+            fail('automation_step_changed')
+        previous = flow['attention'].get('integration_target')
+        if previous:
+            if previous['client_token'] != body['client_token'] or previous['request_hash'] != request_hash:
+                fail('item_changed')
+            return {'flow':flow,'integration_target':previous,'recorded':True,'replayed':True}
+        check_versions(item,body)
+        delivery = row_view(connection.execute('SELECT * FROM task_deliveries WHERE id=? AND task_id=?',(body['delivery_id'],task_id)).fetchone())
+        verify = _delivery_verification(connection, delivery, view['step'])
+        review = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=? AND task_id=?',(body['review_id'],task_id)).fetchone())
+        attention = flow['attention']
+        if (flow['revision'] != body['expected_flow_revision'] or flow['status'] != 'waiting_external' or flow['phase'] != 'integration'
+                or attention.get('reason') != 'integration_not_connected' or not delivery or not review
+                or item['current_delivery_id'] != delivery['id'] or item['accepted_delivery_id'] != delivery['id']
+                or review['delivery_id'] != delivery['id'] or review['verdict'] != 'approved'
+                or not reviewer_may_integrate(connection, task_id, review['reviewer'])
+                or attention.get('accepted_review_id') != review['id'] or attention.get('accepted_delivery_id') != delivery['id']
+                or attention.get('expected_revision') != item['revision'] or attention.get('progress_revision') != item['progress_revision']
+                or delivery['source'] != 'automation_verify' or not verify or verify['kind'] != 'verify' or verify['status'] != 'completed'
+                or delivery['source_key'] != verify['id'] or delivery['material'].get('verify_step_id') != verify['id']
+                or delivery['material'].get('flow_id') != flow['id']):
+            fail('automation_step_changed')
+        _evidence(connection,item,flow,verify,delivery['material'])
+        target = _target(body['target'],verify)
+        snapshot = integration_snapshot(target, verify, delivery['id'], review['id'],
+                                        body['client_token'], request_hash, item['revision'],
+                                        item['progress_revision'], flow['revision'])
+        connection.execute('UPDATE automation_flows SET attention_json=?,revision=revision+1,updated_at=? WHERE id=?',
+            (packed({**attention,'integration_target':snapshot}),now_utc(),flow['id']))
+        return {'flow':AutomationQueue._view(connection,flow['id'])['flow'],'integration_target':snapshot,'recorded':True,'replayed':False}
+
+
+def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=None):
     body_fields(body, ('expected_revision','progress_revision','delivery_id','verdict','reason','confirmed','client_token'))
     if (body['confirmed'] is not True or body['verdict'] not in ('approved','changes_requested','rejected')
             or not isinstance(reviewer, str) or not reviewer or len(reviewer) > 256):
@@ -112,6 +178,8 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner'):
     if not isinstance(body['reason'], str):
         raise ProfileError('invalid_review','reason')
     task_messages._text(body['reason'],'reason',10000,required=body['verdict'] != 'approved')
+    if approval == 'record' and (body['verdict'] != 'approved' or body['client_token'] != 'record-' + body['delivery_id']):
+        fail('delivery_changed')
     request_hash = digest(body)
     def replay(connection):
         task_access(connection,task_id,writable=True)
@@ -133,6 +201,12 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner'):
             raise ValueError('verification_receipt_changed')
     except Exception:
         fail('verification_evidence_invalid')
+    offer = None
+    if approval == 'integrate':
+        with service.store.connection() as connection:
+            offer = prepare_offer(service, connection, flow, verify)
+        if body['verdict'] != 'approved' or not offer or offer['decision_id'] != body['client_token']:
+            fail('integration_offer_changed')
     with service.store.connection() as connection:
         connection.execute('BEGIN IMMEDIATE')
         previous = replay(connection)
@@ -141,6 +215,9 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner'):
         item,current,current_flow,current_verify = _current(connection,task_id,body)
         if (current_flow['revision'] != flow['revision'] or current != delivery or current_verify != verify):
             fail('delivery_changed')
+        if offer and (not reviewer_may_integrate(connection, task_id, reviewer)
+                      or project_target(connection, current_flow, current_verify) != offer['config']):
+            fail('integration_offer_changed')
         identity = str(uuid4())
         evidence = {'flow_id':flow['id'],'verify_step_id':verify['id'],'receipt_sha256':digest(checked['receipt']),
                     'output_dir':checked['output_dir'],'identity_scope':'declared_inputs'}
@@ -149,15 +226,29 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner'):
             (identity,task_id,body['verdict'],body['reason'],packed(evidence),reviewer,now_utc(),
              delivery['id'],body['client_token'],request_hash))
         approved = body['verdict'] == 'approved'
-        touch(connection,item,'review' if approved else 'doing',delivery_id=delivery['id'],accepted=approved)
+        only_accept = approved and approval == 'record'
+        touch(connection, item, 'done' if only_accept else 'review' if approved else 'doing',
+              delivery_id=delivery['id'], accepted=approved)
         attention = {'delivery_id':delivery['id'],'review_id':identity,'expected_revision':item['revision']+1,
                      'progress_revision':item['progress_revision']+1,
                      'reason':'integration_not_connected' if approved else 'acceptance_'+body['verdict']}
         if approved:
-            attention.update(accepted_review_id=identity,accepted_delivery_id=delivery['id'],target_branch='develop')
-        connection.execute("UPDATE automation_flows SET status='waiting_external',phase=?,attention_json=?,"
-            'revision=revision+1,updated_at=? WHERE id=?',
-            ('integration' if approved else 'acceptance',packed(attention),now_utc(),flow['id']))
+            attention.update(accepted_review_id=identity, accepted_delivery_id=delivery['id'])
+        status, phase, revision_increment = 'waiting_external', 'acceptance', 1
+        if only_accept:
+            status = 'completed'
+            attention['reason'] = 'acceptance_approved'
+        elif approved:
+            phase = 'integration'
+            attention['target_branch'] = 'develop'
+            if offer:
+                attention['integration_target'] = integration_snapshot(
+                    offer['target'], verify, delivery['id'], identity, body['client_token'], request_hash,
+                    item['revision']+1, item['progress_revision']+1, flow['revision']+1)
+                revision_increment = 2
+        connection.execute('UPDATE automation_flows SET status=?,phase=?,attention_json=?,'
+                           'revision=revision+?,updated_at=? WHERE id=?',
+                           (status, phase, packed(attention), revision_increment, now_utc(), flow['id']))
         saved = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=?',(identity,)).fetchone())
     return {**service.native_progress.get(task_id),'review':saved,'replayed':False}
 

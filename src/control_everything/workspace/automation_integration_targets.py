@@ -1,13 +1,13 @@
 """Record the local owner's fixed integration intent without executing it."""
+import json
 import ntpath
 import re
+from pathlib import Path
+from subprocess import SubprocessError
 from urllib.parse import urlsplit
 
 from control_everything.input_validation import ProfileError
-from control_everything.workspace.automation_flow import AutomationQueue, reviewer_may_integrate
-from control_everything.workspace.automation_delivery_reviews import _delivery_verification, _evidence
-from control_everything.workspace.native_progress import body_fields, check_versions, digest, fail, packed, row_view, task_access
-from control_everything.workspace.store import now_utc
+from control_everything.workspace.native_progress import body_fields, digest
 
 
 def _text(value):
@@ -83,49 +83,50 @@ def _target(target, verify):
     return target
 
 
-def register_target(service, task_id, body):
-    body_fields(body,('flow_id','expected_flow_revision','expected_revision','progress_revision','delivery_id','review_id','client_token','confirmed','target'))
-    if body['confirmed'] is not True or any(type(body[k]) is not int or body[k] < 0 for k in ('expected_flow_revision','expected_revision','progress_revision')):
+def validate_project_target(target):
+    body_fields(target, ('repository_path', 'target_worktree_path', 'candidate_worktree_path', 'remote_name', 'remote_url'))
+    for key in ('repository_path', 'target_worktree_path', 'candidate_worktree_path', 'remote_url'):
+        _path(target[key])
+        if not Path(target[key]).is_absolute():
+            raise ProfileError('invalid_integration_target')
+    if not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]*', _text(target['remote_name'])):
         raise ProfileError('invalid_integration_target')
-    for key in ('flow_id','delivery_id','review_id','client_token'):
-        _text(body[key])
-    request_hash = digest({'task_id':task_id,'body':body})
-    with service.store.connection() as connection:
-        connection.execute('BEGIN IMMEDIATE')
-        item = task_access(connection,task_id,writable=True)
-        view = AutomationQueue._view(connection,body['flow_id'])
-        flow = view['flow']
-        if not flow or flow['task_id'] != task_id or flow['project_id'] != item['project_id']:
-            fail('automation_step_changed')
-        previous = flow['attention'].get('integration_target')
-        if previous:
-            if previous['client_token'] != body['client_token'] or previous['request_hash'] != request_hash:
-                fail('item_changed')
-            return {'flow':flow,'integration_target':previous,'recorded':True,'replayed':True}
-        check_versions(item,body)
-        delivery = row_view(connection.execute('SELECT * FROM task_deliveries WHERE id=? AND task_id=?',(body['delivery_id'],task_id)).fetchone())
-        verify = _delivery_verification(connection, delivery, view['step'])
-        review = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=? AND task_id=?',(body['review_id'],task_id)).fetchone())
-        attention = flow['attention']
-        if (flow['revision'] != body['expected_flow_revision'] or flow['status'] != 'waiting_external' or flow['phase'] != 'integration'
-                or attention.get('reason') != 'integration_not_connected' or not delivery or not review
-                or item['current_delivery_id'] != delivery['id'] or item['accepted_delivery_id'] != delivery['id']
-                or review['delivery_id'] != delivery['id'] or review['verdict'] != 'approved'
-                or not reviewer_may_integrate(connection, task_id, review['reviewer'])
-                or attention.get('accepted_review_id') != review['id'] or attention.get('accepted_delivery_id') != delivery['id']
-                or attention.get('expected_revision') != item['revision'] or attention.get('progress_revision') != item['progress_revision']
-                or delivery['source'] != 'automation_verify' or not verify or verify['kind'] != 'verify' or verify['status'] != 'completed'
-                or delivery['source_key'] != verify['id'] or delivery['material'].get('verify_step_id') != verify['id']
-                or delivery['material'].get('flow_id') != flow['id']):
-            fail('automation_step_changed')
-        _evidence(connection,item,flow,verify,delivery['material'])
-        target = _target(body['target'],verify)
-        snapshot = {'client_token':body['client_token'],'request_hash':request_hash,'actor':'local_owner','recorded_at':now_utc(),
-            'target':target,'delivery_id':delivery['id'],'review_id':review['id'],'verify_step_id':verify['id'],
-            'verify_hash':digest(verify['result']),'source_root':verify['request']['scope']['cwd'],
-            'verification':verify['request']['verification'],'source_hash':verify['result']['receipt']['source_before'],
-            'accepted_control_revision':item['revision'],'accepted_progress_revision':item['progress_revision'],
-            'accepted_flow_revision':flow['revision']}
-        connection.execute('UPDATE automation_flows SET attention_json=?,revision=revision+1,updated_at=? WHERE id=?',
-            (packed({**attention,'integration_target':snapshot}),now_utc(),flow['id']))
-        return {'flow':AutomationQueue._view(connection,flow['id'])['flow'],'integration_target':snapshot,'recorded':True,'replayed':False}
+
+
+def project_target(connection, flow, verify):
+    directory = flow['context']['input']['directory']
+    saved = connection.execute(
+        'SELECT spec_json FROM automation_project_verification WHERE project_id=? AND binding_id=? AND directory_path=?',
+        (flow['project_id'], directory['binding_id'], directory['path'])).fetchone()
+    if saved:
+        spec = json.loads(saved['spec_json'])
+        configured = spec.pop('integration', None)
+        if spec == verify['request']['verification']:
+            return configured
+    return None
+
+
+def prepare_offer(service, connection, flow, verify):
+    configured = project_target(connection, flow, verify)
+    preflight = getattr(service, 'integration_preflight', None)
+    if not configured or preflight is None:
+        return None
+    source = verify['request']['scope']['cwd']
+    spec = verify['request']['verification']
+    try:
+        files = [{'source_path': _relative(name), 'target_path': name} for name in spec['source_files']]
+        paths = {_path(ntpath.join(source, name)): name for name in spec['source_files']}
+        mapping = [{'index': i, 'source_path': paths[_path(arg)]}
+                   for i, arg in enumerate(spec['argv'][1:], 1)
+                   if Path(arg).is_absolute() and _path(arg) in paths]
+        if len(mapping) != 1:
+            return None
+        target = {**configured['target'], 'branch': 'develop', 'files': files, 'script_arg_map': mapping,
+                  'commit_message': 'feat: integrate verified automation delivery'}
+        target['expected_base'] = preflight(source, target)
+        _target(target, verify)
+    except (OSError, ValueError, SubprocessError, ProfileError):
+        return None
+    offer = {'config': configured, 'target': target, 'flow_id': flow['id'], 'flow_revision': flow['revision'],
+             'delivery_id': flow['attention']['delivery_id'], 'verify_hash': digest(verify['result'])}
+    return {**offer, 'decision_id': 'integrate-' + digest(offer)}

@@ -170,7 +170,10 @@ class AutomationEventStorageTests(unittest.TestCase):
         project = self.project['id']
         store = self.profile.store
         spec = {'argv': [sys.executable, 'verify.py'], 'source_files': ['verify.py'], 'timeout': 10}
-        self.service().set_project_automation_verification(project, {'directory_id': 'main', 'verification': spec})
+        self.service().set_project_automation_verification(project, {'directory_id': 'main', 'verification': spec,
+            'confirmed': True, 'integration': {'repository_path': str(self.root/'target'),
+                'target_worktree_path': str(self.root/'target'), 'candidate_worktree_path': str(self.root/'candidate'),
+                'remote_name': 'origin', 'remote_url': str(self.root/'fixture.git')}})
         identity.set_assignment_grant(project, *ids, 'main', True)
         self.receive_assignment(device, 'new')
         with ThreadPoolExecutor(max_workers=4) as pool:

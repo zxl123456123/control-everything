@@ -8,14 +8,28 @@ import time
 from types import SimpleNamespace
 from unittest.mock import patch
 from http.client import HTTPConnection
+from functools import partial
 
 from tests.backend.test_automation_integration_targets import IntegrationTargetTests
 from control_everything.http.gateway import HOST, PanelHandler, PanelServer
+from control_everything.execution.develop_integration import preflight_develop_target, run_develop_integration
+from control_everything.input_validation import ProfileError
+from control_everything.workspace.automation_consumer import AutomationConsumer
+from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
+from control_everything.workspace.automation_flow import AutomationQueue
+from control_everything.workspace.automation_human_decisions import acceptance_card, apply_acceptance_decisions
+from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+from tests.backend.test_automation_consumer import PlanningHost
+from tests.backend.test_automation_queue import AutomationQueueFixture, bind_actor, designate_actor
 
 
 class DevelopIntegrationTests(IntegrationTargetTests):
     def setUp(self):
         super().setUp()
+        self.configure_git()
+        self.request['target']['expected_base'] = self.base
+
+    def configure_git(self):
         self.git_exe = str(Path(shutil.which('git')).resolve())
         (self.root/'empty-hooks').mkdir()
         self.target = self.root/'target'
@@ -34,7 +48,6 @@ class DevelopIntegrationTests(IntegrationTargetTests):
         self.git(self.target,'remote','add','origin',str(self.bare))
         self.git(self.target,'push','-u','origin','develop')
         self.git(self.target,'worktree','add','-b','fixture-candidate',str(self.root/'candidate'),self.base)
-        self.request['target']['expected_base']=self.base
         source=self.root/'repo'
         self.git(source,'init','-b','source-fixture')
         self.git(source,'config','user.name','Fixture Owner')
@@ -278,3 +291,161 @@ class DevelopIntegrationTests(IntegrationTargetTests):
             self.assertTrue(Path(command['directory']).name.isdigit())
             receipt=json.loads((Path(command['directory'])/'receipt.json').read_text(encoding='utf-8'))
             self.assertEqual(receipt['stage'],command['stage'])
+
+
+class PreparedIntegrationOfferTests(AutomationQueueFixture):
+    configure_git = DevelopIntegrationTests.configure_git
+    git = DevelopIntegrationTests.git
+    prepare = IntegrationTargetTests.prepare
+    pump = IntegrationTargetTests.pump
+
+    def setUp(self):
+        super().setUp()
+        self.queue, self.host = AutomationQueue(self.profile.store), PlanningHost()
+        self.cards = []
+        self.consumer_type = partial(AutomationConsumer, on_wait=self.cards.append,
+            prepare_integration=partial(prepare_acceptance_offer, self.service), integration=self.integrate)
+        self.binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                        'credential_revision': 1}
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+
+    def configure_verification(self):
+        IntegrationTargetTests.configure_verification(self)
+        self.configure_git()
+        self.service.integration_preflight = partial(preflight_develop_target, git_executable=self.git_exe)
+        self.configuration = {
+            'directory_id': self.event['payload']['directory']['binding_id'],
+            'verification': self.event['payload']['request']['verification'],
+            'confirmed': True,
+            'integration': {'repository_path': str(self.target), 'target_worktree_path': str(self.target),
+                'candidate_worktree_path': str(self.root/'candidate'), 'remote_name': 'origin',
+                'remote_url': str(self.bare)},
+        }
+        if self.before_publication:
+            self.before_publication()
+
+    def integrate(self, step, flow, *, cancel_event, checkpoint):
+        source_output = self.profile.data_dir / 'automation-verification' / flow['id'] / self.view['step']['id']
+        return run_develop_integration(step, flow, git_executable=self.git_exe,
+            output_dir=self.root/'integrated', source_output_dir=source_output,
+            cancel_event=cancel_event, checkpoint=checkpoint)
+
+    def save_target(self, **values):
+        self.service.set_project_automation_verification(self.project['id'], {**self.configuration, **values})
+
+    def publish_card(self, configure=None):
+        self.before_publication = configure
+        self.prepare()
+        self.service.check_verification = self.consumer.check_verification
+        self.published = self.pump()
+        self.assertEqual(self.published['flow']['status'], 'awaiting_acceptance')
+        return self.cards[-1]['body']['elements'][1]
+
+    def click(self, button, identity='click', **overrides):
+        decision = {k: v for k, v in button['value'].items() if k != 'flow_id'}
+        RemoteAutomationInbox(self.profile.store).receive(self.binding, {
+            'id': identity, 'source': 'feishu:test', 'event_id': 'event-'+identity, 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {'kind': 'feishu_card_decision', 'project_id': self.project['id'],
+                'app_id': 'app', 'actor_open_id': 'ou-owner', 'decision': {**decision, **overrides}}})
+        return self.apply_clicks()
+
+    def apply_clicks(self):
+        return apply_acceptance_decisions(self.profile.store, self.service, self.binding)
+
+    def heads(self):
+        return tuple(self.git(root, 'rev-parse', ref).strip() for root, ref in (
+            (self.target,'HEAD'), (self.root/'candidate','HEAD'), (self.bare,'refs/heads/develop')))
+
+    def test_accept_only_card_finishes_with_no_integration_wait_even_if_a_target_is_added(self):
+        button = self.publish_card()
+        self.assertEqual(button['text']['content'], '通过验收')
+        self.assertNotIn('develop', self.cards[-1]['body']['elements'][0]['content'])
+        self.save_target()
+        self.assertEqual(len(self.click(button)), 1)
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        count = len(self.cards)
+        self.consumer.run_once()
+        self.assertEqual(len(self.cards), count)
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        item = self.profile.store.get_item(self.item['id'])
+        self.assertEqual((item['state'], item['accepted_delivery_id']), ('done', button['value']['delivery_id']))
+        with self.profile.store.connection() as connection:
+            flow = self.queue._view(connection, self.published['flow']['id'])['flow']
+        self.assertEqual((flow['status'], flow['phase']), ('completed', 'acceptance'))
+        self.assertNotIn('integration_target', flow['attention'])
+
+    def test_dirty_candidate_can_only_offer_acceptance(self):
+        def configure():
+            self.save_target()
+            (self.root/'candidate'/'untracked.txt').write_text('owner file', encoding='utf-8')
+        self.assertEqual(self.publish_card(configure)['text']['content'], '通过验收')
+        self.assertEqual(self.heads(), (self.base,) * 3)
+
+    def test_changed_then_revoked_target_cannot_accept_stale_offer_after_restoring_configuration(self):
+        button = self.publish_card(self.save_target)
+        fallback = self.cards[-1]['body']['elements'][2]
+        self.assertEqual(fallback['text']['content'], '通过验收')
+        self.assertTrue(button['value']['decision_id'].startswith('integrate-'))
+        self.save_target(integration={**self.configuration['integration'], 'remote_name': 'other'})
+        self.assertEqual(self.click(button), [])
+        self.save_target(integration=None)
+        self.assertEqual(self.apply_clicks(), [])
+        self.save_target()
+        self.assertEqual(self.apply_clicks(), [])
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertIsNone(self.profile.store.get_item(self.item['id'])['accepted_delivery_id'])
+        offer = prepare_acceptance_offer(self.service, self.published['flow'])
+        self.assertNotEqual(acceptance_card(self.published['flow'], approval=offer)['body']['elements'][1]['value'],
+                            button['value'])
+        self.save_target(integration=None)
+        applied = self.click(fallback, 'fallback')
+        self.assertEqual(len(applied), 1)
+        self.assertFalse(applied[0]['replayed'])
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertFalse((self.root/'integrated').exists())
+        item = self.profile.store.get_item(self.item['id'])
+        self.assertEqual((item['state'], item['accepted_delivery_id']), ('done', button['value']['delivery_id']))
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM task_reviews").fetchone()[0], 1)
+            self.assertEqual(connection.execute("SELECT count(*) FROM automation_steps WHERE kind='integrate'").fetchone()[0], 0)
+
+    def test_confirmed_project_offer_runs_one_exact_commit_and_replays_without_writes(self):
+        def configure():
+            with self.assertRaisesRegex(ProfileError, 'invalid_integration_target'):
+                self.save_target(confirmed=False)
+            self.save_target()
+        button = self.publish_card(configure)
+        self.assertEqual(button['text']['content'], '这个版本通过，集成 develop')
+        self.assertIn('origin/develop', self.cards[-1]['body']['elements'][0]['content'])
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertFalse((self.root/'integrated').exists())
+        self.assertEqual(self.click(button, 'stale', expected_revision=button['value']['expected_revision']-1), [])
+        self.assertEqual(self.click(button, 'foreign', decision_id='integrate-' + '0'*64), [])
+        self.assertEqual(len(self.click(button)), 1)
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, self.published['flow']['id'])
+        self.assertEqual(view['flow']['status'], 'completed', view['step'].get('result'))
+        self.assertEqual(view['step']['result']['integration_target']['target']['expected_base'], self.base)
+        self.assertEqual(view['step']['result']['integration_target']['accepted_flow_revision'],
+                         self.published['flow']['revision']+1)
+        head = self.git(self.target, 'rev-parse', 'HEAD').strip()
+        next_target = dict(view['step']['result']['integration_target']['target'])
+        del next_target['expected_base']
+        self.assertEqual(preflight_develop_target(self.root/'repo', next_target, git_executable=self.git_exe), head)
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertEqual(self.git(self.target, 'rev-list', '--count', self.base+'..HEAD').strip(), '1')
+        self.assertEqual(set(self.git(self.target,'diff','--name-only',self.base,'HEAD').splitlines()), {'input.txt'})
+        self.assertTrue(view['step']['result']['candidate_test_passed'])
+        self.assertTrue(view['step']['result']['target_test_passed'])
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (head,) * 3)
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM task_reviews").fetchone()[0], 1)
+            self.assertEqual(connection.execute("SELECT count(*) FROM automation_steps WHERE kind='integrate'").fetchone()[0], 1)

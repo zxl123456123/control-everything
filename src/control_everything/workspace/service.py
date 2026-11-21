@@ -90,6 +90,7 @@ class WorkspaceService:
         from control_everything.workspace.native_progress import NativeProgress
         self.native_progress = NativeProgress(self.store, progress_adapter)
         self.check_verification = None
+        self.integration_preflight = None
         self.registry_path, self.manual_path, self.todos_path = registry_path, manual_path, todos_path
         self.session_reader = profile.codex_threads if profile is not None else session_reader or list_threads
         self.quota_source = quota_source or CodexQuotaSource()
@@ -566,7 +567,7 @@ class WorkspaceService:
         return automation_events.enable_local(self.store, task_id, body)
 
     def register_task_integration_target(self, task_id, body):
-        from control_everything.workspace.automation_integration_targets import register_target
+        from control_everything.workspace.automation_delivery_reviews import register_target
         return register_target(self,task_id,body)
 
     def resume_task_automation(self, task_id, body):

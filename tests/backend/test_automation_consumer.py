@@ -663,7 +663,7 @@ class ConsumerTests(AutomationQueueFixture):
         accepted = [card for card in cards if card['body']['elements'][1]['value'].get('verdict') == 'approved']
         self.assertEqual(accepted[0]['body']['elements'][1]['value']['delivery_id'],
                          result['flow']['attention']['delivery_id'])
-        self.assertEqual(accepted[0]['body']['elements'][1]['text']['content'], '这个版本通过，集成 develop')
+        self.assertEqual(accepted[0]['body']['elements'][1]['text']['content'], '通过验收')
         verdicts = [item['value']['verdict'] for item in accepted[0]['body']['elements'] if item.get('tag') == 'button']
         self.assertEqual(verdicts, ['approved', 'changes_requested', 'rejected'])
         self.assertEqual({item['value']['delivery_id'] for item in accepted[0]['body']['elements'] if item.get('tag') == 'button'},
