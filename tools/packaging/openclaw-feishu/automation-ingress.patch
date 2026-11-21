@@ -569,7 +569,7 @@ diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feish
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,348 @@
+@@ -0,0 +1,364 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
 +import type { FeishuMessageEvent } from "./event-types.js";
@@ -591,6 +591,13 @@ new file mode 100644
 +      data.action.value.namespace as string,
 +    )
 +  );
++}
++
++function hasPlanChoiceFields(value: Record<string, unknown>): boolean {
++  const identity = ["task_id", "flow_id", "decision_id", "choice_id"];
++  return value.namespace === "control-everything.automation.v1" && Object.keys(value).length === 6 &&
++    identity.every((key) => typeof value[key] === "string" && value[key].trim().length > 0 && value[key].trim().length <= 256) &&
++    Number.isSafeInteger(value.requirement_revision) && Number(value.requirement_revision) >= 0;
 +}
 +
 +export async function receiveAutomationCard(params: {
@@ -671,7 +678,6 @@ new file mode 100644
 +    "progress_revision",
 +    "verdict",
 +  ];
-+  const choiceKeys = ["namespace", "task_id", "flow_id", "requirement_revision", "decision_id", "choice_id"];
 +  let posted: Record<string, unknown> | undefined;
 +  if (
 +    decision.namespace === "control-everything.identity.v1" &&
@@ -679,8 +685,7 @@ new file mode 100644
 +    ["challenge_id", "nonce"].every(bounded)
 +  )
 +    posted = { binding: decision };
-+  else if (decision.namespace === "control-everything.automation.v1" && exact(choiceKeys) &&
-+    ["task_id", "flow_id", "decision_id", "choice_id"].every(bounded) && revision("requirement_revision"))
++  else if (hasPlanChoiceFields(decision))
 +    posted = { plan_choice: decision };
 +  else if (
 +    decision.namespace === "control-everything.automation.v1" &&
@@ -833,12 +838,14 @@ new file mode 100644
 +}
 +
 +const PLAN = "按已审方案实现";
-+const ACCEPTANCE: Record<string, string> = {
-+  "这个版本通过，集成 develop": "approved",
-+  "这一版要修改": "changes_requested",
-+  "这一版不通过": "rejected",
-+};
++const ACCEPTANCE = new Map([
++  ["通过验收", "approved"],
++  ["这个版本通过，集成 develop", "approved"],
++  ["这一版要修改", "changes_requested"],
++  ["这一版不通过", "rejected"],
++]);
 +const DECISION_KEYS = ["namespace", "decision_id", "task_id", "delivery_id", "expected_revision", "progress_revision", "verdict"];
++const CHOICE_REPLY = /^按 (.{1,60}) 做$/u;
 +
 +export function replyButton(text: string, card: unknown): Record<string, unknown> | null {
 +  if (!isRecord(card) || !isRecord(card.body) || !Array.isArray(card.body.elements)) return null;
@@ -851,14 +858,22 @@ new file mode 100644
 +    if (typeof value.flow_id !== "string" || !value.flow_id.trim() || !Number.isSafeInteger(value.requirement_revision) || Number(value.requirement_revision) < 0) return null;
 +    return value;
 +  }
-+  const verdict = ACCEPTANCE[text];
-+  if (!verdict) return null;
++  const verdict = ACCEPTANCE.get(text);
++  const choiceLabel = CHOICE_REPLY.exec(text)?.[1];
++  if (!verdict && !choiceLabel) return null;
 +  const matches = elements.filter((element) => {
-+    if (!isRecord(element) || element.tag !== "button" || !isRecord(element.text) || element.text.content !== text) return false;
-+    return isRecord(element.value) && element.value.verdict === verdict && element.value.namespace === "control-everything.automation.v1";
++    if (!isRecord(element) || element.tag !== "button" || !isRecord(element.text) ||
++        element.text.content !== (choiceLabel ?? text) || !isRecord(element.value)) return false;
++    const value = element.value;
++    if (value.namespace !== "control-everything.automation.v1") return false;
++    return choiceLabel ? typeof value.choice_id === "string" : value.verdict === verdict;
 +  });
 +  if (matches.length !== 1 || !isRecord(matches[0]) || !isRecord(matches[0].value)) return null;
 +  const value = matches[0].value;
++  if (choiceLabel) {
++    if (!hasPlanChoiceFields(value)) return null;
++    return value;
++  }
 +  if (DECISION_KEYS.some((key) => value[key] === undefined) || value.verdict !== verdict) return null;
 +  return value;
 +}
@@ -880,7 +895,8 @@ new file mode 100644
 +  }
 +  const parent = message.parent_id.trim();
 +  const actor = params.event.sender?.sender_id?.open_id?.trim() ?? "";
-+  if ((text !== PLAN && !ACCEPTANCE[text]) || !parent || !actor || !message.message_id || !message.chat_id) return false;
++  if ((text !== PLAN && !ACCEPTANCE.has(text) && !CHOICE_REPLY.test(text)) || !parent || !actor ||
++      !message.message_id || message.chat_id !== params.config.chatId) return false;
 +  const origin = new URL(params.config.hubOrigin);
 +  if (!hubOriginAllowed(params.config.hubOrigin)) return false;
 +  let found: Response;
@@ -1521,7 +1537,7 @@ diff --git a/extensions/feishu/src/automation-reply.test.ts b/extensions/feishu/
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-reply.test.ts
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,227 @@
 +import { describe, expect, it, vi } from "vitest";
 +import { receiveAutomationAssignment, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
 +import type { FeishuMessageEvent } from "./event-types.js";
@@ -1674,10 +1690,11 @@ new file mode 100644
 +}
 +
 +describe("automation text replies", () => {
-+  it("does not look up unrelated text", async () => {
-+    const fetch = vi.spyOn(globalThis, "fetch");
++  it.each([["不错", "om-card"], ["constructor", "om-card"], ["按 增量 做", ""]])(
++    "does not look up unrelated text %s", async (text, parent) => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected lookup"));
 +    await expect(receiveAutomationReply({
-+      event: event("不错"), config, active: () => true,
++      event: event(text, parent), config, active: () => true,
 +    })).resolves.toBe(false);
 +    expect(fetch).not.toHaveBeenCalled();
 +    fetch.mockRestore();
@@ -1697,6 +1714,46 @@ new file mode 100644
 +      text: "按已审方案实现", requirement_revision: 3,
 +    });
 +    vi.restoreAllMocks();
++  });
++
++  it.each(["通过验收", "这个版本通过，集成 develop"])("posts only the named approval %s", async (label) => {
++    const value = { namespace: "control-everything.automation.v1", task_id: "task", delivery_id: "delivery",
++      decision_id: "approval", expected_revision: 1, progress_revision: 2, verdict: "approved" };
++    const button = { tag: "button", text: { content: label }, value };
++    const wrongLabel = label === "通过验收" ? "这个版本通过，集成 develop" : "通过验收";
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
++      String(url).endsWith("/lookup") ? Response.json({ card: { body: { elements: [button] } } }) :
++        Response.json({ id: "receipt", state: "pending" }));
++    try {
++      await expect(receiveAutomationReply({ event: event(wrongLabel), config, active: () => true })).resolves.toBe(false);
++      expect(fetch).toHaveBeenCalledTimes(1);
++      await expect(receiveAutomationReply({ event: event(label), config, active: () => true })).resolves.toBe(true);
++      expect(JSON.parse(fetch.mock.calls[1][1]!.body as string)).toEqual({ producer_id: "father", message_id: "om-card" });
++      expect(JSON.parse(fetch.mock.calls[2][1]!.body as string).decision).toEqual(value);
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it("posts a unique exact option on the answered card", async () => {
++    const value = { namespace: "control-everything.automation.v1", task_id: "task", flow_id: "flow",
++      requirement_revision: 4, decision_id: "second-question", choice_id: "incremental" };
++    const button = { tag: "button", text: { content: "增量" }, value };
++    let elements = [button];
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
++      String(url).endsWith("/lookup") ? Response.json({ card: { body: { elements } } }) :
++        Response.json({ id: "receipt", state: "pending" }));
++    try {
++      await expect(receiveAutomationReply({ event: event("按 全量 做"), config, active: () => true })).resolves.toBe(false);
++      elements = [button, { ...button, value: { ...value, choice_id: "other" } }];
++      await expect(receiveAutomationReply({ event: event("按 增量 做"), config, active: () => true })).resolves.toBe(false);
++      expect(fetch).toHaveBeenCalledTimes(2);
++      elements = [button];
++      await expect(receiveAutomationReply({ event: event("按 增量 做"), config, active: () => true })).resolves.toBe(true);
++      expect(JSON.parse(fetch.mock.calls[3][1]!.body as string).plan_choice).toEqual(value);
++    } finally {
++      fetch.mockRestore();
++    }
 +  });
 +
 +  it("does not post when the answered card has no matching button", async () => {
