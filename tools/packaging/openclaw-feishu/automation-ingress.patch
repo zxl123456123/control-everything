@@ -34,10 +34,9 @@ index 38b57a4..b16de52 100644
 +    automationIngress,
 diff --git a/extensions/feishu/src/automation-card-ingress.test.ts b/extensions/feishu/src/automation-card-ingress.test.ts
 new file mode 100644
-index 0000000..20d510d
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.test.ts
-@@ -0,0 +1,527 @@
+@@ -0,0 +1,564 @@
 +import "./lifecycle.test-support.js";
 +import fs from "node:fs/promises";
 +import os from "node:os";
@@ -128,6 +127,9 @@ index 0000000..20d510d
 +    storePath: path.join(stateDir, "sessions.json"),
 +  });
 +  runtime.config.current = vi.fn(() => cfg);
++  const queue = runtime.state.openChannelIngressQueue({ accountId: "father" });
++  // Gateway SQLite is normally warm before an interactive callback arrives.
++  await queue.listClaims();
 +  const sdk = new EventDispatcher({});
 +  mocks.createEventDispatcherMock.mockReturnValue(sdk);
 +  const started = createDeferred<EventDispatcher>();
@@ -152,7 +154,7 @@ index 0000000..20d510d
 +  return {
 +    sdk,
 +    transport: await started.promise,
-+    queue: runtime.state.openChannelIngressQueue({ accountId: "father" }),
++    queue,
 +  };
 +}
 +
@@ -187,11 +189,10 @@ index 0000000..20d510d
 +    const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
 +    const { transport, queue } = await startMonitor();
 +    const data = envelope();
-+    await transport.invoke(data, { needCheck: false });
++    const callback = transport.invoke(data, { needCheck: false });
 +    try {
-+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
 +      await received.promise;
-+      expect(await queue.listClaims()).toHaveLength(1);
 +      expect(fetch.mock.calls[0]?.[0]).toBe(
 +        "https://hub.example.test/remote/producer/automation/receive",
 +      );
@@ -211,11 +212,43 @@ index 0000000..20d510d
 +        new Response(JSON.stringify({ id: "receipt", state: "pending" }), { status: 200 }),
 +      );
 +    }
++    await expect(callback).resolves.toEqual({
++      toast: { type: "info", content: "操作已提交，等待工作台确认" },
++    });
 +    await vi.waitFor(async () =>
 +      expect(await queue.enqueue("evt-card", {})).toMatchObject({ kind: "completed" }),
 +    );
-+    await transport.invoke(data, { needCheck: false });
++    await expect(transport.invoke(data, { needCheck: false })).resolves.toEqual({
++      toast: { type: "info", content: "操作已收到，请在工作台查看处理结果" },
++    });
 +    expect(fetch).toHaveBeenCalledTimes(1);
++  });
++
++  it("acknowledges the local queue if the Hub receipt exceeds the interaction budget", async () => {
++    const response = createDeferred<Response>();
++    const fetch = mockMonitorReceive(async () => response.promise);
++    const { transport, queue } = await startMonitor();
++    try {
++      await expect(transport.invoke(envelope("slow-hub"), { needCheck: false })).resolves.toEqual({
++        toast: { type: "info", content: "操作已收到，等待同步至工作台" },
++      });
++      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
++      expect(await queue.listClaims()).toHaveLength(1);
++    } finally {
++      response.resolve(Response.json({ id: "receipt", state: "pending" }));
++    }
++    await vi.waitFor(async () =>
++      expect(await queue.enqueue("slow-hub", {})).toMatchObject({ kind: "completed" }),
++    );
++  });
++
++  it("uses a local-only toast when Hub forwarding fails", async () => {
++    const fetch = mockMonitorReceive(async () => new Response(null, { status: 503 }));
++    const { transport, queue } = await startMonitor();
++    const result = await transport.invoke(envelope("unavailable-hub"), { needCheck: false });
++    expect(result).toMatchObject({ toast: { type: "info", content: expect.stringMatching(/^操作已收到/) } });
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
++    expect(await queue.enqueue("unavailable-hub", {})).not.toMatchObject({ kind: "completed" });
 +  });
 +
 +  it("propagates CE failure through real SDK invoke even with default fire-and-forget", async () => {
@@ -246,7 +279,7 @@ index 0000000..20d510d
 +          signal: controller.signal,
 +        }),
 +    });
-+    await expect(sdk.invoke(envelope(), { needCheck: false })).resolves.toBeUndefined();
++    await expect(sdk.invoke(envelope(), { needCheck: false })).resolves.toBe(true);
 +  });
 +  it.each(["approved", "", "unknown"])("rejects nondurable receipt %s", async (state) => {
 +    vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -288,13 +321,16 @@ index 0000000..20d510d
 +  const response = createDeferred<Response>();
 +  const fetch = mockMonitorReceive(async () => response.promise);
 +  const { transport, queue } = await startMonitor();
-+  await transport.invoke(envelope("stopped-event"), { needCheck: false });
++  const callback = transport.invoke(envelope("stopped-event"), { needCheck: false });
 +  try {
-+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
 +    controller.abort();
 +  } finally {
 +    response.resolve(new Response(JSON.stringify({ id: "receipt", state: "pending" })));
 +  }
++  await expect(callback).resolves.toMatchObject({
++    toast: { type: "info", content: expect.stringMatching(/^操作已收到/) },
++  });
 +  await monitoring;
 +  expect(await queue.enqueue("stopped-event", {})).not.toMatchObject({ kind: "completed" });
 +});
@@ -470,7 +506,7 @@ index 0000000..20d510d
 +      config: { ...ingress, token: "fixture" },
 +      active: () => active,
 +    });
-+    if (["pending", "acknowledged"].includes(mode)) await expect(result).resolves.toBeUndefined();
++    if (["pending", "acknowledged"].includes(mode)) await expect(result).resolves.toBe(true);
 +    else
 +      await expect(result).rejects.toThrow(
 +        mode === "bad"
@@ -569,7 +605,7 @@ diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feish
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,364 @@
+@@ -0,0 +1,366 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
 +import type { FeishuMessageEvent } from "./event-types.js";
@@ -582,15 +618,16 @@ new file mode 100644
 +  return url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port !== "";
 +}
 +
++export function automationCardNamespace(data: unknown): unknown {
++  if (isRecord(data) && isRecord(data.action) && isRecord(data.action.value)) {
++    return data.action.value.namespace;
++  }
++}
++
 +export function isAutomationCard(data: unknown): boolean {
-+  return (
-+    isRecord(data) &&
-+    isRecord(data.action) &&
-+    isRecord(data.action.value) &&
-+    ["control-everything.automation.v1", "control-everything.identity.v1"].includes(
-+      data.action.value.namespace as string,
-+    )
-+  );
++  const namespace = automationCardNamespace(data);
++  return namespace === "control-everything.automation.v1" ||
++    namespace === "control-everything.identity.v1";
 +}
 +
 +function hasPlanChoiceFields(value: Record<string, unknown>): boolean {
@@ -605,7 +642,7 @@ new file mode 100644
 +  config: ResolvedFeishuAccount["automationIngress"];
 +  active: () => boolean;
 +  signal?: AbortSignal;
-+}): Promise<void> {
++}): Promise<true | undefined> {
 +  const { data, config, active, signal } = params;
 +  const fail = () => {
 +    throw new Error("Invalid automation card ingress");
@@ -743,6 +780,7 @@ new file mode 100644
 +  await postAutomationEvent(config, active, signal, {
 +    event_id: eventId, chat_id: chat, message_id: message, actor_open_id: actor, ...posted,
 +  });
++  return true;
 +}
 +
 +type Ingress = NonNullable<ResolvedFeishuAccount["automationIngress"]>;
@@ -1842,22 +1880,28 @@ index 8b12ee8..3c3af59 100644
 +  });
 +
 diff --git a/extensions/feishu/src/feishu-ingress.ts b/extensions/feishu/src/feishu-ingress.ts
-index 32a9caa..4228106 100644
 --- a/extensions/feishu/src/feishu-ingress.ts
 +++ b/extensions/feishu/src/feishu-ingress.ts
 @@ -1 +0,0 @@
 -// Feishu plugin owns raw Lark event admission, replay, and turn adoption.
-@@ -15,0 +15,2 @@ import { normalizeNullableString } from "openclaw/plugin-sdk/string-coerce-runti
+@@ -15,0 +15,2 @@
 +// Feishu plugin owns raw Lark event admission, replay, and turn adoption.
-+import { isAutomationCard } from "./automation-card-ingress.js";
-@@ -129 +130,5 @@ function inspectFeishuIngressEnvelope(
++import { automationCardNamespace, isAutomationCard } from "./automation-card-ingress.js";
+@@ -19,0 +21,2 @@
++// Feishu gives the client three seconds to receive an interaction response.
++const FEISHU_CARD_RESPONSE_BUDGET_MS = 1800;
+@@ -38,0 +42 @@
++  automationCardFeedback?: true;
+@@ -129 +133,5 @@
 -  if (!eventType || !FEISHU_DURABLE_EVENT_TYPES.has(eventType)) {
 +  if (
 +    !eventType ||
 +    (!FEISHU_DURABLE_EVENT_TYPES.has(eventType) &&
 +      !(eventType === "card.action.trigger" && isAutomationCard(nestedEvent ?? envelope)))
 +  ) {
-@@ -141,0 +147,10 @@ function inspectFeishuIngressEnvelope(
+@@ -139,0 +148,10 @@
++    );
++  }
 +  if (
 +    eventType === "card.action.trigger" &&
 +    nestedEvent?.event_id !== undefined &&
@@ -1866,12 +1910,70 @@ index 32a9caa..4228106 100644
 +    throw new FeishuIngressPermanentError(
 +      "invalid-event",
 +      "Feishu event identity conflicts with header.",
-+    );
+@@ -155,0 +174,10 @@
 +  }
-@@ -156,0 +172,3 @@ function inspectFeishuIngressEnvelope(
 +  if (eventType === "card.action.trigger") {
-+    return { eventId, eventType, laneKey: `automation:${eventId}` };
-+  }
++    return {
++      eventId,
++      eventType,
++      laneKey: `automation:${eventId}`,
++      ...(automationCardNamespace(event) === "control-everything.automation.v1"
++        ? { automationCardFeedback: true }
++        : {}),
++    };
+@@ -295,0 +324 @@
++  const cardResponses = new Map<string, PromiseWithResolvers<boolean>>();
+@@ -355,0 +385,4 @@
++        if (result.kind === "automation-card") {
++          cardResponses.get(claim.id)?.resolve(result.receipt === true);
++          return { kind: "completed" };
++        }
+@@ -368,0 +402,3 @@
++      } catch (error) {
++        cardResponses.get(claim.id)?.resolve(false);
++        throw error;
+@@ -388,0 +425 @@
++    const deadline = performance.now() + FEISHU_CARD_RESPONSE_BUDGET_MS;
+@@ -413,0 +451,7 @@
++    const cardResponse = facts.automationCardFeedback && !cardResponses.has(facts.eventId)
++      ? Promise.withResolvers<boolean>()
++      : undefined;
++    if (cardResponse) {
++      cardResponses.set(facts.eventId, cardResponse);
++    }
++    let timer: ReturnType<typeof setTimeout> | undefined;
+@@ -415 +459 @@
+-      await monitor.admit(rawEnvelope, {
++      const admission = await monitor.admit(rawEnvelope, {
+@@ -417,0 +462,19 @@
++      if (!facts.automationCardFeedback || admission.kind !== "durable") {
++        return { kind: "durable", value: undefined };
++      }
++      const { kind } = admission.queueResult;
++      let content = "操作已收到，请在工作台查看处理结果";
++      if (kind === "accepted" && cardResponse) {
++        const receipt = await Promise.race([
++          cardResponse.promise,
++          new Promise<undefined>((resolve) => {
++            timer = setTimeout(resolve, Math.max(0, deadline - performance.now()));
++          }),
++        ]);
++        if (receipt === true) {
++          content = "操作已提交，等待工作台确认";
++        } else if (receipt === undefined) {
++          content = "操作已收到，等待同步至工作台";
++        }
++      }
++      return { kind: "durable", value: { toast: { type: "info", content } } };
+@@ -421,2 +484,6 @@
+-    }
+-    return { kind: "durable", value: undefined };
++    } finally {
++      clearTimeout(timer);
++      if (cardResponse) {
++        cardResponses.delete(facts.eventId);
++      }
++    }
 diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
 --- a/extensions/feishu/src/monitor.account.ts
 +++ b/extensions/feishu/src/monitor.account.ts
@@ -1898,7 +2000,7 @@ diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/mo
 +      },
 @@ -355,0 +372,12 @@
 +      if (isAutomationCard(data)) {
-+        await receiveAutomationCard({
++        const receipt = await receiveAutomationCard({
 +          data,
 +          config: context.automationIngress,
 +          active: context.isAccountActive,
@@ -1907,7 +2009,7 @@ diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/mo
 +        if (!context.isAccountActive() || context.abortSignal?.aborted)
 +          throw new Error("Automation ingress account stopped");
 +        await context.resolveIngressLifecycle(data)?.onAdopted();
-+        return;
++        return { kind: "automation-card", receipt };
 +      }
 @@ -474,0 +503,20 @@
 +    if (account.automationIngress) {

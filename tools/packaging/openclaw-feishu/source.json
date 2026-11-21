@@ -3,7 +3,7 @@
   "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
   "version": "2026.11.2",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
-  "patchSha256": "327ec0dfaf5c295c6f5eb4c2d68c765fd1710fbe2b8d0014638a30a53156fe69",
+  "patchSha256": "9e284fb97e47dd1f989f99eb80bb4fbf4cdf65575fe876cdefedf0d0a97eadc3",
   "patchFormat": "unified-zero-context; git apply --unidiff-zero",
   "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
   "npm": {
@@ -96,15 +96,15 @@
     },
     "extensions/feishu/src/automation-card-ingress.ts": {
       "originalSha256": null,
-      "patchedSha256": "88d75d01abcf2d39d4b98cad5efa6c574cb82bd148a24563ec62a9231a83265c"
+      "patchedSha256": "035d8936c8dfbad90548b09c1ce1d312a09973c1dc8642ec9899c7ac51ee622e"
     },
     "extensions/feishu/src/automation-card-ingress.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "861e1860cb880fa1ef1bb708b8c840f6770ca06522d28edeff94d2a4e0326522"
+      "patchedSha256": "acc836cf359c18f79b56eeccd48be825e8aa0a383ccb9d6833a8f2aa69bdd11e"
     },
     "extensions/feishu/src/feishu-ingress.ts": {
       "originalSha256": "4e28f530904a62eea3f3a833c26a5e44770052f2336501356ebd8ba7b6d61c21",
-      "patchedSha256": "f4ce1718517f26c067e5689b6feb19294b98a9d1b6b5691b7f6c8c6b7f97e6c1"
+      "patchedSha256": "722efb6c953d764a069f6c05871d14112f245b4e4e1686198b7b926c50f09655"
     },
     "extensions/feishu/src/feishu-ingress.test.ts": {
       "originalSha256": "9f9a8dac5c7663f4c50cb8d57cf105cce5d1c2390db57074e20a714de6887e59",
@@ -112,7 +112,7 @@
     },
     "extensions/feishu/src/monitor.account.ts": {
       "originalSha256": "a4ba4249e3c9daa1a1e3c13a1f04aa9c7d9b3666896c7066b10f2d6ea604b26c",
-      "patchedSha256": "f34256805ec0e77da91aa90dda493f53e16e8b5a8e7462fe91634f7cdbdecfc5"
+      "patchedSha256": "076f67e785ab0ca7610c54c439670a661b73833ad8e26f34b3860938c98413ff"
     },
     "extensions/feishu/src/automation-outbound-sender.ts": {
       "originalSha256": null,
