@@ -12,7 +12,9 @@ from functools import partial
 
 from tests.backend.test_automation_integration_targets import IntegrationTargetTests
 from control_everything.http.gateway import HOST, PanelHandler, PanelServer
-from control_everything.execution.develop_integration import preflight_develop_target, run_develop_integration
+from control_everything.execution.develop_integration import (
+    _write_push_guard, preflight_develop_target, run_develop_integration,
+)
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_consumer import AutomationConsumer
 from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
@@ -145,6 +147,92 @@ class DevelopIntegrationTests(IntegrationTargetTests):
             self.assertEqual(Path(result[key]['command_directory'],'stdout.log').read_text().strip(),'verified')
         for name,data in source_before.items():
             self.assertEqual((self.target/name).read_bytes(),data)
+
+    def test_github_preflight_checks_both_urls_and_exact_remote_develop(self):
+        url = 'https://github.com/owner/repo.git'
+        target = {**self.request['target'], 'remote_url': url}
+        self.git(self.target, 'remote', 'set-url', 'origin', url)
+        real_run = subprocess.run
+        network_calls = []
+        output = (self.base+'\trefs/heads/develop\n').encode()
+
+        def run(argv, **kwargs):
+            if 'ls-remote' not in argv:
+                return real_run(argv, **kwargs)
+            network_calls.append(argv)
+            self.assertEqual(argv[-4:], ['ls-remote','--refs','origin','refs/heads/develop'])
+            self.assertIn(f'http.{url}.followRedirects=false', argv)
+            self.assertIn(f'http.{url}.sslVerify=true', argv)
+            self.assertEqual(kwargs['env']['GIT_ALLOW_PROTOCOL'], 'https')
+            self.assertEqual(kwargs['env']['GIT_TERMINAL_PROMPT'], '0')
+            self.assertEqual(kwargs['env']['GCM_INTERACTIVE'], 'false')
+            return subprocess.CompletedProcess(argv, 0, stdout=output)
+
+        with patch('control_everything.execution.develop_integration.subprocess.run', side_effect=run):
+            def preflight():
+                return preflight_develop_target(self.root/'repo', target, git_executable=self.git_exe)
+
+            self.assertEqual(preflight(), self.base)
+            valid = output
+            for invalid in (b'', b'invalid\trefs/heads/develop\n', valid + valid,
+                            valid.replace(b'develop', b'main')):
+                with self.subTest(output=invalid), self.assertRaisesRegex(ValueError, 'integration_remote_ref_missing'):
+                    output = invalid
+                    preflight()
+            output = b'0'*len(self.base)+b'\trefs/heads/develop\n'
+            with self.assertRaisesRegex(ValueError, 'integration_remote_advanced'):
+                preflight()
+            before = len(network_calls)
+            self.git(self.target, 'remote', 'set-url', '--push', 'origin', 'https://github.com/owner/other.git')
+            with self.assertRaisesRegex(ValueError, 'integration_remote_url_changed'):
+                preflight()
+            self.assertEqual(len(network_calls), before)
+
+    def test_push_guard_rejects_remote_rollback_and_deleted_ref(self):
+        self.git(self.target, 'commit', '--allow-empty', '-m', 'test: expected develop base')
+        expected = self.git(self.target, 'rev-parse', 'HEAD').strip()
+        self.git(self.target, 'commit', '--allow-empty', '-m', 'test: one accepted commit')
+        accepted = self.git(self.target, 'rev-parse', 'HEAD').strip()
+        url = self.bare.as_uri()
+        hooks = self.root/'push-guard'
+        _write_push_guard(hooks, url, expected, accepted)
+
+        def push():
+            return subprocess.run([self.git_exe, '-c', 'core.hooksPath='+str(hooks),
+                                   'push', url, accepted+':refs/heads/develop'], cwd=self.target,
+                                  capture_output=True, check=False)
+
+        result = push()
+        self.assertNotEqual(result.returncode, 0, result)
+        self.assertEqual(self.git(self.bare,'rev-parse','refs/heads/develop').strip(), self.base)
+        self.git(self.bare,'update-ref','-d','refs/heads/develop')
+        result = push()
+        self.assertNotEqual(result.returncode, 0, result)
+        self.assertEqual(self.git(self.target,'ls-remote','--refs',url,'refs/heads/develop'), '')
+        self.git(self.target,'push',url,expected+':refs/heads/develop')
+        result = push()
+        self.assertEqual(result.returncode, 0, result)
+        self.assertEqual(self.git(self.bare,'rev-parse','refs/heads/develop').strip(), accepted)
+
+    def test_runner_rejects_changed_push_url_without_recording_credentials(self):
+        url = 'https://github.com/owner/repo.git'
+        marker = 'placeholder-credential'
+        self.request['target']['remote_url'] = url
+        self.git(self.target, 'remote', 'set-url', 'origin', url)
+        self.git(self.target, 'remote', 'set-url', '--push', 'origin',
+                 url.replace('https://', f'https://{marker}@'))
+        server = self.start_registered()
+        view = self.wait_result(server)
+        self.assertEqual(view['step']['status'], 'unknown')
+        output = self.profile.data_dir/'automation-integration'/view['flow']['id']/view['step']['id']
+        incomplete = json.loads((output/'incomplete.json').read_text(encoding='utf-8'))
+        self.assertEqual(incomplete['reason'], 'integration_remote_url_changed')
+        self.assertFalse(any('ls-remote' in command['argv'] or 'push' in command['argv']
+                             for command in incomplete['commands']))
+        for artifact in output.rglob('*'):
+            if artifact.is_file():
+                self.assertNotIn(marker.encode(), artifact.read_bytes(), artifact)
+        self.assertEqual(self.git(self.target, 'rev-parse', 'HEAD').strip(), self.base)
 
 
     def assert_no_reexecution(self,server,view):
@@ -382,6 +470,34 @@ class PreparedIntegrationOfferTests(AutomationQueueFixture):
         self.assertEqual(self.publish_card(configure)['text']['content'], '通过验收')
         self.assertEqual(self.heads(), (self.base,) * 3)
 
+    def test_card_and_approval_preflight_allow_other_store_connections(self):
+        queries = []
+
+        def configure():
+            real_preflight = self.service.integration_preflight
+
+            def preflight(source, target):
+                queried = threading.Event()
+
+                def query():
+                    with self.service.store.connection() as connection:
+                        queries.append(connection.execute('SELECT 1').fetchone()[0])
+                    queried.set()
+
+                worker = threading.Thread(target=query, daemon=True)
+                worker.start()
+                self.addCleanup(worker.join, 3)
+                self.assertTrue(queried.wait(3), 'another store connection blocked during Git preflight')
+                return real_preflight(source, target)
+
+            self.service.integration_preflight = preflight
+            self.save_target()
+
+        button = self.publish_card(configure)
+        self.assertTrue(button['value']['decision_id'].startswith('integrate-'))
+        self.assertEqual(len(self.click(button)), 1)
+        self.assertEqual(queries, [1, 1])
+
     def test_changed_then_revoked_target_cannot_accept_stale_offer_after_restoring_configuration(self):
         button = self.publish_card(self.save_target)
         fallback = self.cards[-1]['body']['elements'][2]
@@ -449,3 +565,49 @@ class PreparedIntegrationOfferTests(AutomationQueueFixture):
         with self.profile.store.connection() as connection:
             self.assertEqual(connection.execute("SELECT count(*) FROM task_reviews").fetchone()[0], 1)
             self.assertEqual(connection.execute("SELECT count(*) FROM automation_steps WHERE kind='integrate'").fetchone()[0], 1)
+
+    def test_confirmed_github_offer_uses_guarded_push_and_readback(self):
+        url = 'https://github.com/owner/repo.git'
+        real_popen = subprocess.Popen
+        network_calls = []
+
+        def configure():
+            self.git(self.target, 'remote', 'set-url', 'origin', url)
+            self.save_target(integration={**self.configuration['integration'], 'remote_url': url})
+
+        def local_transport(argv, *args, **kwargs):
+            if (kwargs.get('env') or {}).get('GIT_ALLOW_PROTOCOL') != 'https':
+                return real_popen(argv, *args, **kwargs)
+            network_calls.append(argv)
+            push = 'push' in argv
+            if push:
+                self.assertEqual(kwargs['stderr'], subprocess.DEVNULL)
+                self.assertIn('core.hooksPath='+str(self.root/'integrated'/'push-guard'), argv)
+            transport = [self.bare.as_uri() if token == 'origin' else token for token in argv]
+            kwargs['env'] = {**kwargs['env'], 'GIT_ALLOW_PROTOCOL': 'file'}
+            return real_popen(transport, *args, **kwargs)
+
+        with patch('control_everything.execution.develop_integration.subprocess.Popen', side_effect=local_transport), \
+             patch('control_everything.execution.develop_integration._write_push_guard',
+                   side_effect=lambda hooks, _, base, sha: _write_push_guard(hooks, self.bare.as_uri(), base, sha)):
+            button = self.publish_card(configure)
+            self.assertEqual(len(self.click(button)), 1)
+            self.consumer.run_once()
+
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, self.published['flow']['id'])
+        self.assertEqual(view['flow']['status'], 'completed', view['step'].get('result'))
+        result = view['step']['result']
+        head = result['candidate_sha']
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertEqual(self.git(self.target, 'rev-list', '--count', self.base+'..HEAD').strip(), '1')
+        self.assertTrue(result['candidate_test_passed'])
+        self.assertTrue(result['target_test_passed'])
+        pushes = [argv for argv in network_calls if 'push' in argv]
+        self.assertEqual(len(pushes), 1)
+        self.assertEqual(pushes[0][-2:], ['origin',head+':refs/heads/develop'])
+        self.assertFalse(any(arg.startswith('--force') for arg in pushes[0]))
+        self.assertIn('ls-remote', network_calls[-1])
+        for command in result['commands']:
+            if 'get-url' in command['argv']:
+                self.assertEqual((Path(command['directory'])/'stdout.log').read_bytes(), b'')

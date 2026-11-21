@@ -110,7 +110,15 @@ def prepare_acceptance_offer(service, flow):
     try:
         with service.store.connection() as connection:
             _, _, current, verify = _current(connection, flow['task_id'], body)
-            return prepare_offer(service, connection, current, verify)
+            configured = project_target(connection, current, verify)
+        offer = prepare_offer(service, configured, current, verify)
+        if offer:
+            with service.store.connection() as connection:
+                _, _, latest, latest_verify = _current(connection, flow['task_id'], body)
+                if (latest['revision'] != current['revision'] or latest_verify != verify
+                        or project_target(connection, latest, latest_verify) != configured):
+                    return None
+        return offer
     except ProfileError:
         return None
 
@@ -193,6 +201,7 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=
         if previous:
             return {**service.native_progress.get(task_id),'review':previous,'replayed':True}
         item,delivery,flow,verify = _current(connection,task_id,body)
+        configured = project_target(connection, flow, verify) if approval == 'integrate' else None
     if service.check_verification is None:
         fail('verification_checker_unavailable')
     try:
@@ -203,8 +212,7 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=
         fail('verification_evidence_invalid')
     offer = None
     if approval == 'integrate':
-        with service.store.connection() as connection:
-            offer = prepare_offer(service, connection, flow, verify)
+        offer = prepare_offer(service, configured, flow, verify)
         if body['verdict'] != 'approved' or not offer or offer['decision_id'] != body['client_token']:
             fail('integration_offer_changed')
     with service.store.connection() as connection:

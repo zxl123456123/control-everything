@@ -178,13 +178,27 @@ class IntegrationTargetTests(AutomationQueueFixture):
         self.assertEqual(json.loads(final['attention_json'])['integration_target'],winner['integration_target'])
 
     def test_unsafe_remote_forms_cannot_be_registered(self):
-        from control_everything.workspace.automation_integration_targets import _target
+        from control_everything.workspace.automation_integration_targets import _target, validate_project_target
+        keys = ('repository_path','target_worktree_path','candidate_worktree_path','remote_name')
+        project_target = {key: self.request['target'][key] for key in keys}
         for remote in ('https://example.test/repo?access_token=placeholder','https://example.test/repo?',
                        'https://example.test/repo#','https:///missing-host','ext::command',
                        '--upload-pack=command','relative.git','file:///tmp/repo.git',
-                       '//server/share/repo.git','\\\\server\\share\\repo.git'):
+                       '//server/share/repo.git','\\\\server\\share\\repo.git',
+                       'https://example.test/owner/repo.git','https://github.com:443/owner/repo.git',
+                       'https://token@github.com/owner/repo.git','https://github.com/owner/repo.git?',
+                       'https://github.com/owner/repo.git#','https://github.com/owner/repo.git/more'):
             with self.subTest(remote=remote),self.assertRaises(ProfileError):
                 _target({**self.request['target'],'remote_url':remote},self.published['step'])
+            with self.subTest(remote=remote, scope='project'),self.assertRaises(ProfileError):
+                validate_project_target({**project_target,'remote_url':remote})
+
+    def test_canonical_github_remote_can_be_registered_for_task_and_project(self):
+        from control_everything.workspace.automation_integration_targets import _target, validate_project_target
+        target = {**self.request['target'],'remote_url':'https://github.com/owner-name/repo.name.git'}
+        self.assertEqual(_target(target,self.published['step']),target)
+        validate_project_target({key: target[key] for key in
+                                 ('repository_path','target_worktree_path','candidate_worktree_path','remote_name','remote_url')})
 
     def test_frozen_spec_cannot_authorize_ambiguous_relative_paths(self):
         import copy

@@ -4,7 +4,6 @@ import ntpath
 import re
 from pathlib import Path
 from subprocess import SubprocessError
-from urllib.parse import urlsplit
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.native_progress import body_fields, digest
@@ -32,6 +31,17 @@ def _relative(value):
     return value
 
 
+def is_github_https_remote(value):
+    return bool(re.fullmatch(r'https://github\.com/[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+\.git', value))
+
+
+def _remote(value):
+    value = _text(value)
+    if not is_github_https_remote(value):
+        _path(value)
+    return value
+
+
 def _target(target, verify):
     body_fields(target, ('branch','repository_path','target_worktree_path','candidate_worktree_path','expected_base',
                          'remote_name','remote_url','files','script_arg_map','commit_message'))
@@ -45,17 +55,7 @@ def _target(target, verify):
             raise ProfileError('invalid_integration_target')
     if not re.fullmatch(r'[A-Za-z0-9_][A-Za-z0-9_.-]*',_text(target['remote_name'])):
         raise ProfileError('invalid_integration_target')
-    remote = _text(target['remote_url'])
-    if remote.startswith('https://'):
-        try:
-            parsed = urlsplit(remote)
-            valid = parsed.hostname and parsed.username is None and parsed.password is None
-        except ValueError:
-            valid = False
-        if not valid or '?' in remote or '#' in remote:
-            raise ProfileError('invalid_integration_target')
-    else:
-        _path(remote)
+    _remote(target['remote_url'])
     if not re.fullmatch(r'[a-z]+(?:\([^\r\n)]+\))?!?: .+',_text(target['commit_message'])):
         raise ProfileError('invalid_integration_target')
     files = target['files']
@@ -85,7 +85,10 @@ def _target(target, verify):
 
 def validate_project_target(target):
     body_fields(target, ('repository_path', 'target_worktree_path', 'candidate_worktree_path', 'remote_name', 'remote_url'))
-    for key in ('repository_path', 'target_worktree_path', 'candidate_worktree_path', 'remote_url'):
+    remote = _remote(target['remote_url'])
+    if not is_github_https_remote(remote) and not Path(remote).is_absolute():
+        raise ProfileError('invalid_integration_target')
+    for key in ('repository_path', 'target_worktree_path', 'candidate_worktree_path'):
         _path(target[key])
         if not Path(target[key]).is_absolute():
             raise ProfileError('invalid_integration_target')
@@ -106,8 +109,7 @@ def project_target(connection, flow, verify):
     return None
 
 
-def prepare_offer(service, connection, flow, verify):
-    configured = project_target(connection, flow, verify)
+def prepare_offer(service, configured, flow, verify):
     preflight = getattr(service, 'integration_preflight', None)
     if not configured or preflight is None:
         return None
