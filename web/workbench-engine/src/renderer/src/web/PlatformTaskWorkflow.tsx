@@ -10,6 +10,7 @@ const taskPage = z.object({ items: z.array(taskSchema), total: z.number(), list_
 const stepSchema = z.object({
   kind: z.string(), status: z.string(), attempt: z.number(), updated_at: z.string(),
   exit_code: z.number().nullable(), target_sha: z.string().nullable(),
+  candidate_test_passed: z.number().nullish(),
   target_test_passed: z.number().nullable(), delivery_id: z.string().nullable(),
   review_verdict: z.enum(['approve', 'revise', 'discuss']).nullable().optional()
 })
@@ -20,6 +21,7 @@ const automationSchema = z.object({
   pending_since: z.string().nullable(),
   flows: z.array(z.object({
     id: z.string(), status: z.string(), phase: z.string(), reason: z.string().nullable(),
+    integration_approved: z.number().optional(),
     requirement_revision: z.number().nullable(), steps: z.array(stepSchema), reviews: z.array(reviewSchema)
   }))
 })
@@ -31,14 +33,15 @@ type Flow = Automation['flows'][number]
 const stages = [
   ['prepare', '接收与准备'], ['plan', '制定方案'], ['plan_review', '独立方案审查'],
   ['implement', '实现'], ['verify', '测试'], ['code_review', '独立代码审查'],
-  ['acceptance', '人工验收'], ['integrate', '集成 develop'], ['retest', '集成后复测']
+  ['acceptance', '人工验收'], ['retest', '候选与目标复测'], ['integrate', '集成 develop']
 ] as const
 const statuses: Record<string, string> = {
   queued: '排队中', reserved: '排队中', dispatching: '正在启动', running: '进行中',
   waiting_user: '等待人工决定', waiting_external: '等待处理', awaiting_acceptance: '等待指定人验收',
   integrating: '集成中', completed: '已完成', failed: '失败', unknown: '结果待核实',
   cancelling: '正在取消', cancelled: '已取消', paused: '已暂停', idle: '未开始', skipped: '无需审查',
-  waiting_integration: '等待集成结果',
+  waiting_retest: '等待复测回执', integration_approved: '已批准，复测通过后集成',
+  integration_running: '复测与集成中', integrated: '已集成',
   review_unverified: '审查已返回，结论待核实', discussion: '需要讨论',
   approved: '通过', changes_requested: '要求修改', rejected: '未通过'
 }
@@ -47,6 +50,7 @@ const reasons: Record<string, string> = {
   acceptance_rejected: '指定验收人未通过本次交付',
   integration_not_connected: '等待登记 develop 集成目标',
   integration_incomplete: '集成结果未核实',
+  integration_rejected: '集成已停止',
   verification_not_configured: '等待配置验证命令',
   repair_budget_exhausted: '自动返修次数已用完',
   requirement_changed: '需求已变更，等待核对当前版本',
@@ -61,11 +65,22 @@ function stepStatus(step: Flow['steps'][number]): string {
 const terminal = new Set(['completed', 'failed', 'cancelled'])
 const clock = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium' })
 
+function integrationStatus(flow: Flow, step: Flow['steps'][number] | undefined): string | undefined {
+  if (flow.phase !== 'integration') return undefined
+  if (step?.status === 'completed' && step.target_sha) return 'integrated'
+  if (flow.status === 'completed' || step?.status === 'unknown' || flow.reason === 'integration_incomplete') return 'unknown'
+  if (['running', 'integrating'].includes(flow.status)) return 'integration_running'
+  if (flow.status === 'waiting_external' && flow.reason === 'integration_not_connected' && flow.integration_approved === 1) {
+    return 'integration_approved'
+  }
+  return undefined
+}
+
 function StatusIcon({ status }: { status: string }): React.JSX.Element {
-  const icon = ['completed', 'approved'].includes(status) ? [Check, 'text-emerald-500'] as const
+  const icon = ['completed', 'approved', 'integrated'].includes(status) ? [Check, 'text-emerald-500'] as const
     : ['failed', 'rejected', 'changes_requested'].includes(status) ? [X, 'text-red-500'] as const
     : ['unknown', 'review_unverified'].includes(status) ? [OctagonAlert, 'text-amber-500'] as const
-    : ['running', 'integrating', 'dispatching', 'cancelling'].includes(status) ? [LoaderCircle, 'text-primary'] as const
+    : ['running', 'integrating', 'integration_running', 'dispatching', 'cancelling'].includes(status) ? [LoaderCircle, 'text-primary'] as const
     : ['idle', 'skipped'].includes(status) ? [Circle, 'text-muted-foreground'] as const
     : ['paused', 'cancelled'].includes(status) ? [Pause, 'text-muted-foreground'] as const
     : [Clock3, 'text-amber-500'] as const
@@ -77,6 +92,9 @@ function StageList({ flow, current }: { flow: Flow; current: boolean }): React.J
   const deliveries = flow.steps.filter((step) => step.delivery_id)
   const lastReview = flow.reviews.filter((review) => review.delivery_id === deliveries.at(-1)?.delivery_id).at(-1)
   const integration = flow.steps.filter((step) => step.kind === 'integrate').at(-1)
+  const integrationState = integrationStatus(flow, integration)
+  const candidatePassed = integration?.status === 'completed' && integration.candidate_test_passed === 1
+  const targetPassed = integration?.status === 'completed' && integration.target_test_passed === 1
   const phase = flow.phase === 'integration' ? 'integrate'
     : flow.phase === 'implementation' ? (flow.reason === 'verification_not_configured' ? 'verify' : 'implement')
     : flow.phase
@@ -89,15 +107,15 @@ function StageList({ flow, current }: { flow: Flow; current: boolean }): React.J
         let status = latest ? stepStatus(latest) : 'idle'
         if (kind === 'acceptance' && deliveries.length) status = lastReview?.verdict ?? 'awaiting_acceptance'
         if (kind === 'code_review' && deliveries.length && !steps.length) status = 'skipped'
-        if (kind === 'retest') {
-          if (integration?.status === 'completed' && integration.target_test_passed === 1) status = 'approved'
-          else if (integration?.status === 'unknown' || flow.reason === 'integration_incomplete'
-            || (phase === 'integrate' && flow.status === 'completed')) status = 'unknown'
-          else if (phase === 'integrate' && ['running', 'integrating'].includes(flow.status)) status = 'waiting_integration'
-        }
         if (active && !(latest?.status === 'completed' && ['plan_review', 'code_review'].includes(kind))) status = flow.status
+        if (kind === 'integrate' && integrationState) status = integrationState
+        if (kind === 'retest') {
+          if (candidatePassed && targetPassed) status = 'approved'
+          else if (integrationState === 'integrated' || integrationState === 'unknown') status = 'unknown'
+          else if (integrationState === 'integration_running') status = 'waiting_retest'
+        }
         const hasEvidence = steps.length > 0 || (kind === 'acceptance' && deliveries.length > 0)
-          || (kind === 'retest' && integration?.target_test_passed === 1)
+          || (kind === 'retest' && ['approved', 'unknown'].includes(status))
         return (
           <li key={kind} aria-current={active ? 'step' : undefined}
             className={`rounded-lg border px-3 py-2 ${active ? 'border-primary/35 bg-primary/10' : 'border-border/60 bg-background/35'}`}>
@@ -105,7 +123,7 @@ function StageList({ flow, current }: { flow: Flow; current: boolean }): React.J
               <summary className="flex min-h-7 cursor-pointer list-none items-center gap-2.5 rounded-sm text-sm focus-visible:outline-2 focus-visible:outline-primary">
                 <StatusIcon status={status} /><span className="font-medium">{title}</span>
                 <span className="ml-auto text-right text-xs text-muted-foreground">
-                  {active && flow.reason ? reasons[flow.reason] ?? label(status) : label(status)}
+                  {active && flow.reason && !(kind === 'integrate' && integrationState) ? reasons[flow.reason] ?? label(status) : label(status)}
                 </span>
                 <ChevronDown size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               </summary>
@@ -121,10 +139,16 @@ function StageList({ flow, current }: { flow: Flow; current: boolean }): React.J
                   <div key={step.delivery_id}>
                     <p>交付第 {index + 1} 版</p>
                     {flow.reviews.filter((review) => review.delivery_id === step.delivery_id).map((review) =>
-                      <p key={review.created_at}>{label(review.verdict)}{review.reason && ` · ${review.reason}`}</p>)}
+                      <p key={review.created_at}>
+                        {label(review.verdict)}{review.reason && ` · ${review.reason}`}
+                        {Number.isFinite(Date.parse(review.created_at)) && <> · {clock.format(new Date(review.created_at))}</>}
+                      </p>)}
                   </div>
                 ))}
-                {kind === 'retest' && integration?.target_test_passed === 1 && <p>develop 目标副本的复测已通过。</p>}
+                {kind === 'retest' && hasEvidence && <>
+                  <p>候选副本复测{candidatePassed ? '已通过' : '结果待核实'}。</p>
+                  <p>develop 目标副本复测{targetPassed ? '已通过' : '结果待核实'}。</p>
+                </>}
               </div>
             </details>
           </li>
@@ -191,14 +215,17 @@ function WorkflowProgress({ projectId, taskId }: { projectId: string; taskId: st
   }, [projectId, taskId])
   if (!workflow) return <p role="status" className="text-sm text-muted-foreground">{unavailable ? '暂时无法读取流水线，正在重试。' : '正在读取流水线…'}</p>
   const [current, ...history] = workflow.flows
+  const integration = current?.steps.filter((step) => step.kind === 'integrate').at(-1)
+  const integrationState = current && integrationStatus(current, integration)
   return (
     <div className="grid gap-3">
       {unavailable && <p role="status" className="text-sm text-amber-500">刷新失败，显示上次读取的进度。</p>}
       {workflow.pending_since && <p role="status" className="text-sm text-muted-foreground">已收到新交办，等待调度。</p>}
       {current ? (
         <div key={current.id} className="grid gap-2">
-          <p className="text-sm text-muted-foreground">
-            {current.reason ? reasons[current.reason] ?? label(current.status) : label(current.status)}
+          <p role="status" className="break-words text-sm text-muted-foreground">
+            {integrationState ? label(integrationState) : (current.reason && reasons[current.reason]) || label(current.status)}
+            {integrationState === 'integrated' && <> · 提交 <code className="break-all">{integration?.target_sha}</code></>}
           </p>
           <StageList flow={current} current />
         </div>

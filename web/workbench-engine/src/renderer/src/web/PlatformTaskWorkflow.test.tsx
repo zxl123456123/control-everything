@@ -101,30 +101,56 @@ it('shows configuration waits, review verdicts, and only confirmed develop retes
     .mockResolvedValueOnce(result('one', { ...flow('implementation', 'waiting_external', 'verification_not_configured'),
       steps: [{ ...step('plan_review', 'completed'), review_verdict: 'revise' }, step('code_review', 'completed')]
     }))
-    .mockResolvedValueOnce(result('one', flow('integration')))
+    .mockResolvedValueOnce(result('one', flow('acceptance', 'completed', 'acceptance_approved')))
+    .mockResolvedValueOnce(result('one', flow('acceptance', 'awaiting_acceptance')))
+    .mockResolvedValueOnce(result('one', flow('integration', 'waiting_external', 'integration_not_connected')))
+    .mockResolvedValueOnce(result('one', {
+      ...flow('integration', 'waiting_external', 'integration_not_connected'), integration_approved: 1
+    }))
+    .mockResolvedValueOnce(result('one', flow('integration', 'running', 'integration_not_connected')))
     .mockResolvedValueOnce(result('one', { ...flow('integration', 'waiting_external', 'integration_incomplete'),
       steps: [step('integrate', 'unknown')]
     }))
     .mockResolvedValueOnce(result('one', flow('integration', 'completed')))
     .mockResolvedValueOnce(result('one', { ...flow('integration', 'completed'),
-      steps: [{ ...step('integrate', 'completed'), target_test_passed: 1 }]
+      steps: [{ ...step('integrate', 'completed'), target_sha: 'abcdef', target_test_passed: 1 }]
+    }))
+    .mockResolvedValueOnce(result('one', { ...flow('integration', 'completed', 'integration_not_connected'),
+      steps: [{ ...step('integrate', 'completed'), target_sha: 'abcdef', candidate_test_passed: 1, target_test_passed: 1 }]
     }))
   render(<PlatformWorkspaceHeader projectId={project} />)
   const chooser = await openTasks()
   await act(async () => fireEvent.change(chooser, { target: { value: 'one' } }))
   const stage = (name: string) => screen.getByText(name).closest('li')
+  expect(stage('候选与目标复测')?.nextElementSibling).toBe(stage('集成 develop'))
   expect(stage('测试')?.getAttribute('aria-current')).toBe('step')
   expect(stage('测试')?.textContent).toContain('等待配置验证命令')
   expect(stage('独立方案审查')?.textContent).toContain('要求修改')
   expect(stage('独立代码审查')?.textContent).toContain('审查已返回，结论待核实')
   const tick = () => act(async () => { await vi.advanceTimersByTimeAsync(5000) })
   await tick()
+  expect(screen.getByRole('status').textContent).toBe('已完成')
+  expect(stage('集成 develop')?.textContent).toContain('未开始')
+  await tick()
+  expect(screen.getByRole('status').textContent).toBe('等待指定人验收')
+  await tick()
+  expect(screen.getByRole('status').textContent).toBe('等待登记 develop 集成目标')
+  await tick()
+  expect(screen.getByRole('status').textContent).toBe('已批准，复测通过后集成')
+  await tick()
   expect(stage('集成 develop')?.getAttribute('aria-current')).toBe('step')
-  expect(stage('集成后复测')?.textContent).toContain('等待集成结果')
+  expect(screen.getByRole('status').textContent).toBe('复测与集成中')
+  expect(stage('候选与目标复测')?.textContent).toContain('等待复测回执')
   await tick()
-  expect(stage('集成后复测')?.textContent).toContain('结果待核实')
+  expect(stage('候选与目标复测')?.textContent).toContain('结果待核实')
   await tick()
-  expect(stage('集成后复测')?.textContent).toContain('结果待核实')
+  expect(screen.getByRole('status').textContent).toBe('结果待核实')
+  expect(stage('候选与目标复测')?.textContent).toContain('结果待核实')
   await tick()
-  expect(stage('集成后复测')?.textContent).toContain('通过')
+  expect(stage('候选与目标复测')?.textContent).toContain('候选副本复测结果待核实')
+  expect(stage('候选与目标复测')?.textContent).toContain('develop 目标副本复测已通过')
+  await tick()
+  expect(screen.getByRole('status').textContent).toBe('已集成 · 提交 abcdef')
+  expect(stage('候选与目标复测')?.textContent).toContain('候选副本复测已通过')
+  expect(stage('候选与目标复测')?.textContent).toContain('develop 目标副本复测已通过')
 })

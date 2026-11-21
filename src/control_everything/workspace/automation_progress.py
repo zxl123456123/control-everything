@@ -28,6 +28,7 @@ def task_workflow(connection, task_id):
     for row in connection.execute(
         """SELECT id,status,phase,created_at,updated_at,
                   json_extract(attention_json,'$.reason') AS reason,
+                  CASE WHEN json_type(attention_json,'$.integration_target')='object' THEN 1 ELSE 0 END AS integration_approved,
                   json_extract(context_json,'$.requirement_revision') AS requirement_revision
            FROM automation_flows WHERE task_id=? ORDER BY created_at DESC,rowid DESC""", (task_id,),
     ):
@@ -38,6 +39,7 @@ def task_workflow(connection, task_id):
                            THEN json_extract(s.result_json,'$.text') END AS review_text,
                       json_extract(s.result_json,'$.receipt.exit_code') AS exit_code,
                       json_extract(s.result_json,'$.target_sha') AS target_sha,
+                      json_extract(s.result_json,'$.candidate_test_passed') AS candidate_test_passed,
                       json_extract(s.result_json,'$.target_test_passed') AS target_test_passed,
                       d.id AS delivery_id
                FROM automation_steps s LEFT JOIN task_deliveries d
