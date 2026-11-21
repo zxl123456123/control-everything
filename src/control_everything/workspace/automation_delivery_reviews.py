@@ -11,7 +11,7 @@ from control_everything.workspace.native_progress import body_fields, check_vers
 from control_everything.workspace.store import now_utc
 
 
-def _current(connection, task_id, body):
+def _current(connection, task_id, body, *, allow_recorded=False):
     item = task_access(connection, task_id, writable=True)
     check_versions(item, body)
     delivery = row_view(connection.execute('SELECT * FROM task_deliveries WHERE id=? AND task_id=?',
@@ -23,14 +23,33 @@ def _current(connection, task_id, body):
     flow, latest = view['flow'], view['step']
     verify = _delivery_verification(connection, delivery, latest)
     if (not flow or not verify or flow['task_id'] != task_id or flow['project_id'] != item['project_id']
-            or flow['status'] != 'awaiting_acceptance' or verify['kind'] != 'verify' or verify['status'] != 'completed'
+            or verify['kind'] != 'verify' or verify['status'] != 'completed'
             or verify['id'] != delivery['source_key'] or verify['id'] != material['verify_step_id']
             or flow['attention'].get('delivery_id') != delivery['id']
             or flow['attention'].get('expected_revision') != item['revision']
             or flow['attention'].get('progress_revision') != item['progress_revision']):
         fail('delivery_changed')
+    if flow['status'] != 'awaiting_acceptance':
+        if not allow_recorded or not _recorded_acceptance(connection, item, flow, delivery, verify):
+            fail('delivery_changed')
     _evidence(connection, item, flow, verify, material)
     return item,delivery,flow,verify
+
+
+def _recorded_acceptance(connection, item, flow, delivery, verify):
+    attention = flow['attention']
+    if (flow['status'] != 'completed' or flow['phase'] != 'acceptance'
+            or attention.get('reason') != 'acceptance_approved' or item['state'] != 'done'
+            or item['accepted_delivery_id'] != delivery['id']
+            or attention.get('accepted_delivery_id') != delivery['id']
+            or attention.get('accepted_review_id') != attention.get('review_id')):
+        return False
+    review = row_view(connection.execute(
+        'SELECT * FROM task_reviews WHERE id=? AND task_id=? AND delivery_id=? AND verdict=? AND client_token=?',
+        (attention.get('accepted_review_id'), item['id'], delivery['id'], 'approved', 'record-' + delivery['id'])).fetchone())
+    return (review is not None and review['evidence'].get('flow_id') == flow['id']
+            and review['evidence'].get('verify_step_id') == verify['id']
+            and review['evidence'].get('receipt_sha256') == digest(delivery['material']['receipt']))
 
 
 def _delivery_verification(connection, delivery, latest):
@@ -123,6 +142,41 @@ def prepare_acceptance_offer(service, flow):
         return None
 
 
+def prepare_integration_card(service, task_id, body):
+    from control_everything.workspace.automation_human_decisions import acceptance_card
+
+    body_fields(body, ('delivery_id', 'expected_revision', 'progress_revision', 'confirmed'))
+    if (body['confirmed'] is not True or not isinstance(body['delivery_id'], str)
+            or any(type(body[key]) is not int or body[key] < 0 for key in ('expected_revision', 'progress_revision'))):
+        raise ProfileError('invalid_integration_card')
+    with service.store.connection() as connection:
+        item, delivery, flow, verify = _current(connection, task_id, body, allow_recorded=True)
+        if flow['status'] != 'completed':
+            fail('delivery_changed')
+        configured = project_target(connection, flow, verify)
+    _check_verification(service, delivery, flow, verify)
+    offer = prepare_offer(service, configured, flow, verify)
+    if not offer:
+        fail('integration_offer_changed')
+    with service.store.connection() as connection:
+        current = _current(connection, task_id, body, allow_recorded=True)
+        if current != (item, delivery, flow, verify) or project_target(connection, flow, verify) != configured:
+            fail('integration_offer_changed')
+    return item['project_id'], acceptance_card(flow, approval=offer, task_title=item['title'])
+
+
+def _check_verification(service, delivery, flow, verify):
+    if service.check_verification is None:
+        fail('verification_checker_unavailable')
+    try:
+        checked = service.check_verification(verify, flow)
+        if checked['receipt'] != delivery['material']['receipt']:
+            raise ValueError('verification_receipt_changed')
+    except Exception:
+        fail('verification_evidence_invalid')
+    return checked
+
+
 def integration_snapshot(target, verify, delivery_id, review_id, client_token, request_hash,
                          control_revision, progress_revision, flow_revision):
     return {'client_token': client_token, 'request_hash': request_hash, 'actor': 'local_owner',
@@ -188,6 +242,7 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=
     task_messages._text(body['reason'],'reason',10000,required=body['verdict'] != 'approved')
     if approval == 'record' and (body['verdict'] != 'approved' or body['client_token'] != 'record-' + body['delivery_id']):
         fail('delivery_changed')
+    allow_recorded = approval == 'integrate' and reviewer != 'local_owner'
     request_hash = digest(body)
     def replay(connection):
         task_access(connection,task_id,writable=True)
@@ -200,16 +255,9 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=
         previous = replay(connection)
         if previous:
             return {**service.native_progress.get(task_id),'review':previous,'replayed':True}
-        item,delivery,flow,verify = _current(connection,task_id,body)
+        item,delivery,flow,verify = _current(connection,task_id,body,allow_recorded=allow_recorded)
         configured = project_target(connection, flow, verify) if approval == 'integrate' else None
-    if service.check_verification is None:
-        fail('verification_checker_unavailable')
-    try:
-        checked = service.check_verification(verify,flow)
-        if checked['receipt'] != delivery['material']['receipt']:
-            raise ValueError('verification_receipt_changed')
-    except Exception:
-        fail('verification_evidence_invalid')
+    checked = _check_verification(service, delivery, flow, verify)
     offer = None
     if approval == 'integrate':
         offer = prepare_offer(service, configured, flow, verify)
@@ -220,7 +268,7 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=
         previous = replay(connection)
         if previous:
             return {**service.native_progress.get(task_id),'review':previous,'replayed':True}
-        item,current,current_flow,current_verify = _current(connection,task_id,body)
+        item,current,current_flow,current_verify = _current(connection,task_id,body,allow_recorded=allow_recorded)
         if (current_flow['revision'] != flow['revision'] or current != delivery or current_verify != verify):
             fail('delivery_changed')
         if offer and (not reviewer_may_integrate(connection, task_id, reviewer)
@@ -235,7 +283,7 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=
              delivery['id'],body['client_token'],request_hash))
         approved = body['verdict'] == 'approved'
         only_accept = approved and approval == 'record'
-        touch(connection, item, 'done' if only_accept else 'review' if approved else 'doing',
+        touch(connection, item, 'done' if only_accept or flow['status'] == 'completed' else 'review' if approved else 'doing',
               delivery_id=delivery['id'], accepted=approved)
         attention = {'delivery_id':delivery['id'],'review_id':identity,'expected_revision':item['revision']+1,
                      'progress_revision':item['progress_revision']+1,

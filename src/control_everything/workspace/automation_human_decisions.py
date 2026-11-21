@@ -350,12 +350,15 @@ def target_wait_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '验收已记录。还没有 develop 集成目标，所以不会开始集成。'}, button]}}
 
 
-def acceptance_card(flow, *, approval=None):
+def acceptance_card(flow, *, approval=None, task_title=None):
     """A card for the current delivery. It does not accept by being sent."""
     attention = (flow or {}).get('attention') or {}
     delivery_id = attention.get('delivery_id')
     task_id = flow.get('task_id')
-    if (flow.get('status') != 'awaiting_acceptance' or not task_id or not isinstance(delivery_id, str) or not delivery_id
+    integration_only = task_title is not None
+    expected_status = 'completed' if integration_only else 'awaiting_acceptance'
+    if (flow.get('status') != expected_status or (integration_only and not approval)
+            or not task_id or not isinstance(delivery_id, str) or not delivery_id
             or type(attention.get('expected_revision')) is not int or type(attention.get('progress_revision')) is not int):
         raise ValueError('acceptance_card_unavailable')
     shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'delivery_id': delivery_id,
@@ -371,10 +374,18 @@ def acceptance_card(flow, *, approval=None):
         choices.insert(0, (approval['decision_id'], 'approved', '这个版本通过，集成 develop'))
         destination = approval['target']['remote_name'] + '/develop'
         description = ('可通过并集成到 `' + destination + '`。目标不可用时，也可选「通过验收」完成任务，仅记录验收。')
+        if integration_only:
+            choices = choices[:1]
+            remote = approval['target']['remote_url']
+            if remote.startswith('https://github.com/'):
+                destination = remote + '（develop）'
+            description = (f'交付 `{delivery_id}` 已通过验收。确认后将同一版本集成到 `{destination}`。'
+                           '先复测候选和目标，通过后再推送。')
     buttons = [{'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary',
                 'value': {**shared, 'decision_id': decision_id, 'verdict': verdict}}
                for decision_id, verdict, label in choices]
-    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '待验收'}},
+    title = f'确认集成 · {task_title}' if integration_only else '待验收'
+    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': title}},
             'body': {'elements': [{'tag': 'markdown', 'content': description}, *buttons]}}
 
 

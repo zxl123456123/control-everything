@@ -1,4 +1,5 @@
 """Real local Git execution through the owner HTTP and background consumer boundary."""
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -11,11 +12,14 @@ from http.client import HTTPConnection
 from functools import partial
 
 from tests.backend.test_automation_integration_targets import IntegrationTargetTests
+from tests.backend import test_automation_mailbox_http as mailbox_http
 from control_everything.http.gateway import HOST, PanelHandler, PanelServer
 from control_everything.execution.develop_integration import (
     _write_push_guard, preflight_develop_target, run_develop_integration,
 )
 from control_everything.input_validation import ProfileError
+from control_everything.integrations.remote_connector import RemoteConnector, RemotePeer
+from control_everything.integrations.remote_hub.automation_producer import AutomationProducers
 from control_everything.workspace.automation_consumer import AutomationConsumer
 from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
 from control_everything.workspace.automation_flow import AutomationQueue
@@ -469,6 +473,156 @@ class PreparedIntegrationOfferTests(AutomationQueueFixture):
             (self.root/'candidate'/'untracked.txt').write_text('owner file', encoding='utf-8')
         self.assertEqual(self.publish_card(configure)['text']['content'], '通过验收')
         self.assertEqual(self.heads(), (self.base,) * 3)
+
+    def test_owner_reissues_integration_for_the_same_independently_accepted_delivery(self):
+        def configure():
+            self.save_target()
+
+            def preflight(source, target):
+                self.assertEqual(Path(source), self.root/'repo')
+                self.assertEqual(Path(target['remote_url']), self.bare)
+                self.assertEqual(target['branch'], 'develop')
+                return self.base
+
+            self.service.integration_preflight = preflight
+
+        self.publish_card(configure)
+        original_card = self.cards[-1]
+        buttons = {element['text']['content']: element for element in original_card['body']['elements'][1:]}
+        old_integrate = buttons['这个版本通过，集成 develop']
+        record = buttons['通过验收']
+        first_review, = self.click(record, 'record')
+        item = self.profile.store.get_item(self.item['id'])
+        flow_id = self.published['flow']['id']
+        body = dict(delivery_id=item['accepted_delivery_id'], expected_revision=item['revision'],
+                    progress_revision=item['progress_revision'], confirmed=True)
+
+        hub = mailbox_http.AutomationMailboxHTTPTests()
+        self.addCleanup(hub.doCleanups)
+        hub.setUp()
+        with hub.hub.store.transaction() as connection:
+            connection.execute('DELETE FROM automation_inbox WHERE id=?', (hub.received['id'],))
+        self.binding['device_id'] = hub.device['device_id']
+        self.binding['generation'] = hub.device['generation']
+        with self.profile.store.connection() as connection:
+            connection.execute('UPDATE automation_identity_challenges SET device_id=?,generation=?',
+                               (self.binding['device_id'], self.binding['generation']))
+        producer_token = 'fixture-producer-' + 'a' * 43
+        producer = {
+            'producer_id': 'father', 'channel_account_id': 'account', 'app_id': 'app', 'chat_id': 'chat',
+            'project_id': self.project['id'], 'device_id': self.binding['device_id'],
+            'generation': self.binding['generation'],
+            'token_sha256': hashlib.sha256(producer_token.encode()).hexdigest(),
+        }
+        hub.hub.automation_producers = AutomationProducers([producer])
+        peer = RemotePeer(SimpleNamespace(issuer='https://issuer.example.test',
+            hub_origin=f'http://127.0.0.1:{hub.server.server_address[1]}'))
+        transport = SimpleNamespace(peer=peer, store=SimpleNamespace(
+            read=lambda *args, **kwargs: {'control_token': hub.token}))
+
+        server = PanelServer((HOST, 0), PanelHandler)
+        server.workspace, server.profile = self.service, self.profile
+        server.remote_connector = SimpleNamespace(remote_access=None,
+            list_identity_contexts=lambda: peer.request('GET', '/remote/desktop/config',
+                token=hub.token)['automation_identity_contexts'],
+            publish_waiting_card=partial(RemoteConnector.publish_waiting_card, transport))
+        server.expected_host = f'127.0.0.1:{server.server_address[1]}'
+        server.origin = server.local_origin = 'http://' + server.expected_host
+        server.csrf_token = 'fixture-owner'
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(thread.join, 3)
+        self.addCleanup(server.shutdown)
+
+        def request_card(csrf=server.csrf_token, **changes):
+            connection = HTTPConnection(*server.server_address, timeout=10)
+            try:
+                connection.request('POST', f"/api/workspace/tasks/{item['id']}/automation-integration-card",
+                    json.dumps(dict(body, **changes)), {'Origin': server.origin, 'X-Session-CSRF': csrf,
+                        'X-Session-Client': 'panel', 'Content-Type': 'application/json'})
+                response = connection.getresponse()
+                return response.status, json.loads(response.read())
+            finally:
+                connection.close()
+
+        self.assertEqual(request_card(csrf='invalid')[0], 403)
+        self.assertEqual(request_card(expected_revision=item['revision'] - 1)[0], 409)
+        self.save_target(integration=None)
+        self.assertEqual(request_card()[0], 409)
+        self.save_target()
+        self.assertEqual(hub.request('/remote/desktop/automation/card', original_card)[0], 200)
+
+        def outbound():
+            status, card, _ = hub.request('/remote/producer/automation/outbound/claim',
+                                         {'producer_id': 'father'}, token=producer_token)
+            self.assertEqual(status, 200)
+            return card
+
+        old = outbound()
+        hub.hub.automation_producers = AutomationProducers([dict(producer, project_id='another-project')])
+        self.assertEqual(request_card()[0], 409)
+        self.assertIsNone(outbound()['card'])
+        hub.hub.automation_producers = AutomationProducers([producer])
+        status, issued = request_card()
+        self.assertEqual(status, 200, issued)
+        self.assertFalse(issued['duplicate'])
+        self.assertNotEqual(issued['id'], old['id'])
+        self.assertEqual(request_card(), (200, {'id': issued['id'], 'duplicate': True, 'state': 'pending'}))
+        card = outbound()['card']
+        self.assertIn(item['title'], card['header']['title']['content'])
+        description, button = card['body']['elements']
+        self.assertIn(item['accepted_delivery_id'], description['content'])
+        self.assertEqual(button['value']['expected_revision'], item['revision'])
+        self.assertNotEqual(button['value']['decision_id'], old_integrate['value']['decision_id'])
+
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertEqual(self.profile.store.get_item(item['id']), item)
+        with self.profile.store.connection() as connection:
+            flow = self.queue._view(connection, flow_id)['flow']
+        self.assertEqual((flow['status'], flow['phase']), ('completed', 'acceptance'))
+        self.assertEqual(flow['attention']['accepted_review_id'], first_review['review']['id'])
+
+        def receive_click(selected, event_id, actor='ou-owner', token=producer_token):
+            decision = {key: value for key, value in selected['value'].items() if key != 'flow_id'}
+            return hub.request('/remote/producer/automation/receive', dict(
+                producer_id='father', event_id=event_id, message_id='om-card',
+                chat_id='chat', actor_open_id=actor, decision=decision), token=token)[0]
+
+        def deliver_click():
+            message = hub.request(mailbox_http.CLAIM)[1]['message']
+            RemoteAutomationInbox(self.profile.store).receive(self.binding, message)
+            self.assertEqual(hub.request(mailbox_http.ACK, {'message_id': message['id'],
+                'lease_id': message['lease_id']})[0], 200)
+
+        self.assertEqual(receive_click(button, 'invalid-token', token='wrong-token'), 401)
+        for selected, event_id, actor in ((old_integrate, 'stale', 'ou-owner'),
+                                           (button, 'foreign', 'other-user')):
+            self.assertEqual(receive_click(selected, event_id, actor), 200)
+            deliver_click()
+            self.assertTrue(all(result['replayed'] for result in self.apply_clicks()))
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertEqual(receive_click(button, 'current'), 200)
+        deliver_click()
+        approval, = [result for result in self.apply_clicks() if not result['replayed']]
+        self.assertEqual(approval['item']['accepted_delivery_id'], item['accepted_delivery_id'])
+        self.assertTrue(all(result['replayed'] for result in self.apply_clicks()))
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.consumer.run_once()
+        head = self.git(self.bare, 'rev-parse', 'refs/heads/develop').strip()
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertEqual(self.git(self.bare, 'rev-list', '--count', self.base+'..'+head).strip(), '1')
+        self.assertEqual(receive_click(button, 'current'), 200)
+        self.assertIsNone(hub.request(mailbox_http.CLAIM)[1]['message'])
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (head,) * 3)
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, flow_id)
+            self.assertEqual(view['flow']['status'], 'completed', view['step']['result'])
+            self.assertEqual(view['step']['kind'], 'integrate')
+            self.assertEqual(connection.execute("SELECT count(*) FROM task_reviews").fetchone()[0], 2)
+            self.assertEqual(connection.execute("SELECT count(*) FROM automation_steps WHERE kind='integrate'").fetchone()[0], 1)
 
     def test_card_and_approval_preflight_allow_other_store_connections(self):
         queries = []

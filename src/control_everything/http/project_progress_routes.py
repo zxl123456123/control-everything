@@ -4,11 +4,12 @@ import re
 
 from control_everything.http.workbench_remote import local_control_allowed
 from control_everything.input_validation import ProfileError
+from control_everything.integrations.remote_connector import ConnectorError
 from control_everything.sessions.source import canonical_uuid
 from control_everything.workspace.store import WorkspaceError
 from control_everything.workspace.validation import project_id_valid
 
-ROUTE = re.compile(r'/api/workspace/tasks/([^/]+)/(progress|automation-integration-target|automation-enable|automation-resume|native-start|native-resume|native-release|native-adopt|native-feedback|delivery-review|native-messages/([^/]+)/send)\Z')
+ROUTE = re.compile(r'/api/workspace/tasks/([^/]+)/(progress|automation-integration-target|automation-integration-card|automation-enable|automation-resume|native-start|native-resume|native-release|native-adopt|native-feedback|delivery-review|native-messages/([^/]+)/send)\Z')
 VERIFICATION_ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-verification\Z')
 
 
@@ -48,6 +49,17 @@ def handle(handler, path, *, write=False):
                 result = workspace.enable_task_automation(task_id, body)
             elif action == 'automation-integration-target':
                 result = workspace.register_task_integration_target(task_id, body)
+            elif action == 'automation-integration-card':
+                connector = getattr(handler.server, 'remote_connector', None)
+                if connector is None:
+                    raise ConnectorError('remote_not_configured', 409)
+                project_id, card = workspace.prepare_task_integration_card(task_id, body)
+                contexts = connector.list_identity_contexts()
+                if len(contexts) != 1 or contexts[0]['project_id'] != project_id:
+                    raise ConnectorError('remote_identity_context_unavailable', 409)
+                result = connector.publish_waiting_card(card)
+                if result is None:
+                    raise ConnectorError('remote_not_configured', 409)
             elif action == 'automation-resume':
                 result = workspace.resume_task_automation(task_id, body)
             elif action == 'native-start':
@@ -70,6 +82,8 @@ def handle(handler, path, *, write=False):
         handler.reply(202 if pending else 200, result)
     except (ProfileError, WorkspaceError) as error:
         handler.profile_error(error)
+    except ConnectorError as error:
+        handler.reject(error.status or 503, error.code)
     except (ValueError, TypeError, UnicodeError):
         handler.reject(400, 'invalid_request')
     return True
