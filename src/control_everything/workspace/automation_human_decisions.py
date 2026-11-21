@@ -17,16 +17,20 @@ ACCEPTANCE_REPLIES = {
 
 
 def integration_failure_card(flow, step):
-    """A failed develop retest. The button does not claim success or retry."""
+    """An incomplete develop integration requires checking the receipts."""
     task_id = (flow or {}).get('task_id')
     if (not task_id or (step or {}).get('kind') != 'integrate' or step.get('status') != 'unknown'
             or (step.get('result') or {}).get('reason') != 'integration_incomplete'):
         raise ValueError('integration_failure_card_unavailable')
-    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': 'develop 复测未通过'}, 'type': 'primary',
+    needs_review = step['result'].get('recovery') == 'needs_review'
+    label = 'develop 集成需核对' if needs_review else 'develop 复测未通过'
+    description = ('后台已尝试恢复这次集成。请核对工作台的集成记录和远端 develop。'
+                   if needs_review else 'develop 复测没有通过。这不是成功，也不会自动重试。')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary',
               'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
                         'requirement_revision': 0, 'reason': 'integration_retest_failed'}}
     return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '集成没有完成'}},
-            'body': {'elements': [{'tag': 'markdown', 'content': 'develop 复测没有通过。这不是成功，也不会自动重试。'}, button]}}
+            'body': {'elements': [{'tag': 'markdown', 'content': description}, button]}}
 
 
 def rejection_card(flow):

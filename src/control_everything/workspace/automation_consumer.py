@@ -31,7 +31,7 @@ from control_everything.workspace.native_progress import digest, fail, packed
 
 class AutomationConsumer:
     def __init__(self, queue, adapter, *, verification=None, check_verification=None, integration=None,
-                 on_wait=None, prepare_integration=None):
+                 on_wait=None, prepare_integration=None, recover_integration=None):
         self.queue, self.adapter = queue, adapter
         self.launch = AutomationLaunch(queue, adapter)
         self.cursor = None
@@ -39,6 +39,7 @@ class AutomationConsumer:
         self.verification = verification
         self.check_verification = check_verification
         self.integration = integration
+        self.recover_integration = recover_integration
         self.on_wait = on_wait
         self.prepare_integration = prepare_integration
 
@@ -94,6 +95,9 @@ class AutomationConsumer:
                 continue
             step = view['step']
             if view['flow']['phase'] == 'integration':
+                if (step['kind'] == 'integrate' and step['status'] == 'unknown'
+                        and (step.get('result') or {}).get('recovery') == 'needs_review'):
+                    continue
                 if (view['flow']['status'] == 'waiting_external'
                         and not (view['flow'].get('attention') or {}).get('integration_target')):
                     if self.on_wait is not None:
@@ -209,7 +213,8 @@ class AutomationConsumer:
         return None
 
     def _integrate(self, lease, step, flow, *, cancel_event=None):
-        if step['status'] != 'reserved':
+        recovering = step['status'] == 'dispatching' and self.recover_integration is not None
+        if step['status'] != 'reserved' and not recovering:
             return step
         verify = self.queue.get_step(step['request']['integration_target']['verify_step_id'])
         if self.check_verification is None:
@@ -219,28 +224,41 @@ class AutomationConsumer:
                 raise RuntimeError('automation_integration_cancelled')
             self.queue.renew(lease)
             self.queue.check_current(lease, step)
-        try:
+        def check_source():
             checked = self.check_verification(verify, flow)
             if checked['receipt'] != step['request']['verify_result']['receipt']:
                 raise ValueError('verification_evidence_changed')
             checkpoint()
-            step = self.queue.record(lease, step, 'dispatching')
-        except (ProfileError, ValueError, OSError) as error:
-            if str(error) == 'automation_owner_lost':
-                raise
-            return self.queue.reject_integration(lease, step['flow_id'], step['flow_revision'],
-                str(error) if isinstance(error, ProfileError) else 'verification_evidence_invalid', step=step)
+        if not recovering:
+            try:
+                check_source()
+                step = self.queue.record(lease, step, 'dispatching')
+            except (ProfileError, ValueError, OSError) as error:
+                if str(error) == 'automation_owner_lost':
+                    raise
+                return self.queue.reject_integration(lease, step['flow_id'], step['flow_revision'],
+                    str(error) if isinstance(error, ProfileError) else 'verification_evidence_invalid', step=step)
         try:
-            result = self.integration(step, flow, cancel_event=cancel_event, checkpoint=checkpoint)
+            if recovering:
+                check_source()
+            runner = self.recover_integration if recovering else self.integration
+            result = runner(step, flow, cancel_event=cancel_event, checkpoint=checkpoint)
             checkpoint()
             if self.check_verification(verify, flow)['receipt'] != step['request']['verify_result']['receipt']:
                 raise ProfileError('automation_integration_unverified')
             return self.queue.finish_integration(lease, step, result)
         except Exception as error:
-            if isinstance(error, ProfileError) and str(error) in ('automation_owner_lost', 'automation_step_changed'):
+            if isinstance(error, ProfileError) and (str(error) == 'automation_owner_lost'
+                    or (str(error) == 'automation_step_changed' and not recovering)):
                 raise
-            recorded = self.queue.record(lease, step, 'unknown', result={
-                'reason': 'integration_incomplete', 'error_type': type(error).__name__})
+            if cancel_event is not None and cancel_event.is_set():
+                return step
+            failure = {'reason': 'integration_incomplete', 'error_type': type(error).__name__}
+            if recovering:
+                failure['recovery'] = 'needs_review'
+                if isinstance(error, (ValueError, ProfileError)) and str(error).startswith('integration_'):
+                    failure['recovery_reason'] = str(error)
+            recorded = self.queue.record(lease, step, 'unknown', result=failure)
             if self.on_wait is not None:
                 try:
                     self.on_wait(integration_failure_card(flow, recorded))

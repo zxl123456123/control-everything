@@ -1316,11 +1316,14 @@ class PanelServer(ThreadingHTTPServer):
                     receipt = read_verification_receipt(output_dir=output, argv=spec['argv'], cwd=scope['cwd'],
                         task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'], source_files=spec['source_files'])
                     return {'receipt': receipt, 'output_dir': str(output)}
-                def integrate(step, flow, *, cancel_event, checkpoint):
+                def integrate(step, flow, *, cancel_event, checkpoint, recover=False):
                     output = profile.data_dir / 'automation-integration' / flow['id'] / step['id']
                     source_output = profile.data_dir / 'automation-verification' / flow['id'] / step['request']['integration_target']['verify_step_id']
                     return run_develop_integration(step, flow, git_executable=runtime.config.git_executable,
-                        output_dir=output, source_output_dir=source_output, cancel_event=cancel_event, checkpoint=checkpoint)
+                        output_dir=output, source_output_dir=source_output, cancel_event=cancel_event,
+                        checkpoint=checkpoint, recover=recover, own_process_tree=True)
+                def recover_integration(step, flow, *, cancel_event, checkpoint):
+                    return integrate(step, flow, cancel_event=cancel_event, checkpoint=checkpoint, recover=True)
                 def preflight(source, target):
                     return preflight_develop_target(source, target, git_executable=runtime.config.git_executable)
 
@@ -1330,8 +1333,10 @@ class PanelServer(ThreadingHTTPServer):
                 self.workspace.check_verification = check_verification
                 self.workspace.integration_preflight = preflight
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
+                custom_integration = getattr(self, 'automation_integration', None)
                 consumer = AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification,
-                                              integration=getattr(self, "automation_integration", None) or integrate,
+                                              integration=custom_integration or integrate,
+                                              recover_integration=None if custom_integration else recover_integration,
                                               prepare_integration=prepare_integration)
                 consumer.review_service = self.workspace
                 self.automation_consumer_service = AutomationConsumerService(consumer)

@@ -1,9 +1,11 @@
 """Real local Git execution through the owner HTTP and background consumer boundary."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from types import SimpleNamespace
@@ -14,19 +16,57 @@ from functools import partial
 from tests.backend.test_automation_integration_targets import IntegrationTargetTests
 from tests.backend import test_automation_mailbox_http as mailbox_http
 from control_everything.http.gateway import HOST, PanelHandler, PanelServer
+from control_everything.execution import develop_integration
 from control_everything.execution.develop_integration import (
     _write_push_guard, preflight_develop_target, run_develop_integration,
 )
 from control_everything.input_validation import ProfileError
 from control_everything.integrations.remote_connector import RemoteConnector, RemotePeer
 from control_everything.integrations.remote_hub.automation_producer import AutomationProducers
+from control_everything.profiles.profile import Profile
 from control_everything.workspace.automation_consumer import AutomationConsumer
 from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
-from control_everything.workspace.automation_flow import AutomationQueue
+from control_everything.workspace.automation_flow import AutomationQueue, OwnerLease
 from control_everything.workspace.automation_human_decisions import acceptance_card, apply_acceptance_decisions
 from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
 from tests.backend.test_automation_consumer import PlanningHost
 from tests.backend.test_automation_queue import AutomationQueueFixture, bind_actor, designate_actor
+
+
+def run_and_interrupt_integration():
+    data = json.load(sys.stdin)
+    step, flow = data['step'], data['flow']
+    lease = OwnerLease(**data['lease'])
+    queue = AutomationQueue(Profile.open(data['profile']).store, owner_id=lease.owner_id)
+
+    def checkpoint():
+        queue.renew(lease)
+        queue.check_current(lease, step)
+
+    write = develop_integration._write_json
+
+    def interrupted(path, value):
+        if (path.name == data['record'] and value.get('stage') == data['stage']
+                and (data['argument'] is None or data['argument'] in value['argv'])):
+            if path.name in ('intent.json', 'copy-intent.json'):
+                write(path, value)
+            os._exit(73)
+        write(path, value)
+
+    with patch.object(develop_integration, '_write_json', side_effect=interrupted):
+        run_develop_integration(step, flow, **data['runner'], checkpoint=checkpoint)
+
+
+def interrupt_runner(fixture, step, flow, output, record, stage, *, argument=None, own_process_tree=False):
+    source_output = fixture.profile.data_dir/'automation-verification'/flow['id']/step['request']['integration_target']['verify_step_id']
+    data = {'step': step, 'flow': flow, 'profile': str(fixture.profile.data_dir),
+            'lease': vars(fixture.consumer.lease), 'record': record, 'stage': stage, 'argument': argument,
+            'runner': {'git_executable': fixture.git_exe, 'output_dir': str(output),
+                       'source_output_dir': str(source_output), 'own_process_tree': own_process_tree}}
+    child = subprocess.run([sys.executable, '-B', '-c',
+        'from tests.backend.test_develop_integration import run_and_interrupt_integration; '
+        'run_and_interrupt_integration()'], input=json.dumps(data), text=True, capture_output=True, timeout=90)
+    fixture.assertEqual(child.returncode, 73, child.stderr)
 
 
 class DevelopIntegrationTests(IntegrationTargetTests):
@@ -120,6 +160,28 @@ class DevelopIntegrationTests(IntegrationTargetTests):
             server.automation_consumer_service.wake()
             time.sleep(.02)
         return view
+
+    def test_http_background_runner_recovers_a_dispatched_step_after_worker_exit(self):
+        flow_id = self.request['flow_id']
+        original = {}
+
+        def before_attach():
+            lease = self.consumer.lease
+            with self.profile.store.connection() as connection:
+                flow = self.queue._view(connection, flow_id)['flow']
+            reserved = self.queue.reserve_integration(lease, flow_id, flow['revision'])
+            step = self.queue.record(lease, reserved, 'dispatching')
+            original.update(step)
+            output = self.profile.data_dir/'automation-integration'/flow_id/step['id']
+            interrupt_runner(self, step, flow, output, 'intent.json', 'git', argument='--git-common-dir')
+
+        self.before_attach = before_attach
+        server = self.start_registered()
+        view = self.wait_result(server)
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(view['step']['operation_id'], original['operation_id'])
+        self.assertTrue(view['step']['result']['recovered'])
 
     def test_http_background_runner_integrates_exactly_one_commit(self):
         source_before={p:(self.root/'repo'/p).read_bytes() for p in ('input.txt','verify.py')}
@@ -417,11 +479,12 @@ class PreparedIntegrationOfferTests(AutomationQueueFixture):
         if self.before_publication:
             self.before_publication()
 
-    def integrate(self, step, flow, *, cancel_event, checkpoint):
+    def integrate(self, step, flow, *, cancel_event, checkpoint, recover=False):
         source_output = self.profile.data_dir / 'automation-verification' / flow['id'] / self.view['step']['id']
         return run_develop_integration(step, flow, git_executable=self.git_exe,
             output_dir=self.root/'integrated', source_output_dir=source_output,
-            cancel_event=cancel_event, checkpoint=checkpoint)
+            cancel_event=cancel_event, checkpoint=checkpoint, recover=recover,
+            own_process_tree=getattr(self, 'own_process_tree', False))
 
     def save_target(self, **values):
         self.service.set_project_automation_verification(self.project['id'], {**self.configuration, **values})
@@ -448,6 +511,156 @@ class PreparedIntegrationOfferTests(AutomationQueueFixture):
     def heads(self):
         return tuple(self.git(root, 'rev-parse', ref).strip() for root, ref in (
             (self.target,'HEAD'), (self.root/'candidate','HEAD'), (self.bare,'refs/heads/develop')))
+
+    def interrupt_approved_integration(self, record, stage, *, argument=None):
+        # This test exercises real Git execution; offer timing is independent of recovery.
+        def configure():
+            self.save_target()
+            self.service.integration_preflight = lambda *_: self.base
+
+        button = self.publish_card(configure)
+        flow = self.published['flow']
+        self.assertEqual(len(self.click(button)), 1)
+        def interrupt(step, flow, **_):
+            interrupt_runner(self, step, flow, self.root/'integrated', record, stage, argument=argument,
+                             own_process_tree=getattr(self, 'own_process_tree', False))
+            raise SystemExit('the external worker stopped without returning')
+
+        self.consumer.integration = interrupt
+        with self.assertRaises(SystemExit):
+            self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, flow['id'])
+        self.assertEqual(view['step']['status'], 'dispatching')
+        self.queue = AutomationQueue(self.profile.store, clock=lambda: time.time()+120)
+        self.consumer = self.consumer_type(self.queue, self.host,
+            check_verification=self.consumer.check_verification,
+            recover_integration=partial(self.integrate, recover=True))
+        return view['step']
+
+    def test_restart_resumes_first_read_only_intent_for_the_same_feishu_approval(self):
+        original = self.interrupt_approved_integration('intent.json', 'git', argument='--git-common-dir')
+        root = self.root/'integrated'
+        interrupted = next(path for path in root.glob('*/intent.json') if b'--git-common-dir' in path.read_bytes())
+        intent = interrupted.read_bytes()
+        self.assertIn(b'--git-common-dir', intent)
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(view['step']['operation_id'], original['operation_id'])
+        self.assertEqual(interrupted.read_bytes(), intent)
+        self.assertIsNone(self.consumer.run_once())
+        self.assertEqual(self.heads(), (view['step']['result']['remote_sha'],) * 3)
+
+    def test_restart_reads_back_a_push_that_had_no_receipt(self):
+        original = self.interrupt_approved_integration('receipt.json', 'push-develop')
+        head = self.heads()[2]
+        self.assertNotEqual(head, self.base)
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(view['step']['result']['remote_sha'], head)
+        self.assertNotIn('push-develop', {command['stage'] for command in view['step']['result']['commands']})
+        self.assertIsNone(self.consumer.run_once())
+        self.assertEqual(self.heads(), (head,) * 3)
+
+    def test_restart_reuses_the_candidate_commit_when_merge_had_not_launched(self):
+        if os.name != 'nt':
+            self.skipTest('Windows Job ownership is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('intent.json', 'fast-forward-develop')
+        target, head, remote = self.heads()
+        self.assertNotEqual(head, self.base)
+        self.assertEqual((target, remote), (self.base, self.base))
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (head,) * 3)
+        stages = {command['stage'] for command in view['step']['result']['commands']}
+        self.assertNotIn('commit-approved-files', stages)
+        self.assertIn('fast-forward-develop', stages)
+
+    def test_restart_reuses_a_committed_candidate_after_the_commit_receipt_was_lost(self):
+        if os.name != 'nt':
+            self.skipTest('Windows Job ownership is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('receipt.json', 'commit-approved-files')
+        target, head, remote = self.heads()
+        self.assertNotEqual(head, self.base)
+        self.assertEqual((target, remote), (self.base, self.base))
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertNotIn('commit-approved-files', {command['stage'] for command in view['step']['result']['commands']})
+
+    def test_restart_pushes_the_same_verified_sha_when_previous_push_had_not_launched(self):
+        if os.name != 'nt':
+            self.skipTest('Windows Job ownership is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('intent.json', 'push-develop')
+        target, head, remote = self.heads()
+        self.assertEqual(target, head)
+        self.assertEqual(remote, self.base)
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertIsNone(self.consumer.run_once())
+        pushes = [command for command in view['step']['result']['commands'] if command['stage'] == 'push-develop']
+        self.assertEqual(len(pushes), 1)
+        self.assertEqual(pushes[0]['argv'][-1], head+':refs/heads/develop')
+
+    def test_restart_does_not_push_when_legacy_push_intent_is_ambiguous(self):
+        original = self.interrupt_approved_integration('intent.json', 'push-develop')
+        target, head, remote = self.heads()
+        self.assertEqual(target, head)
+        self.assertEqual(remote, self.base)
+        step = self.consumer.run_once()
+        self.assertEqual(step['id'], original['id'])
+        self.assertEqual(step['status'], 'unknown', step['result'])
+        self.assertEqual(step['result']['recovery_reason'], 'integration_previous_push_unconfirmed')
+        self.assertEqual(self.heads(), (head, head, self.base))
+        self.assertIsNone(self.consumer.run_once())
+
+    def test_restart_resumes_the_locked_copy_before_any_candidate_write(self):
+        if os.name != 'nt':
+            self.skipTest('Windows copy locking is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('copy-intent.json', None)
+        self.assertEqual(self.git(self.root/'candidate','status','--porcelain=v1'), '')
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (view['step']['result']['remote_sha'],) * 3)
+
+    def test_restart_preserves_all_approved_candidate_bytes_when_copy_receipt_is_missing(self):
+        if os.name != 'nt':
+            self.skipTest('Windows copy locking is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('copy-complete.json', None)
+        root = self.root/'integrated'
+        self.assertFalse((root/'copy-complete.json').exists())
+        self.assertEqual((self.root/'candidate'/'input.txt').read_bytes(), (self.root/'repo'/'input.txt').read_bytes())
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (view['step']['result']['remote_sha'],) * 3)
+        self.assertFalse((root/'r001'/'copy-intent.json').exists())
+
+    def test_restart_preserves_the_existing_remote_conflict(self):
+        original = self.interrupt_approved_integration('intent.json', 'git')
+        other = self.root/'other'
+        self.git(self.root,'clone','--branch','develop',str(self.bare),str(other))
+        self.git(other,'-c','user.name=Fixture','-c','user.email=fixture@example.test','commit','--allow-empty','-m','test: concurrent push')
+        self.git(other,'push','origin','develop')
+        expected = self.heads()
+        step = self.consumer.run_once()
+        self.assertEqual(step['id'], original['id'])
+        self.assertEqual(step['status'], 'unknown', step['result'])
+        self.assertEqual(step['result']['recovery'], 'needs_review')
+        self.assertEqual(self.heads(), expected)
 
     def test_accept_only_card_finishes_with_no_integration_wait_even_if_a_target_is_added(self):
         button = self.publish_card()
