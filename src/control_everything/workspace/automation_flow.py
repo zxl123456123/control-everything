@@ -175,6 +175,20 @@ class AutomationQueue:
                                (stamp, current['flow_id']))
             return row_view(self._step(connection, step['id']))
 
+    def planning_choices(self, step):
+        if 'plan_choices' in step['request']:
+            return step['request']['plan_choices']
+        # Older planning requests recorded only the latest answer on each round.
+        with self.store.connection() as connection:
+            rows = connection.execute("SELECT request_json FROM automation_steps WHERE flow_id=? "
+                "AND ordinal<=? AND kind='plan' ORDER BY ordinal", (step['flow_id'], step['ordinal']))
+            choices = {}
+            for row in rows:
+                choice = json.loads(row[0]).get('plan_choice')
+                if choice:
+                    choices.setdefault(choice['decision_id'], choice)
+        return list(choices.values())
+
     def reserve_next(self, lease, previous, kind, request, *, writes_project=True, choice_authority=None):
         with self.store.connection() as connection:
             connection.execute('BEGIN IMMEDIATE')
@@ -192,6 +206,7 @@ class AutomationQueue:
                 if (not (continuation or replan) or flow['status'] != 'waiting_user'
                         or flow['task_id'] != choice['task_id']
                         or previous['id'] != choice['decision_id'] or decision.get('decision_id') != choice['decision_id']
+                        or ('question' in choice and decision.get('question') != choice['question'])
                         or attention.get('versions', {}).get('requirement_revision') != choice['requirement_revision']
                         or not any(option == {'id': choice['choice_id'], 'label': choice['label'],
                                               'impact': choice['impact']} for option in decision.get('options', []))

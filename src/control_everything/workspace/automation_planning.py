@@ -6,6 +6,14 @@ import re
 from control_everything.workspace.native_progress import digest, fail
 
 KINDS = ('small', 'feature', 'permission', 'complex')
+PLAN_DECISION_PROMPT = (
+    'Optional "decision":{"question":"one concrete question","options":[{"id":"first",'
+    '"label":"short choice","impact":"Recommendation and concrete consequence"},{"id":"second",'
+    '"label":"distinct choice","impact":"distinct concrete consequence"}]}. '
+    'Put the recommended option first and explain the recommendation in its impact. '
+    'Ask only about unresolved choices the answer would materially change; ask dependent questions in later rounds. '
+    'Use questions for blockers that cannot be expressed as choices.'
+)
 IMPLEMENT_DECISION_MARKER = 'AUTOMATION_IMPLEMENT_DECISION_V1'
 IMPLEMENT_DECISION_PROMPT = (
     '\nIf a concrete implementation trade-off remains inside the reviewed plan, stop at the end of this turn '
@@ -26,7 +34,7 @@ def _read(step, kind):
     except (KeyError, TypeError, ValueError):
         fail('invalid_planning_result')
     fields = {'kind', 'questions'} | ({'plan', 'needs_human'} if kind == 'plan' else {'verdict', 'rationale'})
-    optional = {'decision'} if kind == 'plan_review' else set()
+    optional = {'decision'}
     if (type(value) is not dict or not fields <= set(value) <= fields | optional or value['kind'] not in KINDS
             or type(value['questions']) is not list
             or any(type(question) is not str or not question.strip() for question in value['questions'])):
@@ -40,7 +48,9 @@ def _read(step, kind):
     elif value['verdict'] not in ('approve', 'revise', 'discuss'):
         fail('invalid_planning_result')
     if 'decision' in value:
-        if value['verdict'] != 'discuss' or not _valid_decision(value['decision']):
+        asks_human = (value['needs_human'] and value['kind'] != 'small' if kind == 'plan'
+                      else value['verdict'] == 'discuss')
+        if not asks_human or not _valid_decision(value['decision']):
             fail('invalid_planning_result')
     return value
 
@@ -112,16 +122,18 @@ def planning_outcome(plan_step, review_step):
     questions = list(dict.fromkeys(plan['questions'] + review['questions']))
     result = {'action': 'wait_for_user', 'questions': questions,
               'requires_code_review': plan['kind'] != 'small' or review['kind'] != 'small'}
-    if 'decision' in review:
-        result['decision'] = {'decision_id': review_step['id'], **review['decision']}
-    if plan['needs_human'] or questions or review['verdict'] == 'discuss':
-        return result
-    if review['verdict'] == 'revise':
+    if review['verdict'] == 'revise' and ('decision' in plan or not (plan['needs_human'] or questions)):
         if attempt < 2:
             result.update(action='revise_plan', next_attempt=attempt + 1)
         else:
             result['reason'] = 'plan_revision_limit'
-    elif not result['requires_code_review']:
+        return result
+    decision = review.get('decision', plan.get('decision'))
+    if decision:
+        result['decision'] = {'decision_id': review_step['id'], **decision}
+    if plan['needs_human'] or questions or review['verdict'] == 'discuss':
+        return result
+    if not result['requires_code_review']:
         result['action'] = 'implement'
     else:
         result['release_ready'] = True

@@ -15,6 +15,7 @@ class PlanningHost(FakeHost):
         self.code_text = None
         self.questions = []
         self.decision = None
+        self.planner_decision = None
 
     def create(self, params, *, cancel_event=None):
         self.calls.append(copy.deepcopy(params))
@@ -31,6 +32,8 @@ class PlanningHost(FakeHost):
                  {'kind': self.kind, 'verdict': self.verdict, 'rationale': 'Scope checked.', 'questions': self.questions})
         if prompt.startswith('PLAN_REVIEW') and self.decision is not None:
             value['decision'] = self.decision
+        if prompt.startswith('PLAN\n') and self.planner_decision is not None:
+            value.update(needs_human=True, decision=self.planner_decision)
         reply = copy.deepcopy(self.reply)
         reply['binding'] = copy.deepcopy(binding)
         message = self.code_text if prompt.startswith('CODE_REVIEW') and self.code_text else json.dumps(value)
@@ -52,11 +55,13 @@ class ConsumerTests(AutomationQueueFixture):
         self.host = PlanningHost()
         self.consumer = AutomationConsumer(self.queue, self.host)
 
-    def pump(self, count=30):
+    def pump(self, count=30, *, flow_id=None):
         for _ in range(count):
             self.consumer.run_once()
         with self.profile.store.connection() as connection:
-            return self.queue._view(connection, connection.execute('SELECT id FROM automation_flows').fetchone()[0])
+            if flow_id is None:
+                flow_id = connection.execute('SELECT id FROM automation_flows').fetchone()[0]
+            return self.queue._view(connection, flow_id)
 
     def test_small_implementation_is_unverified_and_restart_does_not_call(self):
         cards = []
@@ -74,6 +79,7 @@ class ConsumerTests(AutomationQueueFixture):
         with self.profile.store.connection() as connection:
             steps = [dict(row) for row in connection.execute('SELECT * FROM automation_steps ORDER BY ordinal')]
         self.assertEqual([s['kind'] for s in steps], ['prepare', 'plan', 'plan_review', 'implement'])
+        self.assertTrue(all('plan_choices' not in json.loads(step['request_json']) for step in steps))
         review = json.loads(steps[2]['request_json'])
         self.assertEqual(review['review_of']['step_id'], steps[1]['id'])
         self.assertNotEqual(json.loads(steps[2]['binding_json'])['providerSession'], json.loads(steps[1]['binding_json'])['providerSession'])
@@ -745,12 +751,14 @@ class ConsumerTests(AutomationQueueFixture):
         self.consumer.current_binding = lambda: binding
 
     def test_plan_choice_resumes_only_the_current_decision_for_the_named_task(self):
+        from control_everything.workspace.automation_human_decisions import apply_waiting_reply
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
         from tests.backend.test_automation_queue import bind_actor, designate_actor
 
-        self.host.kind, self.host.verdict = 'feature', 'discuss'
-        self.host.decision = {'question': 'Which surface should change?', 'options': [
-            {'id': 'existing', 'label': 'Keep existing surface', 'impact': 'Existing links keep working.'},
+        self.host.kind = 'feature'
+        self.configure_verification('raise SystemExit(1)')
+        self.host.planner_decision = {'question': 'Which surface should change?', 'options': [
+            {'id': 'existing', 'label': 'Keep existing surface', 'impact': 'Recommended: existing links keep working.'},
             {'id': 'separate', 'label': 'Add a separate surface', 'impact': 'New links require documentation.'},
         ]}
         cards = []
@@ -786,6 +794,12 @@ class ConsumerTests(AutomationQueueFixture):
         receive('om-not-designated', original_choice, 'ou-other')
         self.assertEqual(self.pump()['step']['id'], first['step']['id'])
         receive('om-selected', original_choice)
+        self.host.planner_decision = None
+        self.host.verdict = 'discuss'
+        self.host.decision = {'question': 'Who can use the existing surface?', 'options': [
+            {'id': 'owners', 'label': 'Owners only', 'impact': 'Recommended: owners retain access.'},
+            {'id': 'members', 'label': 'All members', 'impact': 'All project members gain access.'},
+        ]}
         second = self.pump()
         next_choice = [element['value'] for element in cards[-1]['body']['elements'] if element['tag'] == 'button'][0]
         self.assertEqual(second['flow']['id'], first['flow']['id'])
@@ -800,11 +814,41 @@ class ConsumerTests(AutomationQueueFixture):
         selected = json.loads(steps[3][1])['plan_choice']
         self.assertEqual(selected['actor_id'], 'ou-owner')
         self.assertEqual(selected['choice_id'], 'existing')
-        self.assertEqual(selected['impact'], 'Existing links keep working.')
+        self.assertEqual(selected['impact'], 'Recommended: existing links keep working.')
         self.assertIn(selected['impact'], self.host.calls[2]['prompt'])
         self.assertNotIn('ou-owner', self.host.calls[2]['prompt'])
         self.assertNotEqual(json.loads(steps[3][2])['providerSession']['id'],
                             json.loads(steps[4][2])['providerSession']['id'])
+        # Resume a checkpoint written by the previous request shape.
+        with self.profile.store.connection() as connection:
+            for step_kind in ('plan', 'plan_review'):
+                connection.execute("UPDATE automation_steps SET request_json=json_remove(request_json, "
+                                   "'$.plan_choices', '$.plan_choice.question') "
+                                   "WHERE kind=? AND ordinal>=3", (step_kind,))
+        self.consumer = self.consumer_type(self.queue, self.host, on_wait=cards.append,
+                                           verification=self.consumer.verification)
+        self.consumer.current_binding = lambda: binding
+        self.host.verdict, self.host.decision = 'approve', None
+        receive('om-selected-second', next_choice)
+        released = self.pump()
+        self.assertTrue(released['flow']['attention']['release_ready'])
+        history = released['step']['request']['plan_choices']
+        self.assertEqual([answer['decision_id'] for answer in history],
+                         [original_choice['decision_id'], next_choice['decision_id']])
+        self.assertEqual([answer['choice_id'] for answer in history], ['existing', 'owners'])
+        self.assertEqual([answer['actor_id'] for answer in history], ['ou-owner', 'ou-owner'])
+        for call in self.host.calls[4:6]:
+            self.assertTrue(all(answer['impact'] in call['prompt'] for answer in history))
+        apply_waiting_reply(self.consumer, released['flow'], cards[-1]['body']['elements'][1]['value'], 'owner')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'repair_budget_exhausted')
+        with self.profile.store.connection() as connection:
+            writes = [json.loads(row['request_json']) for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE kind='implement' ORDER BY ordinal")]
+        self.assertEqual(len(writes), 3)
+        for request in writes:
+            self.assertEqual(request['plan_choices'], history)
+            self.assertTrue(all(answer['impact'] in request['params']['prompt'] for answer in history))
 
     def test_implementation_choice_preserves_writes_and_repair_lineage(self):
         from pathlib import Path
@@ -881,23 +925,24 @@ class ConsumerTests(AutomationQueueFixture):
         self.assertEqual(blocked['flow']['status'], 'waiting_user')
         prepared = self.consumer.launch.prepare(self.consumer.lease, occupied)
         self.queue.wait(self.consumer.lease, prepared, 'waiting_external', 'prepare', {})
-        first_delivery = self.pump()
+        flow_id = first['flow']['id']
+        first_delivery = self.pump(flow_id=flow_id)
         self.assertEqual(first_delivery['flow']['status'], 'awaiting_acceptance')
         changes = cards[-1]['body']['elements'][2]['value']
         review = self.service.review_task_delivery(self.item['id'], {
             **{key: changes[key] for key in ('delivery_id', 'verdict', 'expected_revision', 'progress_revision')},
             'reason': 'Correct the implementation', 'confirmed': True, 'client_token': 'first-review',
         })['review']
-        repair = self.pump()
+        repair = self.pump(flow_id=flow_id)
         self.assertEqual((repair['flow']['status'], repair['flow']['phase']), ('waiting_user', 'implement'))
         self.assertTrue(path.read_bytes().endswith(b' partial done partial'))
         self.assertEqual(len(self.verification_calls), 1)
         self.assertIn(IMPLEMENT_DECISION_MARKER, writes[2]['prompt'])
         repair_choice = latest_choice()
         receive('stale-competing-choice', {**old_choice, 'choice_id': 'inline'})
-        self.assertEqual(self.pump()['step']['id'], repair['step']['id'])
+        self.assertEqual(self.pump(flow_id=flow_id)['step']['id'], repair['step']['id'])
         receive('repair-choice', repair_choice)
-        final = self.pump()
+        final = self.pump(flow_id=flow_id)
         self.assertEqual(final['flow']['id'], first['flow']['id'])
         self.assertEqual(final['flow']['status'], 'awaiting_acceptance')
         self.assertTrue(path.read_bytes().endswith(b' partial done partial done'))
