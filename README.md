@@ -8,7 +8,7 @@
 
 ## 产品展示
 
-https://github.com/user-attachments/assets/be96cc58-6bd8-4221-b0aa-77c0f9e31804
+https://github.com/user-attachments/assets/40eb7ff9-c04e-4f62-90ff-64342e417eb2
 
 | 功能 | 可以做什么 |
 | --- | --- |
