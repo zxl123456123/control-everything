@@ -569,7 +569,7 @@ diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feish
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,322 @@
+@@ -0,0 +1,348 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
 +import type { FeishuMessageEvent } from "./event-types.js";
@@ -781,7 +781,8 @@ new file mode 100644
 +  config: Ingress | undefined, active: () => boolean, signal?: AbortSignal): Promise<boolean> {
 +  const { message, sender } = event;
 +  if (!config || !botOpenId || message.chat_type !== "group" || message.chat_id !== config.chatId ||
-+      message.message_type !== "text" || message.parent_id || message.root_id || sender.sender_type !== "user")
++      (message.message_type !== "text" && message.message_type !== "post") ||
++      message.parent_id || message.root_id || sender.sender_type !== "user")
 +    return false;
 +  const actor = sender.sender_id.open_id?.trim();
 +  const mention = message.mentions?.find((entry) => entry.id.open_id === botOpenId)?.key;
@@ -792,10 +793,16 @@ new file mode 100644
 +  } catch {
 +    return false;
 +  }
-+  if (!isRecord(content) || typeof content.text !== "string") return false;
-+  const raw = content.text.trim();
-+  if (!raw.startsWith(mention)) return false;
-+  const command = raw.slice(mention.length).trimStart();
++  if (!isRecord(content)) return false;
++  let raw: string | undefined;
++  if (message.message_type === "text" && typeof content.text === "string") {
++    const text = content.text.trim();
++    if (text.startsWith(mention)) raw = text.slice(mention.length);
++  } else if (message.message_type === "post") {
++    raw = assignmentPostText(content, mention, botOpenId);
++  }
++  const command = raw?.trimStart();
++  if (!command) return false;
 +  if (!/^开发[：:]/u.test(command)) return false;
 +  const requirement = command.slice(3).trim();
 +  if (!requirement || [...requirement].length > 4000 || requirement.includes("\0")) return false;
@@ -804,6 +811,25 @@ new file mode 100644
 +    new_task: { namespace: "control-everything.automation.v1", text: requirement },
 +  });
 +  return true;
++}
++
++function assignmentPostText(content: Record<string, unknown>, mention: string, botOpenId: string): string | undefined {
++  const post = Array.isArray(content.content) ? content : (content.zh_cn ?? content.en_us);
++  if (!isRecord(post) || (typeof post.title === "string" && post.title.trim()) ||
++      !Array.isArray(post.content) || !Array.isArray(post.content[0])) return;
++  const first = post.content[0][0];
++  if (!isRecord(first) || first.tag !== "at" || (first.user_id !== mention && first.user_id !== botOpenId)) return;
++  const lines: string[] = [];
++  for (const [index, row] of post.content.entries()) {
++    if (!Array.isArray(row)) return;
++    let line = "";
++    for (const node of index === 0 ? row.slice(1) : row) {
++      if (!isRecord(node) || node.tag !== "text" || typeof node.text !== "string") return;
++      line += node.text;
++    }
++    lines.push(line);
++  }
++  return lines.join("\n");
 +}
 +
 +const PLAN = "按已审方案实现";
@@ -1495,7 +1521,7 @@ diff --git a/extensions/feishu/src/automation-reply.test.ts b/extensions/feishu/
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-reply.test.ts
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,186 @@
 +import { describe, expect, it, vi } from "vitest";
 +import { receiveAutomationAssignment, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
 +import type { FeishuMessageEvent } from "./event-types.js";
@@ -1515,6 +1541,17 @@ new file mode 100644
 +  };
 +}
 +
++function postAssignment(): FeishuMessageEvent {
++  const event = command("");
++  event.message.message_type = "post";
++  event.message.content = JSON.stringify({ title: "", content: [
++    [{ tag: "at", user_id: "@_user_1", user_name: "bb", style: [] }, { tag: "text", text: " ", style: [] }],
++    [{ tag: "text", text: "开发：修正文档标题", style: [] }],
++    [{ tag: "text", text: "保留 #、`、* 和换行。", style: ["bold"] }],
++  ] });
++  return event;
++}
++
 +describe("explicit development commands and choices", () => {
 +  it("uses the original mention and message ID from a plain group text", async () => {
 +    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
@@ -1528,6 +1565,59 @@ new file mode 100644
 +        actor_open_id: "ou-operator",
 +        new_task: { namespace: "control-everything.automation.v1", text: "新增任务筛选" },
 +      });
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it.each(["direct", "localized"])("uses the original rich command text from a %s post", async (shape) => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++      Response.json({ id: "receipt", state: "pending" }));
++    try {
++      const event = postAssignment();
++      if (shape === "localized") {
++        const post = JSON.parse(event.message.content);
++        post.content[0][0].user_id = "ou-bot";
++        event.message.content = JSON.stringify({ zh_cn: post });
++      }
++      await expect(receiveAutomationAssignment(event, "ou-bot", config, () => true)).resolves.toBe(true);
++      expect(fetch).toHaveBeenCalledTimes(1);
++      expect(JSON.parse(fetch.mock.calls[0][1]!.body as string)).toEqual({
++        producer_id: "father", event_id: "om-request", message_id: "om-request", chat_id: "oc-chat",
++        actor_open_id: "ou-operator",
++        new_task: { namespace: "control-everything.automation.v1", text: "修正文档标题\n保留 #、`、* 和换行。" },
++      });
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it.each([
++    "wrong-group", "app", "parent", "root", "wrong-kind", "missing-mention", "wrong-mention",
++    "other-at-first", "literal-name", "late-at", "leading-image", "title", "empty", "too-long", "nul",
++  ])("ignores an ineligible post (%s)", async (kind) => {
++    const fetch = vi.spyOn(globalThis, "fetch");
++    try {
++      const event = postAssignment();
++      const post = JSON.parse(event.message.content);
++      if (kind === "wrong-group") event.message.chat_id = "oc-other";
++      if (kind === "app") event.sender.sender_type = "app";
++      if (kind === "parent") event.message.parent_id = "om-parent";
++      if (kind === "root") event.message.root_id = "om-root";
++      if (kind === "wrong-kind") event.message.message_type = "interactive";
++      if (kind === "missing-mention") event.message.mentions = [];
++      if (kind === "wrong-mention") event.message.mentions![0].id.open_id = "ou-other";
++      if (kind === "other-at-first") post.content[0].unshift({ tag: "at", user_id: "@_user_2", user_name: "bb" });
++      if (kind === "literal-name") post.content[0][0] = { tag: "text", text: "@bb" };
++      if (kind === "late-at") post.content[0].unshift({ tag: "text", text: "提到" });
++      if (kind === "leading-image") post.content.unshift([{ tag: "img", image_key: "img-fixture" }]);
++      if (kind === "title") post.title = "标题";
++      if (kind === "empty") post.content = [post.content[0], [{ tag: "text", text: "开发： " }]];
++      if (kind === "too-long") post.content[1][0].text = `开发：${"文".repeat(4001)}`;
++      if (kind === "nul") post.content[1][0].text = "开发：故障\0";
++      event.message.content = JSON.stringify(post);
++      await expect(receiveAutomationAssignment(event, "ou-bot", config, () => true)).resolves.toBe(false);
++      expect(fetch).not.toHaveBeenCalled();
 +    } finally {
 +      fetch.mockRestore();
 +    }
