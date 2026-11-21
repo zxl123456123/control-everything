@@ -11,11 +11,13 @@ import sys
 from unittest.mock import Mock, patch
 from concurrent.futures import ThreadPoolExecutor
 
+from control_everything.integrations.workbench_progress import WorkbenchProgressAdapter
 from control_everything.profiles.profile import DEFAULT_CONFIG, Profile, ProfileError
 from control_everything.profiles import profile_import as backups, task_migration
 from control_everything.workspace import dispatch, task_schema
 from control_everything.workspace.automation_events import apply_feishu_assignments
 from control_everything.workspace.automation_identities import IdentityService, decision_authorized
+from control_everything.workspace.automation_launch import AutomationLaunch
 from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
 from control_everything.workspace.service import WorkspaceService
 from tests.backend.test_automation_queue import bind_actor
@@ -191,8 +193,22 @@ class AutomationEventStorageTests(unittest.TestCase):
         self.assertEqual(apply_feishu_assignments(store, device)[0]['event'], event)
         from control_everything.workspace.automation_flow import AutomationQueue
         queue = AutomationQueue(store)
-        claimed = queue.claim(queue.acquire(), event['id'])
+        lease = queue.acquire()
+        claimed = queue.claim(lease, event['id'])
         self.assertEqual(claimed['flow']['context']['input']['request']['verification'], spec)
+        directory = Path(event['payload']['directory']['path'])
+        directory.mkdir(exist_ok=True)
+        runtime = Mock(ready=True)
+        runtime.config.allowed_workspace_roots = [self.root]
+        runtime.config.data_root = self.root
+        runtime.status.return_value = {'runtimeId': 'test-runtime'}
+        runtime._rpc.side_effect = [{'repos': [{'id': 'repo', 'path': str(directory)}]},
+                                    {'worktrees': [{'id': 'native-id', 'path': str(directory)}]}]
+        with patch('control_everything.integrations.workbench_progress.read_json',
+                   return_value={'installationId': '11111111-1111-4111-8111-111111111111'}):
+            prepared = AutomationLaunch(queue, WorkbenchProgressAdapter(runtime)).prepare(lease, claimed['step'])
+        self.assertEqual(prepared['status'], 'completed')
+        self.assertEqual(prepared['result']['scope']['worktreeId'], 'native-id')
         with store.connection() as db:
             self.assertEqual(db.execute('SELECT count(*) FROM task_items').fetchone()[0], 2)
             self.assertEqual(db.execute('SELECT count(*) FROM task_briefs').fetchone()[0], 1)

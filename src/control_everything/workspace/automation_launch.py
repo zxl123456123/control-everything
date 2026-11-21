@@ -23,8 +23,12 @@ class AutomationLaunch:
             step = self.queue.record(lease, step, 'dispatching')
         try:
             payload = step['request']['input']
-            scope = self.adapter.prepare_scope(payload['directory']['path'], payload['request']['worktree_id'],
-                                               cancel_event=cancel_event)
+            directory = payload['directory']['path']
+            if self.queue.uses_assignment_directory(step['flow_id']):
+                scope = self.adapter.prepare_scope(directory, by_directory=True, cancel_event=cancel_event)
+            else:
+                scope = self.adapter.prepare_scope(directory, payload['request']['worktree_id'],
+                                                   cancel_event=cancel_event)
         except ProfileError:
             raise
         except Exception:

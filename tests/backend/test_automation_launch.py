@@ -1,23 +1,98 @@
 """Persisted native launch/reconciliation behavior with synthetic owner facts."""
 
 import copy
+from pathlib import Path
+from unittest.mock import Mock, call, patch
 
 from control_everything.input_validation import ProfileError
+from control_everything.integrations.workbench_progress import WorkbenchProgressAdapter
+from control_everything.workspace.automation_events import accept_feishu_assignment
 from control_everything.workspace.automation_flow import AutomationQueue
+from control_everything.workspace.automation_launch import AutomationLaunch
 from tests.backend.test_automation_queue import AutomationQueueFixture
 from tests.backend.test_native_progress import FakeHost
+from tests.backend.test_project_management import project_body
 
 
 class AutomationLaunchTests(AutomationQueueFixture):
     def setUp(self):
         super().setUp()
-        from control_everything.workspace.automation_launch import AutomationLaunch
         self.now = 1000.0
         self.queue = AutomationQueue(self.profile.store, clock=lambda: self.now)
         self.lease = self.queue.acquire()
         self.claimed = self.queue.claim(self.lease, self.event['id'])
         self.host = FakeHost()
         self.launch = AutomationLaunch(self.queue, self.host)
+
+    def prepare_with_catalog(self, step, rows):
+        directory = Path(step['request']['input']['directory']['path'])
+        directory.mkdir(exist_ok=True)
+        runtime = Mock(ready=True)
+        runtime.config.allowed_workspace_roots = [self.root]
+        runtime.config.data_root = self.root
+        runtime.status.return_value = {'runtimeId': 'test-runtime'}
+        runtime._rpc.side_effect = [
+            {'repos': [{'id': 'native-repo', 'path': str(directory)}]},
+            {'worktrees': rows},
+        ]
+        with patch('control_everything.integrations.workbench_progress.read_json',
+                   return_value={'installationId': '11111111-1111-4111-8111-111111111111'}):
+            result = AutomationLaunch(self.queue, WorkbenchProgressAdapter(runtime)).prepare(self.lease, step)
+        self.assertEqual(runtime._rpc.call_args_list, [
+            call('repo.list', {}, cancel_event=None),
+            call('worktree.list', {'repo': 'id:native-repo'}, cancel_event=None),
+        ])
+        return result
+
+    def claim_feishu_assignment(self, suffix):
+        project = self.profile.store.save_project(project_body(self.root / suffix, name=suffix))
+        task = self.profile.store.save_item({'title': 'Feishu assignment', 'project_id': project['id'],
+            'provider_id': None, 'state': 'todo', 'session_key': None})
+        message = {'source': 'human', 'actor_id': 'ou-assignee', 'event_id': suffix, 'text': '请做这个任务'}
+        event = accept_feishu_assignment(self.profile.store, task['id'], message)['event']
+        return event, self.queue.claim(self.lease, event['id'])['step']
+
+    def test_claimed_feishu_assignment_recovers_with_native_worktree_for_exact_directory(self):
+        event, step = self.claim_feishu_assignment('recover')
+        directory = Path(event['payload']['directory']['path'])
+        original = self.queue.record(self.lease, step, 'dispatching')
+        self.now += 61
+        self.lease = self.queue.acquire()
+        recovered = self.queue.claim(self.lease, event['id'])['step']
+        result = self.prepare_with_catalog(recovered, [
+            {'id': event['payload']['request']['worktree_id'], 'path': str(directory.parent / 'sibling')},
+            {'id': 'native-worktree', 'path': str(directory)},
+        ])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['result']['scope']['worktreeId'], 'native-worktree')
+        self.assertEqual(result['result']['scope']['cwd'], str(directory.resolve()))
+        self.assertEqual(result['operation_id'], original['operation_id'])
+        self.assertEqual(result['request']['input'], event['payload'])
+        with self.profile.store.connection() as connection:
+            row = connection.execute('SELECT request_hash FROM automation_events WHERE id=?',
+                                     (event['id'],)).fetchone()
+        self.assertEqual(row['request_hash'], event['request_hash'])
+
+    def test_feishu_requires_exactly_one_directory_match(self):
+        for suffix in ('missing', 'ambiguous'):
+            with self.subTest(suffix=suffix):
+                event, step = self.claim_feishu_assignment(suffix)
+                directory = Path(event['payload']['directory']['path'])
+                paths = [directory.parent / 'sibling'] if suffix == 'missing' else [directory, directory]
+                result = self.prepare_with_catalog(step, [
+                    {'id': f'native-{index}', 'path': str(path)} for index, path in enumerate(paths)
+                ])
+                self.assertEqual(result['status'], 'unknown')
+                self.assertEqual(result['result'], {'reason': 'scope_unavailable'})
+
+    def test_local_request_requires_its_native_id_even_for_exact_directory(self):
+        step = self.claimed['step']
+        directory = step['request']['input']['directory']['path']
+        result = self.prepare_with_catalog(step, [{'id': 'different-native-id', 'path': directory}])
+        self.assertEqual(result['status'], 'unknown')
+        result = self.prepare_with_catalog(result, [{'id': self.body['worktree_id'], 'path': directory}])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['result']['scope']['worktreeId'], self.body['worktree_id'])
 
     def reserve_plan(self):
         prepared = self.launch.prepare(self.lease, self.claimed['step'])

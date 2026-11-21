@@ -14,7 +14,7 @@ class WorkbenchProgressAdapter:
     def available(self):
         return self.runtime.ready
 
-    def prepare_scope(self, directory, worktree_id, *, cancel_event=None):
+    def prepare_scope(self, directory, worktree_id=None, *, by_directory=False, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set():
             raise WorkbenchUnavailable('runtime_request_cancelled')
         path = safe_path(directory)
@@ -29,13 +29,20 @@ class WorkbenchProgressAdapter:
             raise WorkbenchUnavailable('project_directory_mismatch')
         repo = matches[0]
         worktrees = self.runtime._rpc('worktree.list', {'repo': 'id:' + repo['id']}, cancel_event=cancel_event)['worktrees']
-        selected = [row for row in worktrees if row['id'] == worktree_id]
+        if by_directory:
+            selected = [row for row in worktrees if Path(row['path']).resolve() == path]
+        else:
+            selected = [row for row in worktrees if row['id'] == worktree_id]
         if len(selected) != 1:
+            raise WorkbenchUnavailable('project_directory_mismatch')
+        worktree = selected[0]
+        cwd = safe_path(worktree['path'])
+        if by_directory and cwd != path:
             raise WorkbenchUnavailable('project_directory_mismatch')
         installation = read_json(self.runtime.config.data_root / 'state/host-installation.json', 4096)['installationId']
         environment = str(uuid.uuid5(uuid.NAMESPACE_URL, 'control-everything:workbench:' + str(uuid.UUID(installation))))
         return {'runtimeId': self.runtime.status()['runtimeId'], 'environmentId': environment,
-                'repoId': repo['id'], 'worktreeId': worktree_id, 'cwd': str(safe_path(selected[0]['path']))}
+                'repoId': repo['id'], 'worktreeId': worktree['id'], 'cwd': str(path if by_directory else cwd)}
 
     def create(self, params, *, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set():

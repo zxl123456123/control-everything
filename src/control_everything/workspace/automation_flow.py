@@ -555,6 +555,14 @@ class AutomationQueue:
         with self.store.connection() as connection:
             return row_view(self._step(connection, step_id))
 
+    def uses_assignment_directory(self, flow_id):
+        with self.store.connection() as connection:
+            event = connection.execute(
+                'SELECT e.source_instance,e.authorization FROM automation_flows f '
+                'JOIN automation_events e ON e.id=f.origin_event_id WHERE f.id=?', (flow_id,)).fetchone()
+        return event is not None and event['authorization'] == 'explicit_assignment' and (
+            event['source_instance'] == 'feishu' or event['source_instance'].startswith('feishu-new:'))
+
     def check_current(self, lease, step):
         """Validate the current frozen input before an external dispatch."""
         with self.store.connection() as connection:
