@@ -34,10 +34,9 @@ index 38b57a4..b16de52 100644
 +    automationIngress,
 diff --git a/extensions/feishu/src/automation-card-ingress.test.ts b/extensions/feishu/src/automation-card-ingress.test.ts
 new file mode 100644
-index 0000000..0ca4810
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.test.ts
-@@ -0,0 +1,499 @@
+@@ -0,0 +1,564 @@
 +import "./lifecycle.test-support.js";
 +import fs from "node:fs/promises";
 +import os from "node:os";
@@ -90,6 +89,23 @@ index 0000000..0ca4810
 +  };
 +}
 +
++function mockMonitorReceive(receive: typeof globalThis.fetch) {
++  const receiveFetch = vi.fn(receive);
++  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
++    switch (url) {
++      case "https://hub.example.test/remote/producer/identity-send/claim":
++        return Response.json({ attempt: null });
++      case "https://hub.example.test/remote/producer/automation/outbound/claim":
++        return Response.json({ card: null });
++      case "https://hub.example.test/remote/producer/automation/receive":
++        return receiveFetch(url, options);
++      default:
++        throw new Error("Unexpected monitor fetch URL");
++    }
++  });
++  return receiveFetch;
++}
++
 +async function startMonitor(configured = true, producerToken = "producer-fixture") {
 +  const cfg = createFeishuLifecycleConfig({
 +    accountId: "father",
@@ -111,6 +127,9 @@ index 0000000..0ca4810
 +    storePath: path.join(stateDir, "sessions.json"),
 +  });
 +  runtime.config.current = vi.fn(() => cfg);
++  const queue = runtime.state.openChannelIngressQueue({ accountId: "father" });
++  // Gateway SQLite is normally warm before an interactive callback arrives.
++  await queue.listClaims();
 +  const sdk = new EventDispatcher({});
 +  mocks.createEventDispatcherMock.mockReturnValue(sdk);
 +  const started = createDeferred<EventDispatcher>();
@@ -135,7 +154,7 @@ index 0000000..0ca4810
 +  return {
 +    sdk,
 +    transport: await started.promise,
-+    queue: runtime.state.openChannelIngressQueue({ accountId: "father" }),
++    queue,
 +  };
 +}
 +
@@ -163,43 +182,79 @@ index 0000000..0ca4810
 +  it("awaits the Hub receipt before completing the real durable SDK event", async () => {
 +    const received = createDeferred<void>();
 +    const response = createDeferred<Response>();
-+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
++    const fetch = mockMonitorReceive(async () => {
 +      received.resolve();
 +      return response.promise;
 +    });
 +    const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
 +    const { transport, queue } = await startMonitor();
 +    const data = envelope();
-+    await transport.invoke(data, { needCheck: false });
-+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-+    await received.promise;
-+    expect(await queue.listClaims()).toHaveLength(1);
-+    expect(fetch.mock.calls[0]?.[0]).toBe(
-+      "https://hub.example.test/remote/producer/automation/receive",
-+    );
-+    const options = fetch.mock.calls[0]?.[1];
-+    expect(options?.redirect).toBe("error");
-+    expect(JSON.parse(options?.body as string)).toEqual({
-+      producer_id: "father",
-+      event_id: "evt-card",
-+      chat_id: "oc-chat",
-+      message_id: "om-card",
-+      actor_open_id: "ou-operator",
-+      decision,
++    const callback = transport.invoke(data, { needCheck: false });
++    try {
++      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
++      await received.promise;
++      expect(fetch.mock.calls[0]?.[0]).toBe(
++        "https://hub.example.test/remote/producer/automation/receive",
++      );
++      const options = fetch.mock.calls[0]?.[1];
++      expect(options?.redirect).toBe("error");
++      expect(JSON.parse(options?.body as string)).toEqual({
++        producer_id: "father",
++        event_id: "evt-card",
++        chat_id: "oc-chat",
++        message_id: "om-card",
++        actor_open_id: "ou-operator",
++        decision,
++      });
++      expect(ordinary).not.toHaveBeenCalled();
++    } finally {
++      response.resolve(
++        new Response(JSON.stringify({ id: "receipt", state: "pending" }), { status: 200 }),
++      );
++    }
++    await expect(callback).resolves.toEqual({
++      toast: { type: "info", content: "操作已提交，等待工作台确认" },
 +    });
-+    expect(ordinary).not.toHaveBeenCalled();
-+    response.resolve(
-+      new Response(JSON.stringify({ id: "receipt", state: "pending" }), { status: 200 }),
-+    );
 +    await vi.waitFor(async () =>
 +      expect(await queue.enqueue("evt-card", {})).toMatchObject({ kind: "completed" }),
 +    );
-+    await transport.invoke(data, { needCheck: false });
++    await expect(transport.invoke(data, { needCheck: false })).resolves.toEqual({
++      toast: { type: "info", content: "操作已收到，请在工作台查看处理结果" },
++    });
 +    expect(fetch).toHaveBeenCalledTimes(1);
 +  });
 +
++  it("acknowledges the local queue if the Hub receipt exceeds the interaction budget", async () => {
++    const response = createDeferred<Response>();
++    const fetch = mockMonitorReceive(async () => response.promise);
++    const { transport, queue } = await startMonitor();
++    try {
++      await expect(transport.invoke(envelope("slow-hub"), { needCheck: false })).resolves.toEqual({
++        toast: { type: "info", content: "操作已收到，等待同步至工作台" },
++      });
++      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
++      expect(await queue.listClaims()).toHaveLength(1);
++    } finally {
++      response.resolve(Response.json({ id: "receipt", state: "pending" }));
++    }
++    await vi.waitFor(async () =>
++      expect(await queue.enqueue("slow-hub", {})).toMatchObject({ kind: "completed" }),
++    );
++  });
++
++  it("uses a local-only toast when Hub forwarding fails", async () => {
++    const fetch = mockMonitorReceive(async () => new Response(null, { status: 503 }));
++    const { transport, queue } = await startMonitor();
++    const result = await transport.invoke(envelope("unavailable-hub"), { needCheck: false });
++    expect(result).toMatchObject({ toast: { type: "info", content: expect.stringMatching(/^操作已收到/) } });
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
++    expect(await queue.enqueue("unavailable-hub", {})).not.toMatchObject({ kind: "completed" });
++  });
++
 +  it("propagates CE failure through real SDK invoke even with default fire-and-forget", async () => {
-+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("synthetic transport unavailable"));
++    mockMonitorReceive(async () => {
++      throw new Error("synthetic transport unavailable");
++    });
 +    const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
 +    const { sdk } = await startMonitor();
 +    await expect(sdk.invoke(envelope(), { needCheck: false })).rejects.toThrow();
@@ -224,7 +279,7 @@ index 0000000..0ca4810
 +          signal: controller.signal,
 +        }),
 +    });
-+    await expect(sdk.invoke(envelope(), { needCheck: false })).resolves.toBeUndefined();
++    await expect(sdk.invoke(envelope(), { needCheck: false })).resolves.toBe(true);
 +  });
 +  it.each(["approved", "", "unknown"])("rejects nondurable receipt %s", async (state) => {
 +    vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -264,12 +319,18 @@ index 0000000..0ca4810
 +
 +it("does not adopt an in-flight durable card after account stop", async () => {
 +  const response = createDeferred<Response>();
-+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => response.promise);
++  const fetch = mockMonitorReceive(async () => response.promise);
 +  const { transport, queue } = await startMonitor();
-+  await transport.invoke(envelope("stopped-event"), { needCheck: false });
-+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-+  controller.abort();
-+  response.resolve(new Response(JSON.stringify({ id: "receipt", state: "pending" })));
++  const callback = transport.invoke(envelope("stopped-event"), { needCheck: false });
++  try {
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { timeout: 10_000 });
++    controller.abort();
++  } finally {
++    response.resolve(new Response(JSON.stringify({ id: "receipt", state: "pending" })));
++  }
++  await expect(callback).resolves.toMatchObject({
++    toast: { type: "info", content: expect.stringMatching(/^操作已收到/) },
++  });
 +  await monitoring;
 +  expect(await queue.enqueue("stopped-event", {})).not.toMatchObject({ kind: "completed" });
 +});
@@ -284,7 +345,7 @@ index 0000000..0ca4810
 +      const originalFetch = globalThis.fetch;
 +      const delivered = createDeferred<void>();
 +      const release = createDeferred<void>();
-+      const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
++      const fetch = mockMonitorReceive(async (url, options) => {
 +        try {
 +          expect(url).toBe("https://hub.example.test/remote/producer/automation/receive");
 +          const requestBody = JSON.parse(String(options?.body));
@@ -380,23 +441,26 @@ index 0000000..0ca4810
 +};
 +it("durably receives identity through SDK monitor before adoption", async () => {
 +  const response = createDeferred<Response>();
-+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => response.promise);
++  const fetch = mockMonitorReceive(async () => response.promise);
 +  const ordinary = vi.spyOn(cardAction, "handleFeishuCardAction").mockResolvedValue();
 +  const { transport, queue } = await startMonitor();
 +  const data = envelope("identity-event");
 +  data.event.action.value = binding as unknown as typeof decision;
 +  await transport.invoke(data, { needCheck: false });
-+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-+  expect(await queue.listClaims()).toHaveLength(1);
-+  expect(JSON.parse(fetch.mock.calls[0]?.[1]?.body as string)).toEqual({
-+    producer_id: "father",
-+    event_id: "identity-event",
-+    chat_id: "oc-chat",
-+    message_id: "om-card",
-+    actor_open_id: "ou-operator",
-+    binding,
-+  });
-+  response.resolve(new Response(JSON.stringify({ id: "receipt", state: "acknowledged" })));
++  try {
++    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    expect(await queue.listClaims()).toHaveLength(1);
++    expect(JSON.parse(fetch.mock.calls[0]?.[1]?.body as string)).toEqual({
++      producer_id: "father",
++      event_id: "identity-event",
++      chat_id: "oc-chat",
++      message_id: "om-card",
++      actor_open_id: "ou-operator",
++      binding,
++    });
++  } finally {
++    response.resolve(new Response(JSON.stringify({ id: "receipt", state: "acknowledged" })));
++  }
 +  await vi.waitFor(async () =>
 +    expect(await queue.enqueue("identity-event", {})).toMatchObject({ kind: "completed" }),
 +  );
@@ -442,7 +506,7 @@ index 0000000..0ca4810
 +      config: { ...ingress, token: "fixture" },
 +      active: () => active,
 +    });
-+    if (["pending", "acknowledged"].includes(mode)) await expect(result).resolves.toBeUndefined();
++    if (["pending", "acknowledged"].includes(mode)) await expect(result).resolves.toBe(true);
 +    else
 +      await expect(result).rejects.toThrow(
 +        mode === "bad"
@@ -471,8 +535,8 @@ index 0000000..0ca4810
 +});
 +
 +it("posts a plan release and an assignment without choosing execution", async () => {
-+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-+    new Response(JSON.stringify({ id: "receipt", state: "pending" })),
++  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++    Response.json({ id: "receipt", state: "pending" }),
 +  );
 +  const release = { ...envelope().event, event_id: "plan-release" };
 +  release.action.value = {
@@ -539,12 +603,12 @@ index 0000000..0ca4810
 +});
 diff --git a/extensions/feishu/src/automation-card-ingress.ts b/extensions/feishu/src/automation-card-ingress.ts
 new file mode 100644
-index 0000000..9fd26c0
 --- /dev/null
 +++ b/extensions/feishu/src/automation-card-ingress.ts
-@@ -0,0 +1,287 @@
+@@ -0,0 +1,366 @@
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ResolvedFeishuAccount } from "./types.js";
++import type { FeishuMessageEvent } from "./event-types.js";
 +
 +
 +export function hubOriginAllowed(value: string): boolean {
@@ -554,15 +618,23 @@ index 0000000..9fd26c0
 +  return url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port !== "";
 +}
 +
++export function automationCardNamespace(data: unknown): unknown {
++  if (isRecord(data) && isRecord(data.action) && isRecord(data.action.value)) {
++    return data.action.value.namespace;
++  }
++}
++
 +export function isAutomationCard(data: unknown): boolean {
-+  return (
-+    isRecord(data) &&
-+    isRecord(data.action) &&
-+    isRecord(data.action.value) &&
-+    ["control-everything.automation.v1", "control-everything.identity.v1"].includes(
-+      data.action.value.namespace as string,
-+    )
-+  );
++  const namespace = automationCardNamespace(data);
++  return namespace === "control-everything.automation.v1" ||
++    namespace === "control-everything.identity.v1";
++}
++
++function hasPlanChoiceFields(value: Record<string, unknown>): boolean {
++  const identity = ["task_id", "flow_id", "decision_id", "choice_id"];
++  return value.namespace === "control-everything.automation.v1" && Object.keys(value).length === 6 &&
++    identity.every((key) => typeof value[key] === "string" && value[key].trim().length > 0 && value[key].trim().length <= 256) &&
++    Number.isSafeInteger(value.requirement_revision) && Number(value.requirement_revision) >= 0;
 +}
 +
 +export async function receiveAutomationCard(params: {
@@ -570,7 +642,7 @@ index 0000000..9fd26c0
 +  config: ResolvedFeishuAccount["automationIngress"];
 +  active: () => boolean;
 +  signal?: AbortSignal;
-+}): Promise<void> {
++}): Promise<true | undefined> {
 +  const { data, config, active, signal } = params;
 +  const fail = () => {
 +    throw new Error("Invalid automation card ingress");
@@ -650,6 +722,8 @@ index 0000000..9fd26c0
 +    ["challenge_id", "nonce"].every(bounded)
 +  )
 +    posted = { binding: decision };
++  else if (hasPlanChoiceFields(decision))
++    posted = { plan_choice: decision };
 +  else if (
 +    decision.namespace === "control-everything.automation.v1" &&
 +    (exact(decisionKeys) || exact([...decisionKeys, "flow_id"])) &&
@@ -702,27 +776,29 @@ index 0000000..9fd26c0
 +  )
 +    posted = {};
 +  if (!posted || !eventId || !message || !actor || chat !== config.chatId) return fail();
-+  const origin = new URL(config.hubOrigin);
-+  if (!hubOriginAllowed(config.hubOrigin)) return fail();
-+  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
 +  if (Object.keys(posted).length === 0) return;
++  await postAutomationEvent(config, active, signal, {
++    event_id: eventId, chat_id: chat, message_id: message, actor_open_id: actor, ...posted,
++  });
++  return true;
++}
++
++type Ingress = NonNullable<ResolvedFeishuAccount["automationIngress"]>;
++
++async function postAutomationEvent(config: Ingress, active: () => boolean,
++  signal: AbortSignal | undefined, event: Record<string, unknown>): Promise<void> {
++  if (!hubOriginAllowed(config.hubOrigin)) throw new Error("Invalid automation Hub origin");
++  if (!active() || signal?.aborted) throw new Error("Automation ingress account stopped");
 +  let response: Response;
 +  try {
-+    response = await fetch(`${origin.origin}/remote/producer/automation/receive`, {
++    response = await fetch(`${config.hubOrigin}/remote/producer/automation/receive`, {
 +      method: "POST",
 +      redirect: "error",
 +      signal: signal
 +        ? AbortSignal.any([signal, AbortSignal.timeout(15000)])
 +        : AbortSignal.timeout(15000),
 +      headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
-+      body: JSON.stringify({
-+        producer_id: config.producerId,
-+        event_id: eventId,
-+        chat_id: chat,
-+        message_id: message,
-+        actor_open_id: actor,
-+        ...posted,
-+      }),
++      body: JSON.stringify({ producer_id: config.producerId, ...event }),
 +    });
 +  } catch {
 +    throw new Error("Automation ingress transport failed");
@@ -733,24 +809,81 @@ index 0000000..9fd26c0
 +  try {
 +    receipt = await response.json();
 +  } catch {
-+    return fail();
++    throw new Error("Invalid automation card ingress");
 +  }
 +  if (
 +    !isRecord(receipt) ||
-+    !text(receipt.id) ||
++    typeof receipt.id !== "string" || !receipt.id.trim() ||
 +    typeof receipt.state !== "string" ||
 +    !["pending", "acknowledged"].includes(receipt.state)
 +  )
-+    return fail();
++    throw new Error("Invalid automation card ingress");
++}
++
++export async function receiveAutomationAssignment(event: FeishuMessageEvent, botOpenId: string | undefined,
++  config: Ingress | undefined, active: () => boolean, signal?: AbortSignal): Promise<boolean> {
++  const { message, sender } = event;
++  if (!config || !botOpenId || message.chat_type !== "group" || message.chat_id !== config.chatId ||
++      (message.message_type !== "text" && message.message_type !== "post") ||
++      message.parent_id || message.root_id || sender.sender_type !== "user")
++    return false;
++  const actor = sender.sender_id.open_id?.trim();
++  const mention = message.mentions?.find((entry) => entry.id.open_id === botOpenId)?.key;
++  if (!actor || actor === botOpenId || !mention || !message.message_id) return false;
++  let content: unknown;
++  try {
++    content = JSON.parse(message.content);
++  } catch {
++    return false;
++  }
++  if (!isRecord(content)) return false;
++  let raw: string | undefined;
++  if (message.message_type === "text" && typeof content.text === "string") {
++    const text = content.text.trim();
++    if (text.startsWith(mention)) raw = text.slice(mention.length);
++  } else if (message.message_type === "post") {
++    raw = assignmentPostText(content, mention, botOpenId);
++  }
++  const command = raw?.trimStart();
++  if (!command) return false;
++  if (!/^开发[：:]/u.test(command)) return false;
++  const requirement = command.slice(3).trim();
++  if (!requirement || [...requirement].length > 4000 || requirement.includes("\0")) return false;
++  await postAutomationEvent(config, active, signal, {
++    event_id: message.message_id, message_id: message.message_id, chat_id: message.chat_id, actor_open_id: actor,
++    new_task: { namespace: "control-everything.automation.v1", text: requirement },
++  });
++  return true;
++}
++
++function assignmentPostText(content: Record<string, unknown>, mention: string, botOpenId: string): string | undefined {
++  const post = Array.isArray(content.content) ? content : (content.zh_cn ?? content.en_us);
++  if (!isRecord(post) || (typeof post.title === "string" && post.title.trim()) ||
++      !Array.isArray(post.content) || !Array.isArray(post.content[0])) return;
++  const first = post.content[0][0];
++  if (!isRecord(first) || first.tag !== "at" || (first.user_id !== mention && first.user_id !== botOpenId)) return;
++  const lines: string[] = [];
++  for (const [index, row] of post.content.entries()) {
++    if (!Array.isArray(row)) return;
++    let line = "";
++    for (const node of index === 0 ? row.slice(1) : row) {
++      if (!isRecord(node) || node.tag !== "text" || typeof node.text !== "string") return;
++      line += node.text;
++    }
++    lines.push(line);
++  }
++  return lines.join("\n");
 +}
 +
 +const PLAN = "按已审方案实现";
-+const ACCEPTANCE: Record<string, string> = {
-+  "这个版本通过，集成 develop": "approved",
-+  "这一版要修改": "changes_requested",
-+  "这一版不通过": "rejected",
-+};
++const ACCEPTANCE = new Map([
++  ["通过验收", "approved"],
++  ["这个版本通过，集成 develop", "approved"],
++  ["这一版要修改", "changes_requested"],
++  ["这一版不通过", "rejected"],
++]);
 +const DECISION_KEYS = ["namespace", "decision_id", "task_id", "delivery_id", "expected_revision", "progress_revision", "verdict"];
++const CHOICE_REPLY = /^按 (.{1,60}) 做$/u;
 +
 +export function replyButton(text: string, card: unknown): Record<string, unknown> | null {
 +  if (!isRecord(card) || !isRecord(card.body) || !Array.isArray(card.body.elements)) return null;
@@ -763,14 +896,22 @@ index 0000000..9fd26c0
 +    if (typeof value.flow_id !== "string" || !value.flow_id.trim() || !Number.isSafeInteger(value.requirement_revision) || Number(value.requirement_revision) < 0) return null;
 +    return value;
 +  }
-+  const verdict = ACCEPTANCE[text];
-+  if (!verdict) return null;
++  const verdict = ACCEPTANCE.get(text);
++  const choiceLabel = CHOICE_REPLY.exec(text)?.[1];
++  if (!verdict && !choiceLabel) return null;
 +  const matches = elements.filter((element) => {
-+    if (!isRecord(element) || element.tag !== "button" || !isRecord(element.text) || element.text.content !== text) return false;
-+    return isRecord(element.value) && element.value.verdict === verdict && element.value.namespace === "control-everything.automation.v1";
++    if (!isRecord(element) || element.tag !== "button" || !isRecord(element.text) ||
++        element.text.content !== (choiceLabel ?? text) || !isRecord(element.value)) return false;
++    const value = element.value;
++    if (value.namespace !== "control-everything.automation.v1") return false;
++    return choiceLabel ? typeof value.choice_id === "string" : value.verdict === verdict;
 +  });
 +  if (matches.length !== 1 || !isRecord(matches[0]) || !isRecord(matches[0].value)) return null;
 +  const value = matches[0].value;
++  if (choiceLabel) {
++    if (!hasPlanChoiceFields(value)) return null;
++    return value;
++  }
 +  if (DECISION_KEYS.some((key) => value[key] === undefined) || value.verdict !== verdict) return null;
 +  return value;
 +}
@@ -792,7 +933,8 @@ index 0000000..9fd26c0
 +  }
 +  const parent = message.parent_id.trim();
 +  const actor = params.event.sender?.sender_id?.open_id?.trim() ?? "";
-+  if ((text !== PLAN && !ACCEPTANCE[text]) || !parent || !actor || !message.message_id || !message.chat_id) return false;
++  if ((text !== PLAN && !ACCEPTANCE.has(text) && !CHOICE_REPLY.test(text)) || !parent || !actor ||
++      !message.message_id || message.chat_id !== params.config.chatId) return false;
 +  const origin = new URL(params.config.hubOrigin);
 +  if (!hubOriginAllowed(params.config.hubOrigin)) return false;
 +  let found: Response;
@@ -832,13 +974,15 @@ index 0000000..9fd26c0
 +}
 diff --git a/extensions/feishu/src/automation-config.test.ts b/extensions/feishu/src/automation-config.test.ts
 new file mode 100644
-index 0000000..70c40d8
+index 0000000000000000000000000000000000000000..4abb68187edac244038c94d7d801a0039133c55e
 --- /dev/null
 +++ b/extensions/feishu/src/automation-config.test.ts
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,114 @@
++import { readFileSync } from "node:fs";
++import { validateJsonSchemaValue } from "openclaw/plugin-sdk/json-schema-runtime";
 +import { describe, expect, it } from "vitest";
 +import { resolveFeishuAccount, resolveFeishuRuntimeAccount } from "./accounts.js";
-+import { FeishuConfigSchema } from "./config-schema.js";
++import { FeishuChannelConfigSchema, FeishuConfigSchema } from "./config-schema.js";
 +
 +const ingress = { hubOrigin: "https://hub.example.test", producerId: "father", chatId: "chat" };
 +const account = {
@@ -849,6 +993,21 @@ index 0000000..70c40d8
 +};
 +
 +describe("account-owned automation ingress", () => {
++  it("publishes the same strict account schema for cold host config validation", () => {
++    const manifest = JSON.parse(readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf8"));
++    const { schema, uiHints } = manifest.channelConfigs.feishu;
++    expect(schema).toEqual(FeishuChannelConfigSchema.schema);
++    expect(uiHints["accounts.*.automationProducerToken"]).toEqual({ sensitive: true });
++    const hostAccepts = (value: object) =>
++      validateJsonSchemaValue({ schema, cacheKey: "feishu-automation-manifest", value }).ok;
++    expect(hostAccepts({ accounts: { father: account } })).toBe(true);
++    expect(hostAccepts({
++      accounts: { father: { ...account, automationProducerToken: { source: "env", provider: "default", id: "FIXTURE_TOKEN" } } },
++    })).toBe(true);
++    expect(hostAccepts({ automationIngress: ingress })).toBe(false);
++    expect(hostAccepts({ accounts: { father: { ...account, automationIngress: { ...ingress, extra: true } } } })).toBe(false);
++  });
++
 +  it("uses the normal account resolver for stored account key spelling", () => {
 +    const cfg = { channels: { feishu: { accounts: { " Father ": account } } } };
 +    expect(resolveFeishuRuntimeAccount({ cfg, accountId: "father" }).automationIngress).toEqual({
@@ -935,10 +1094,9 @@ index 0000000..70c40d8
 +});
 diff --git a/extensions/feishu/src/automation-identity-sender.test.ts b/extensions/feishu/src/automation-identity-sender.test.ts
 new file mode 100644
-index 0000000..0e9d46a
 --- /dev/null
 +++ b/extensions/feishu/src/automation-identity-sender.test.ts
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,83 @@
 +import { describe, expect, it, vi } from "vitest";
 +import { runIdentitySender } from "./automation-identity-sender.js";
 +
@@ -993,11 +1151,14 @@ index 0000000..0e9d46a
 +    await runIdentitySender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
 +    expect(sendCard).toHaveBeenCalledTimes(1);
 +    expect(sendCard.mock.calls[0]?.[0].uuid).toBe(attempt.attempt_id);
-+    expect(sendCard.mock.calls[0]?.[0].card.body.elements[1].value).toEqual({
-+      namespace: "control-everything.identity.v1",
-+      challenge_id: attempt.challenge_id,
-+      nonce: attempt.nonce,
-+    });
++    expect(sendCard.mock.calls[0]?.[0].card.body.elements[1].behaviors).toEqual([{
++      type: "callback",
++      value: {
++        namespace: "control-everything.identity.v1",
++        challenge_id: attempt.challenge_id,
++        nonce: attempt.nonce,
++      },
++    }]);
 +    const resultCalls = vi.mocked(fetch).mock.calls.filter((call) => String(call[0]).endsWith("/result"));
 +    expect(resultCalls).toHaveLength(2);
 +    expect(JSON.parse(resultCalls[0]?.[1]?.body as string)).toEqual(JSON.parse(resultCalls[1]?.[1]?.body as string));
@@ -1021,10 +1182,9 @@ index 0000000..0e9d46a
 +});
 diff --git a/extensions/feishu/src/automation-identity-sender.ts b/extensions/feishu/src/automation-identity-sender.ts
 new file mode 100644
-index 0000000..631ae72
 --- /dev/null
 +++ b/extensions/feishu/src/automation-identity-sender.ts
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,182 @@
 +import { hubOriginAllowed } from "./automation-card-ingress.js";
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ClawdbotConfig } from "../runtime-api.js";
@@ -1056,11 +1216,14 @@ index 0000000..631ae72
 +          tag: "button",
 +          text: { tag: "plain_text", content: "确认是我" },
 +          type: "primary",
-+          value: {
-+            namespace: "control-everything.identity.v1",
-+            challenge_id: attempt.challenge_id,
-+            nonce: attempt.nonce,
-+          },
++          behaviors: [{
++            type: "callback",
++            value: {
++              namespace: "control-everything.identity.v1",
++              challenge_id: attempt.challenge_id,
++              nonce: attempt.nonce,
++            },
++          }],
 +        },
 +      ],
 +    },
@@ -1206,12 +1369,17 @@ index 0000000..631ae72
 +}
 diff --git a/extensions/feishu/src/automation-outbound-sender.test.ts b/extensions/feishu/src/automation-outbound-sender.test.ts
 new file mode 100644
-index 0000000..78dfd96
 --- /dev/null
 +++ b/extensions/feishu/src/automation-outbound-sender.test.ts
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,154 @@
 +import { describe, expect, it, vi } from "vitest";
 +import { runOutboundSender } from "./automation-outbound-sender.js";
++import { editMessageFeishu } from "./send.js";
++
++vi.mock("./send.js", () => ({
++  editMessageFeishu: vi.fn(),
++  sendCardFeishu: vi.fn(),
++}));
 +
 +const config = {
 +  hubOrigin: "https://hub.example.test",
@@ -1219,7 +1387,8 @@ index 0000000..78dfd96
 +  chatId: "oc-chat",
 +  token: "producer-fixture",
 +};
-+const card = { schema: "2.0", body: { elements: [{ tag: "markdown" }] } };
++const value = { namespace: "control-everything.automation.v1", choice_id: "keep" };
++const card = { schema: "2.0", body: { elements: [{ tag: "markdown" }, { tag: "button", value }] } };
 +const claimed = { id: "card-1", lease_id: "lease-1", card };
 +
 +function json(body: unknown, status = 200): Response {
@@ -1251,11 +1420,15 @@ index 0000000..78dfd96
 +      controller.abort();
 +      return json({ id: claimed.id, state: "sent" });
 +    });
-+    const sendCard = vi.fn(async () => ({ messageId: "om-card" }));
++    const sendCard = vi.fn<NonNullable<Parameters<typeof runOutboundSender>[0]["sendCard"]>>()
++      .mockResolvedValue({ messageId: "om-card" });
 +    await runOutboundSender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
 +    expect(sendCard).toHaveBeenCalledTimes(1);
 +    expect(sendCard.mock.calls[0]?.[0].uuid).toBe(claimed.id);
-+    expect(sendCard.mock.calls[0]?.[0].card).toEqual(card);
++    expect(sendCard.mock.calls[0]?.[0].card).toEqual({
++      schema: "2.0",
++      body: { elements: [{ tag: "markdown" }, { tag: "button", behaviors: [{ type: "callback", value }] }] },
++    });
 +    const receipts = vi.mocked(fetch).mock.calls.filter((call) => String(call[0]).endsWith("/sent"));
 +    expect(receipts).toHaveLength(2);
 +    expect(JSON.parse(receipts[0]?.[1]?.body as string)).toEqual({
@@ -1268,7 +1441,7 @@ index 0000000..78dfd96
 +  it("does not mark or send again when the card has no message id", async () => {
 +    const controller = new AbortController();
 +    let claims = 0;
-+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
++    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
 +      claims += 1;
 +      if (claims > 1) controller.abort();
 +      return json(claimed);
@@ -1279,23 +1452,101 @@ index 0000000..78dfd96
 +    expect(vi.mocked(fetch).mock.calls.some((call) => String(call[0]).endsWith("/sent"))).toBe(false);
 +    vi.restoreAllMocks();
 +  });
++
++  it("retries an edit after lease recovery and acknowledges the original message", async () => {
++    const controller = new AbortController();
++    const cfg = {};
++    const sendCard = vi.fn();
++    const editCard = vi.mocked(editMessageFeishu);
++    editCard.mockReset();
++    editCard.mockRejectedValueOnce(new Error("Feishu rejected the edit"));
++    editCard.mockResolvedValueOnce({ messageId: "om_wrong", contentType: "interactive" });
++    editCard.mockResolvedValue({ messageId: "om_original", contentType: "interactive" });
++    let claims = 0;
++    const receipts: unknown[] = [];
++    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
++      if (String(url).endsWith("/claim")) {
++        claims += 1;
++        return json({ ...claimed, lease_id: "lease-" + claims, update_message_id: "om_original" });
++      }
++      receipts.push(JSON.parse(String(init?.body)));
++      if (receipts.length === 1) return json({ error: "lease expired" }, 409);
++      controller.abort();
++      return json({ id: claimed.id, state: "sent" });
++    });
++
++    await runOutboundSender({
++      config,
++      signal: controller.signal,
++      active: () => !controller.signal.aborted,
++      cfg,
++      accountId: "test-account",
++      sendCard,
++    });
++
++    expect(sendCard).not.toHaveBeenCalled();
++    expect(editCard).toHaveBeenCalledTimes(3);
++    const edit = {
++      cfg,
++      accountId: "test-account",
++      messageId: "om_original",
++      maxHttpTimeoutMs: 30_000,
++      card: {
++        schema: "2.0",
++        body: { elements: [{ tag: "markdown" }, { tag: "button", behaviors: [{ type: "callback", value }] }] },
++      },
++    };
++    expect(editCard).toHaveBeenNthCalledWith(1, edit);
++    expect(editCard).toHaveBeenNthCalledWith(2, edit);
++    expect(editCard).toHaveBeenNthCalledWith(3, edit);
++    expect(receipts).toEqual([
++      { producer_id: "father", id: "card-1", lease_id: "lease-3", message_id: "om_original" },
++      { producer_id: "father", id: "card-1", lease_id: "lease-4", message_id: "om_original" },
++    ]);
++    vi.restoreAllMocks();
++  }, 10_000);
++
++  it("rejects a malformed update claim without sending a new card", async () => {
++    const controller = new AbortController();
++    const sendCard = vi.fn();
++    const editCard = vi.mocked(editMessageFeishu);
++    editCard.mockClear();
++    let requests = 0;
++    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
++      requests += 1;
++      if (requests > 1) controller.abort();
++      return json({ ...claimed, update_message_id: "bm_batch" });
++    });
++
++    await runOutboundSender({ config, signal: controller.signal, active: () => true, sendCard });
++
++    expect(sendCard).not.toHaveBeenCalled();
++    expect(editCard).not.toHaveBeenCalled();
++    expect(vi.mocked(fetch).mock.calls.every((call) => String(call[0]).endsWith("/claim"))).toBe(true);
++    vi.restoreAllMocks();
++  });
 +});
 diff --git a/extensions/feishu/src/automation-outbound-sender.ts b/extensions/feishu/src/automation-outbound-sender.ts
 new file mode 100644
-index 0000000..5dd018f
 --- /dev/null
 +++ b/extensions/feishu/src/automation-outbound-sender.ts
-@@ -0,0 +1,110 @@
+@@ -0,0 +1,144 @@
 +import { hubOriginAllowed } from "./automation-card-ingress.js";
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ClawdbotConfig } from "../runtime-api.js";
-+import { sendCardFeishu } from "./send.js";
++import { FEISHU_HTTP_TIMEOUT_MS } from "./client-timeout.js";
++import { editMessageFeishu, sendCardFeishu } from "./send.js";
 +import type { ResolvedFeishuAccount } from "./types.js";
 +
 +const IDLE_MS = 2_000;
 +
 +type Ingress = NonNullable<ResolvedFeishuAccount["automationIngress"]>;
-+type Claimed = { id: string; lease_id: string; card: Record<string, unknown> };
++type Claimed = {
++  id: string;
++  lease_id: string;
++  card: Record<string, unknown>;
++  update_message_id?: string;
++};
 +
 +function text(value: unknown): string {
 +  return typeof value === "string" && value.trim() && value.length <= 256 && ![...value].some((char) => char.charCodeAt(0) < 32)
@@ -1327,9 +1578,24 @@ index 0000000..5dd018f
 +  if (!isRecord(value) || !("card" in value)) return undefined;
 +  if (value.card === null && Object.keys(value).length === 1) return null;
 +  const keys = ["id", "lease_id", "card"];
++  const isUpdate = "update_message_id" in value;
++  if (isUpdate) keys.push("update_message_id");
 +  if (Object.keys(value).length !== keys.length || keys.some((key) => !(key in value))) return undefined;
-+  if (!text(value.id) || !text(value.lease_id) || !isRecord(value.card)) return undefined;
-+  return { id: text(value.id), lease_id: text(value.lease_id), card: value.card };
++  const id = text(value.id);
++  const leaseId = text(value.lease_id);
++  const updateMessageId = text(value.update_message_id);
++  if (!id || !leaseId || !isRecord(value.card) || (isUpdate && !/^om_[a-zA-Z0-9_-]+$/.test(updateMessageId))) return undefined;
++  return { id, lease_id: leaseId, card: value.card, update_message_id: updateMessageId || undefined };
++}
++
++function cardForFeishu(card: Record<string, unknown>): Record<string, unknown> {
++  if (!isRecord(card.body) || !Array.isArray(card.body.elements)) return card;
++  const elements = card.body.elements.map((element) => {
++    if (!isRecord(element) || element.tag !== "button" || !isRecord(element.value)) return element;
++    const { value, ...button } = element;
++    return { ...button, behaviors: [{ type: "callback", value }] };
++  });
++  return { ...card, body: { ...card.body, elements } };
 +}
 +
 +async function mark(config: Ingress, signal: AbortSignal, claimed: Claimed, messageId: string): Promise<void> {
@@ -1340,7 +1606,7 @@ index 0000000..5dd018f
 +      if (response.status === 200) return;
 +      if (response.status === 409) return;
 +    } catch {
-+      // The same receipt may be retried. The card send is not.
++      // Retry the same receipt without repeating the Feishu operation.
 +    }
 +    await pause(signal, IDLE_MS);
 +  }
@@ -1383,11 +1649,24 @@ index 0000000..5dd018f
 +    let messageId = sent.get(claimed.id) ?? "";
 +    if (!sent.has(claimed.id)) {
 +      try {
-+        messageId = text((await sendCard({ uuid: claimed.id, card: claimed.card })).messageId);
++        const card = cardForFeishu(claimed.card);
++        if (claimed.update_message_id) {
++          const result = await editMessageFeishu({
++            cfg: params.cfg as ClawdbotConfig,
++            messageId: claimed.update_message_id,
++            card,
++            accountId: params.accountId,
++            maxHttpTimeoutMs: FEISHU_HTTP_TIMEOUT_MS,
++          });
++          if (result.messageId === claimed.update_message_id) messageId = result.messageId;
++        } else {
++          messageId = text((await sendCard({ uuid: claimed.id, card })).messageId);
++        }
 +      } catch {
 +        messageId = "";
 +      }
-+      sent.set(claimed.id, messageId);
++      // A failed edit can be retried on a later lease for the same message.
++      if (messageId || !claimed.update_message_id) sent.set(claimed.id, messageId);
 +    }
 +    if (!messageId) {
 +      await pause(signal, IDLE_MS);
@@ -1398,12 +1677,12 @@ index 0000000..5dd018f
 +}
 diff --git a/extensions/feishu/src/automation-reply.test.ts b/extensions/feishu/src/automation-reply.test.ts
 new file mode 100644
-index 0000000..2b31d50
 --- /dev/null
 +++ b/extensions/feishu/src/automation-reply.test.ts
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,227 @@
 +import { describe, expect, it, vi } from "vitest";
-+import { receiveAutomationReply } from "./automation-card-ingress.js";
++import { receiveAutomationAssignment, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
++import type { FeishuMessageEvent } from "./event-types.js";
 +
 +const config = {
 +  hubOrigin: "https://hub.example.test",
@@ -1411,6 +1690,127 @@ index 0000000..2b31d50
 +  chatId: "oc-chat",
 +  token: "producer-fixture",
 +};
++
++function command(text: string): FeishuMessageEvent {
++  return {
++    sender: { sender_type: "user", sender_id: { open_id: "ou-operator" } },
++    message: { chat_id: config.chatId, chat_type: "group", message_id: "om-request", message_type: "text",
++      content: JSON.stringify({ text }), mentions: [{ id: { open_id: "ou-bot" }, key: "@_user_1", name: "bot" }] },
++  };
++}
++
++function postAssignment(): FeishuMessageEvent {
++  const event = command("");
++  event.message.message_type = "post";
++  event.message.content = JSON.stringify({ title: "", content: [
++    [{ tag: "at", user_id: "@_user_1", user_name: "bb", style: [] }, { tag: "text", text: " ", style: [] }],
++    [{ tag: "text", text: "开发：修正文档标题", style: [] }],
++    [{ tag: "text", text: "保留 #、`、* 和换行。", style: ["bold"] }],
++  ] });
++  return event;
++}
++
++describe("explicit development commands and choices", () => {
++  it("uses the original mention and message ID from a plain group text", async () => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++      Response.json({ id: "receipt", state: "pending" }));
++    try {
++      await expect(receiveAutomationAssignment(command("@_user_1 开发：新增任务筛选"), "ou-bot", config, () => true))
++        .resolves.toBe(true);
++      expect(fetch).toHaveBeenCalledTimes(1);
++      expect(JSON.parse(fetch.mock.calls[0][1]!.body as string)).toEqual({
++        producer_id: "father", event_id: "om-request", message_id: "om-request", chat_id: "oc-chat",
++        actor_open_id: "ou-operator",
++        new_task: { namespace: "control-everything.automation.v1", text: "新增任务筛选" },
++      });
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it.each(["direct", "localized"])("uses the original rich command text from a %s post", async (shape) => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++      Response.json({ id: "receipt", state: "pending" }));
++    try {
++      const event = postAssignment();
++      if (shape === "localized") {
++        const post = JSON.parse(event.message.content);
++        post.content[0][0].user_id = "ou-bot";
++        event.message.content = JSON.stringify({ zh_cn: post });
++      }
++      await expect(receiveAutomationAssignment(event, "ou-bot", config, () => true)).resolves.toBe(true);
++      expect(fetch).toHaveBeenCalledTimes(1);
++      expect(JSON.parse(fetch.mock.calls[0][1]!.body as string)).toEqual({
++        producer_id: "father", event_id: "om-request", message_id: "om-request", chat_id: "oc-chat",
++        actor_open_id: "ou-operator",
++        new_task: { namespace: "control-everything.automation.v1", text: "修正文档标题\n保留 #、`、* 和换行。" },
++      });
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it.each([
++    "wrong-group", "app", "parent", "root", "wrong-kind", "missing-mention", "wrong-mention",
++    "other-at-first", "literal-name", "late-at", "leading-image", "title", "empty", "too-long", "nul",
++  ])("ignores an ineligible post (%s)", async (kind) => {
++    const fetch = vi.spyOn(globalThis, "fetch");
++    try {
++      const event = postAssignment();
++      const post = JSON.parse(event.message.content);
++      if (kind === "wrong-group") event.message.chat_id = "oc-other";
++      if (kind === "app") event.sender.sender_type = "app";
++      if (kind === "parent") event.message.parent_id = "om-parent";
++      if (kind === "root") event.message.root_id = "om-root";
++      if (kind === "wrong-kind") event.message.message_type = "interactive";
++      if (kind === "missing-mention") event.message.mentions = [];
++      if (kind === "wrong-mention") event.message.mentions![0].id.open_id = "ou-other";
++      if (kind === "other-at-first") post.content[0].unshift({ tag: "at", user_id: "@_user_2", user_name: "bb" });
++      if (kind === "literal-name") post.content[0][0] = { tag: "text", text: "@bb" };
++      if (kind === "late-at") post.content[0].unshift({ tag: "text", text: "提到" });
++      if (kind === "leading-image") post.content.unshift([{ tag: "img", image_key: "img-fixture" }]);
++      if (kind === "title") post.title = "标题";
++      if (kind === "empty") post.content = [post.content[0], [{ tag: "text", text: "开发： " }]];
++      if (kind === "too-long") post.content[1][0].text = `开发：${"文".repeat(4001)}`;
++      if (kind === "nul") post.content[1][0].text = "开发：故障\0";
++      event.message.content = JSON.stringify(post);
++      await expect(receiveAutomationAssignment(event, "ou-bot", config, () => true)).resolves.toBe(false);
++      expect(fetch).not.toHaveBeenCalled();
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it.each(["ordinary", "no-mention", "quoted", "robot", "wrong-group"])("ignores %s", async (kind) => {
++    const fetch = vi.spyOn(globalThis, "fetch");
++    try {
++      const event = command(kind === "ordinary" ? "@_user_1 聊聊开发" : "@_user_1 开发：新增任务筛选");
++      if (kind === "no-mention") event.message.mentions = [];
++      if (kind === "quoted") event.message.parent_id = "om-quoted";
++      if (kind === "robot") event.sender.sender_type = "app";
++      if (kind === "wrong-group") event.message.chat_id = "oc-other";
++      await expect(receiveAutomationAssignment(event, "ou-bot", config, () => true)).resolves.toBe(false);
++      expect(fetch).not.toHaveBeenCalled();
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it("forwards only the selected option identity from the SDK callback", async () => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
++      Response.json({ id: "receipt", state: "pending" }));
++    const value = { namespace: "control-everything.automation.v1", task_id: "task", flow_id: "flow",
++      requirement_revision: 4, decision_id: "decision", choice_id: "incremental" };
++    try {
++      await receiveAutomationCard({ data: { event_id: "evt", operator: { open_id: "ou-operator" },
++        context: { open_chat_id: config.chatId, open_message_id: "om-card" }, action: { value } },
++        config, active: () => true });
++      expect(JSON.parse(fetch.mock.calls[0][1]!.body as string).plan_choice).toEqual(value);
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++});
 +const planCard = {
 +  schema: "2.0",
 +  body: { elements: [{ tag: "markdown" }, { tag: "button", value: {
@@ -1432,10 +1832,11 @@ index 0000000..2b31d50
 +}
 +
 +describe("automation text replies", () => {
-+  it("does not look up unrelated text", async () => {
-+    const fetch = vi.spyOn(globalThis, "fetch");
++  it.each([["不错", "om-card"], ["constructor", "om-card"], ["按 增量 做", ""]])(
++    "does not look up unrelated text %s", async (text, parent) => {
++    const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Unexpected lookup"));
 +    await expect(receiveAutomationReply({
-+      event: event("不错"), config, active: () => true,
++      event: event(text, parent), config, active: () => true,
 +    })).resolves.toBe(false);
 +    expect(fetch).not.toHaveBeenCalled();
 +    fetch.mockRestore();
@@ -1455,6 +1856,46 @@ index 0000000..2b31d50
 +      text: "按已审方案实现", requirement_revision: 3,
 +    });
 +    vi.restoreAllMocks();
++  });
++
++  it.each(["通过验收", "这个版本通过，集成 develop"])("posts only the named approval %s", async (label) => {
++    const value = { namespace: "control-everything.automation.v1", task_id: "task", delivery_id: "delivery",
++      decision_id: "approval", expected_revision: 1, progress_revision: 2, verdict: "approved" };
++    const button = { tag: "button", text: { content: label }, value };
++    const wrongLabel = label === "通过验收" ? "这个版本通过，集成 develop" : "通过验收";
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
++      String(url).endsWith("/lookup") ? Response.json({ card: { body: { elements: [button] } } }) :
++        Response.json({ id: "receipt", state: "pending" }));
++    try {
++      await expect(receiveAutomationReply({ event: event(wrongLabel), config, active: () => true })).resolves.toBe(false);
++      expect(fetch).toHaveBeenCalledTimes(1);
++      await expect(receiveAutomationReply({ event: event(label), config, active: () => true })).resolves.toBe(true);
++      expect(JSON.parse(fetch.mock.calls[1][1]!.body as string)).toEqual({ producer_id: "father", message_id: "om-card" });
++      expect(JSON.parse(fetch.mock.calls[2][1]!.body as string).decision).toEqual(value);
++    } finally {
++      fetch.mockRestore();
++    }
++  });
++
++  it("posts a unique exact option on the answered card", async () => {
++    const value = { namespace: "control-everything.automation.v1", task_id: "task", flow_id: "flow",
++      requirement_revision: 4, decision_id: "second-question", choice_id: "incremental" };
++    const button = { tag: "button", text: { content: "增量" }, value };
++    let elements = [button];
++    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
++      String(url).endsWith("/lookup") ? Response.json({ card: { body: { elements } } }) :
++        Response.json({ id: "receipt", state: "pending" }));
++    try {
++      await expect(receiveAutomationReply({ event: event("按 全量 做"), config, active: () => true })).resolves.toBe(false);
++      elements = [button, { ...button, value: { ...value, choice_id: "other" } }];
++      await expect(receiveAutomationReply({ event: event("按 增量 做"), config, active: () => true })).resolves.toBe(false);
++      expect(fetch).toHaveBeenCalledTimes(2);
++      elements = [button];
++      await expect(receiveAutomationReply({ event: event("按 增量 做"), config, active: () => true })).resolves.toBe(true);
++      expect(JSON.parse(fetch.mock.calls[3][1]!.body as string).plan_choice).toEqual(value);
++    } finally {
++      fetch.mockRestore();
++    }
 +  });
 +
 +  it("does not post when the answered card has no matching button", async () => {
@@ -1543,22 +1984,28 @@ index 8b12ee8..3c3af59 100644
 +  });
 +
 diff --git a/extensions/feishu/src/feishu-ingress.ts b/extensions/feishu/src/feishu-ingress.ts
-index 32a9caa..4228106 100644
 --- a/extensions/feishu/src/feishu-ingress.ts
 +++ b/extensions/feishu/src/feishu-ingress.ts
 @@ -1 +0,0 @@
 -// Feishu plugin owns raw Lark event admission, replay, and turn adoption.
-@@ -15,0 +15,2 @@ import { normalizeNullableString } from "openclaw/plugin-sdk/string-coerce-runti
+@@ -15,0 +15,2 @@
 +// Feishu plugin owns raw Lark event admission, replay, and turn adoption.
-+import { isAutomationCard } from "./automation-card-ingress.js";
-@@ -129 +130,5 @@ function inspectFeishuIngressEnvelope(
++import { automationCardNamespace, isAutomationCard } from "./automation-card-ingress.js";
+@@ -19,0 +21,2 @@
++// Feishu gives the client three seconds to receive an interaction response.
++const FEISHU_CARD_RESPONSE_BUDGET_MS = 1800;
+@@ -38,0 +42 @@
++  automationCardFeedback?: true;
+@@ -129 +133,5 @@
 -  if (!eventType || !FEISHU_DURABLE_EVENT_TYPES.has(eventType)) {
 +  if (
 +    !eventType ||
 +    (!FEISHU_DURABLE_EVENT_TYPES.has(eventType) &&
 +      !(eventType === "card.action.trigger" && isAutomationCard(nestedEvent ?? envelope)))
 +  ) {
-@@ -141,0 +147,10 @@ function inspectFeishuIngressEnvelope(
+@@ -139,0 +148,10 @@
++    );
++  }
 +  if (
 +    eventType === "card.action.trigger" &&
 +    nestedEvent?.event_id !== undefined &&
@@ -1567,24 +2014,85 @@ index 32a9caa..4228106 100644
 +    throw new FeishuIngressPermanentError(
 +      "invalid-event",
 +      "Feishu event identity conflicts with header.",
-+    );
+@@ -155,0 +174,10 @@
 +  }
-@@ -156,0 +172,3 @@ function inspectFeishuIngressEnvelope(
 +  if (eventType === "card.action.trigger") {
-+    return { eventId, eventType, laneKey: `automation:${eventId}` };
-+  }
++    return {
++      eventId,
++      eventType,
++      laneKey: `automation:${eventId}`,
++      ...(automationCardNamespace(event) === "control-everything.automation.v1"
++        ? { automationCardFeedback: true }
++        : {}),
++    };
+@@ -295,0 +324 @@
++  const cardResponses = new Map<string, PromiseWithResolvers<boolean>>();
+@@ -355,0 +385,4 @@
++        if (result.kind === "automation-card") {
++          cardResponses.get(claim.id)?.resolve(result.receipt === true);
++          return { kind: "completed" };
++        }
+@@ -368,0 +402,3 @@
++      } catch (error) {
++        cardResponses.get(claim.id)?.resolve(false);
++        throw error;
+@@ -388,0 +425 @@
++    const deadline = performance.now() + FEISHU_CARD_RESPONSE_BUDGET_MS;
+@@ -413,0 +451,7 @@
++    const cardResponse = facts.automationCardFeedback && !cardResponses.has(facts.eventId)
++      ? Promise.withResolvers<boolean>()
++      : undefined;
++    if (cardResponse) {
++      cardResponses.set(facts.eventId, cardResponse);
++    }
++    let timer: ReturnType<typeof setTimeout> | undefined;
+@@ -415 +459 @@
+-      await monitor.admit(rawEnvelope, {
++      const admission = await monitor.admit(rawEnvelope, {
+@@ -417,0 +462,19 @@
++      if (!facts.automationCardFeedback || admission.kind !== "durable") {
++        return { kind: "durable", value: undefined };
++      }
++      const { kind } = admission.queueResult;
++      let content = "操作已收到，请在工作台查看处理结果";
++      if (kind === "accepted" && cardResponse) {
++        const receipt = await Promise.race([
++          cardResponse.promise,
++          new Promise<undefined>((resolve) => {
++            timer = setTimeout(resolve, Math.max(0, deadline - performance.now()));
++          }),
++        ]);
++        if (receipt === true) {
++          content = "操作已提交，等待工作台确认";
++        } else if (receipt === undefined) {
++          content = "操作已收到，等待同步至工作台";
++        }
++      }
++      return { kind: "durable", value: { toast: { type: "info", content } } };
+@@ -421,2 +484,6 @@
+-    }
+-    return { kind: "durable", value: undefined };
++    } finally {
++      clearTimeout(timer);
++      if (cardResponse) {
++        cardResponses.delete(facts.eventId);
++      }
++    }
 diff --git a/extensions/feishu/src/monitor.account.ts b/extensions/feishu/src/monitor.account.ts
-index 1cb5164..e796bec 100644
 --- a/extensions/feishu/src/monitor.account.ts
 +++ b/extensions/feishu/src/monitor.account.ts
-@@ -10,0 +11,3 @@ import { raceWithTimeoutAndAbort } from "./async.js";
-+import { isAutomationCard, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
+@@ -10,0 +11,3 @@
++import { isAutomationCard, receiveAutomationAssignment, receiveAutomationCard, receiveAutomationReply } from "./automation-card-ingress.js";
 +import { runIdentitySender } from "./automation-identity-sender.js";
 +import { runOutboundSender } from "./automation-outbound-sender.js";
-@@ -178,0 +182 @@ type RegisterEventHandlersContext = {
+@@ -178,0 +182 @@
 +  automationIngress?: ResolvedFeishuAccount["automationIngress"];
-@@ -332 +336,9 @@ function registerEventHandlers(
+@@ -332 +336,13 @@
 -      handleMessage: handleFeishuMessage,
++      handleAutomationAssignment: (event, botOpenId, signal) => receiveAutomationAssignment(
++        event, botOpenId, context.automationIngress, context.isAccountActive,
++        signal && context.abortSignal ? AbortSignal.any([signal, context.abortSignal]) : signal ?? context.abortSignal,
++      ),
 +      handleMessage: async (params) => {
 +        if (await receiveAutomationReply({
 +          event: params.event,
@@ -1594,9 +2102,9 @@ index 1cb5164..e796bec 100644
 +        })) return;
 +        await handleFeishuMessage(params);
 +      },
-@@ -355,0 +368,12 @@ function registerEventHandlers(
+@@ -355,0 +372,12 @@
 +      if (isAutomationCard(data)) {
-+        await receiveAutomationCard({
++        const receipt = await receiveAutomationCard({
 +          data,
 +          config: context.automationIngress,
 +          active: context.isAccountActive,
@@ -1605,9 +2113,9 @@ index 1cb5164..e796bec 100644
 +        if (!context.isAccountActive() || context.abortSignal?.aborted)
 +          throw new Error("Automation ingress account stopped");
 +        await context.resolveIngressLifecycle(data)?.onAdopted();
-+        return;
++        return { kind: "automation-card", receipt };
 +      }
-@@ -474,0 +499,20 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
+@@ -474,0 +503,20 @@
 +    if (account.automationIngress) {
 +      trackTask(
 +        runIdentitySender({
@@ -1628,8 +2136,28 @@ index 1cb5164..e796bec 100644
 +        }),
 +      );
 +    }
-@@ -485,0 +530 @@ export async function monitorSingleAccount(params: MonitorSingleAccountParams):
+@@ -485,0 +534 @@
 +      automationIngress: account.automationIngress,
+diff --git a/extensions/feishu/src/monitor.message-handler.ts b/extensions/feishu/src/monitor.message-handler.ts
+--- a/extensions/feishu/src/monitor.message-handler.ts
++++ b/extensions/feishu/src/monitor.message-handler.ts
+@@ -32,0 +33,2 @@
++  handleAutomationAssignment?: (event: FeishuMessageEvent, botOpenId: string | undefined,
++    signal: AbortSignal | undefined) => Promise<boolean>;
+@@ -137,0 +140 @@
++  handleAutomationAssignment,
+@@ -404,0 +408,11 @@
++    try {
++      if (await handleAutomationAssignment?.(event, botOpenId, turnAdoptionLifecycle?.abortSignal)) {
++        if (claim.kind === "claimed") await claim.handle.commit();
++        await completeSuppressedIngress();
++        return undefined;
++      }
++    } catch (error) {
++      if (claim.kind === "claimed") claim.handle.release({ error });
++      await turnAdoptionLifecycle?.onAbandoned();
++      return { kind: "failed-retryable", error };
++    }
 diff --git a/extensions/feishu/src/secret-contract.test.ts b/extensions/feishu/src/secret-contract.test.ts
 index 176ef13..190f74a 100644
 --- a/extensions/feishu/src/secret-contract.test.ts
@@ -1686,18 +2214,33 @@ index 4437b9c..2ca1805 100644
 +      accountInactiveReason: "Feishu account is disabled or has no automationIngress.",
 +    });
 diff --git a/extensions/feishu/src/send.ts b/extensions/feishu/src/send.ts
-index 9c10e7e..3d5291a 100644
 --- a/extensions/feishu/src/send.ts
 +++ b/extensions/feishu/src/send.ts
-@@ -90,0 +91 @@ export async function sendReplyOrFallbackDirect(
+@@ -11,0 +12 @@
++import { resolveConfiguredHttpTimeoutMs } from "./client-timeout.js";
+@@ -90,0 +92 @@
 +    uuid?: string;
-@@ -105,0 +107 @@ export async function sendReplyOrFallbackDirect(
+@@ -105,0 +108 @@
 +              ...(params.uuid === undefined ? {} : { uuid: params.uuid }),
-@@ -436,0 +439 @@ type SendFeishuCardParams = Omit<
+@@ -436,0 +440 @@
 +  uuid?: string;
+@@ -455,0 +460 @@
++  maxHttpTimeoutMs?: number;
+@@ -469 +474,4 @@
+-  const client = createFeishuClient(account);
++  const client = createFeishuClient(params.maxHttpTimeoutMs === undefined ? account : {
++    ...account,
++    httpTimeoutMs: Math.min(resolveConfiguredHttpTimeoutMs(account), params.maxHttpTimeoutMs),
++  });
 diff --git a/extensions/feishu/src/types.ts b/extensions/feishu/src/types.ts
 index eeac93f..e66a60f 100644
 --- a/extensions/feishu/src/types.ts
 +++ b/extensions/feishu/src/types.ts
 @@ -35,0 +36 @@ export type ResolvedFeishuAccount = {
 +  automationIngress?: NonNullable<FeishuAccountConfig["automationIngress"]> & { token: string };
+diff --git a/extensions/feishu/openclaw.plugin.json b/extensions/feishu/openclaw.plugin.json
+index 349e63b4479e1616cf5790ec3a6ca79b23ba943d..d4b12c1b9090ad47e7347a22f6fcccad334978a5 100644
+--- a/extensions/feishu/openclaw.plugin.json
++++ b/extensions/feishu/openclaw.plugin.json
+@@ -116,0 +117 @@
++  "channelConfigs": { "feishu": {"schema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"enabled":{"type":"boolean"},"defaultAccount":{"type":"string"},"stickerSets":{"type":"object","propertyNames":{"type":"string","pattern":"^(?!\\s)(?![\\s\\S]*\\s$)[^\\p{Cs}]{1,128}$"},"additionalProperties":{"type":"object","propertyNames":{"type":"string","pattern":"^(?!\\s)(?![\\s\\S]*\\s$)(?![\\s\\S]*\\.\\.)[^\\p{Cc}\\p{Cs}/\\\\]{1,512}$"},"additionalProperties":{"minItems":1,"maxItems":8,"type":"array","items":{"type":"string","pattern":"^(?!\\s)(?![\\s\\S]*\\s$)[^\\p{Cs}]{1,64}$"}},"maxProperties":256},"maxProperties":32},"appId":{"type":"string"},"appSecret":{"anyOf":[{"type":"string"},{"oneOf":[{"type":"object","properties":{"source":{"type":"string","const":"env"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"store"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"file"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"exec"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false}]}]},"encryptKey":{"anyOf":[{"type":"string"},{"oneOf":[{"type":"object","properties":{"source":{"type":"string","const":"env"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"store"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"file"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"exec"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false}]}]},"verificationToken":{"anyOf":[{"type":"string"},{"oneOf":[{"type":"object","properties":{"source":{"type":"string","const":"env"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"store"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"file"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"exec"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false}]}]},"domain":{"default":"feishu","anyOf":[{"type":"string","enum":["feishu","lark"]},{"type":"string","format":"uri","pattern":"^[Hh][Tt][Tt][Pp][Ss]:\\/\\/"}]},"connectionMode":{"default":"websocket","type":"string","enum":["websocket","webhook"]},"webhookPath":{"default":"/feishu/events","type":"string"},"legacyWebhook":{"anyOf":[{"type":"object","properties":{"port":{"type":"integer","minimum":1,"maximum":65535},"host":{"type":"string"}},"required":["port"],"additionalProperties":false},{"type":"boolean","const":false}]},"capabilities":{"type":"array","items":{"type":"string"}},"markdown":{"type":"object","properties":{"mode":{"type":"string","enum":["native","escape","strip"]},"tableMode":{"type":"string","enum":["native","ascii","simple"]}},"additionalProperties":false},"configWrites":{"type":"boolean"},"contextVisibility":{"type":"string","enum":["all","allowlist","allowlist_quote"]},"replyToMode":{"anyOf":[{"type":"string","const":"off"},{"type":"string","const":"first"},{"type":"string","const":"all"},{"type":"string","const":"batched"}]},"responsePrefix":{"type":"string"},"dmPolicy":{"default":"pairing","type":"string","enum":["pairing","allowlist","open","disabled"]},"allowFrom":{"type":"array","items":{"type":["string","number"]}},"groupPolicy":{"anyOf":[{"type":"string","enum":["open","disabled","allowlist"]},{"type":"string","const":"allowall"}]},"groupAllowFrom":{"type":"array","items":{"type":["string","number"]}},"groupSenderAllowFrom":{"type":"array","items":{"type":["string","number"]}},"requireMention":{"type":"boolean"},"requireMentionInBotThreads":{"description":"Require mentions in threads started by this bot. False permits unmentioned messages; true requires a mention. Omit to preserve existing mention behavior.","type":"boolean"},"groups":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"requireMention":{"type":"boolean"},"tools":{"type":"object","properties":{"allow":{"type":"array","items":{"type":"string"}},"deny":{"type":"array","items":{"type":"string"}}},"additionalProperties":false},"skills":{"type":"array","items":{"type":"string"}},"enabled":{"type":"boolean"},"allowFrom":{"type":"array","items":{"type":["string","number"]}},"systemPrompt":{"type":"string"},"requireMentionInBotThreads":{"description":"Require mentions in threads started by this bot. False permits unmentioned messages; true requires a mention. Omit to preserve existing mention behavior.","type":"boolean"},"groupSessionScope":{"type":"string","enum":["group","group_sender","group_topic","group_topic_sender"]},"topicSessionMode":{"type":"string","enum":["disabled","enabled"]},"replyInThread":{"type":"string","enum":["disabled","enabled"]}},"additionalProperties":false}},"historyLimit":{"type":"integer","minimum":0,"maximum":9007199254740991},"dmHistoryLimit":{"type":"integer","minimum":0,"maximum":9007199254740991},"dms":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"enabled":{"type":"boolean"},"systemPrompt":{"type":"string"}},"additionalProperties":false}},"textChunkLimit":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991},"mediaMaxMb":{"type":"number","exclusiveMinimum":0},"httpTimeoutMs":{"type":"integer","exclusiveMinimum":0,"maximum":300000},"heartbeatVisibility":{"type":"object","properties":{"visibility":{"type":"string","enum":["visible","hidden"]},"intervalMs":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991}},"additionalProperties":false},"renderMode":{"type":"string","enum":["auto","raw","card"]},"streaming":{"type":"object","properties":{"mode":{"type":"string","enum":["off","partial"]},"chunkMode":{"type":"string","enum":["length","newline"]},"block":{"type":"object","properties":{"enabled":{"type":"boolean"},"coalesce":{"type":"object","properties":{"minChars":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991},"maxChars":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991},"idleMs":{"type":"integer","minimum":0,"maximum":9007199254740991}},"additionalProperties":false}},"additionalProperties":false}},"additionalProperties":false},"tools":{"type":"object","properties":{"doc":{"type":"boolean"},"chat":{"type":"boolean"},"wiki":{"type":"boolean"},"drive":{"type":"boolean"},"perm":{"type":"boolean"},"scopes":{"type":"boolean"},"bitable":{"type":"boolean"}},"additionalProperties":false},"actions":{"type":"object","properties":{"reactions":{"type":"boolean"},"sticker":{"type":"boolean"}},"additionalProperties":false},"replyInThread":{"type":"string","enum":["disabled","enabled"]},"reactionNotifications":{"default":"own","type":"string","enum":["off","own","all"]},"typingIndicator":{"default":true,"type":"boolean"},"resolveSenderNames":{"default":true,"type":"boolean"},"allowBots":{"type":"boolean"},"vcAutoJoin":{"type":"boolean"},"tts":{"type":"object","properties":{"auto":{"type":"string","enum":["off","always","inbound","tagged"]},"enabled":{"type":"boolean"},"mode":{"type":"string","enum":["final","all"]},"provider":{"type":"string"},"persona":{"type":"string"},"personas":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{}}},"summaryModel":{"type":"string"},"modelOverrides":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{}},"providers":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{}}},"prefsPath":{"type":"string"},"maxTextLength":{"type":"integer","minimum":1,"maximum":9007199254740991},"timeoutMs":{"type":"integer","minimum":1000,"maximum":120000}},"additionalProperties":false},"groupSessionScope":{"type":"string","enum":["group","group_sender","group_topic","group_topic_sender"]},"topicSessionMode":{"type":"string","enum":["disabled","enabled"]},"dynamicAgentCreation":{"type":"object","properties":{"enabled":{"type":"boolean"},"workspaceTemplate":{"type":"string"},"agentDirTemplate":{"type":"string"},"maxAgents":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991}},"additionalProperties":false},"accounts":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"automationIngress":{"type":"object","properties":{"hubOrigin":{"type":"string","format":"uri"},"producerId":{"type":"string","minLength":1,"maxLength":256},"chatId":{"type":"string","minLength":1,"maxLength":256}},"required":["hubOrigin","producerId","chatId"],"additionalProperties":false},"automationProducerToken":{"anyOf":[{"type":"string"},{"oneOf":[{"type":"object","properties":{"source":{"type":"string","const":"env"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"store"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"file"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"exec"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false}]}]},"enabled":{"type":"boolean"},"name":{"type":"string"},"appId":{"type":"string"},"appSecret":{"anyOf":[{"type":"string"},{"oneOf":[{"type":"object","properties":{"source":{"type":"string","const":"env"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"store"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"file"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"exec"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false}]}]},"encryptKey":{"anyOf":[{"type":"string"},{"oneOf":[{"type":"object","properties":{"source":{"type":"string","const":"env"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"store"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"file"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"exec"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false}]}]},"verificationToken":{"anyOf":[{"type":"string"},{"oneOf":[{"type":"object","properties":{"source":{"type":"string","const":"env"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"store"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string","pattern":"^[A-Z][A-Z0-9_]{0,127}$"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"file"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false},{"type":"object","properties":{"source":{"type":"string","const":"exec"},"provider":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,63}$"},"id":{"type":"string"}},"required":["source","provider","id"],"additionalProperties":false}]}]},"domain":{"anyOf":[{"type":"string","enum":["feishu","lark"]},{"type":"string","format":"uri","pattern":"^[Hh][Tt][Tt][Pp][Ss]:\\/\\/"}]},"connectionMode":{"type":"string","enum":["websocket","webhook"]},"webhookPath":{"type":"string"},"legacyWebhook":{"anyOf":[{"type":"object","properties":{"port":{"type":"integer","minimum":1,"maximum":65535},"host":{"type":"string"}},"required":["port"],"additionalProperties":false},{"type":"boolean","const":false}]},"capabilities":{"type":"array","items":{"type":"string"}},"markdown":{"type":"object","properties":{"mode":{"type":"string","enum":["native","escape","strip"]},"tableMode":{"type":"string","enum":["native","ascii","simple"]}},"additionalProperties":false},"configWrites":{"type":"boolean"},"contextVisibility":{"type":"string","enum":["all","allowlist","allowlist_quote"]},"replyToMode":{"anyOf":[{"type":"string","const":"off"},{"type":"string","const":"first"},{"type":"string","const":"all"},{"type":"string","const":"batched"}]},"responsePrefix":{"type":"string"},"dmPolicy":{"type":"string","enum":["pairing","allowlist","open","disabled"]},"allowFrom":{"type":"array","items":{"type":["string","number"]}},"groupPolicy":{"anyOf":[{"type":"string","enum":["open","disabled","allowlist"]},{"type":"string","const":"allowall"}]},"groupAllowFrom":{"type":"array","items":{"type":["string","number"]}},"groupSenderAllowFrom":{"type":"array","items":{"type":["string","number"]}},"requireMention":{"type":"boolean"},"requireMentionInBotThreads":{"description":"Require mentions in threads started by this bot. False permits unmentioned messages; true requires a mention. Omit to preserve existing mention behavior.","type":"boolean"},"groups":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"requireMention":{"type":"boolean"},"tools":{"type":"object","properties":{"allow":{"type":"array","items":{"type":"string"}},"deny":{"type":"array","items":{"type":"string"}}},"additionalProperties":false},"skills":{"type":"array","items":{"type":"string"}},"enabled":{"type":"boolean"},"allowFrom":{"type":"array","items":{"type":["string","number"]}},"systemPrompt":{"type":"string"},"requireMentionInBotThreads":{"description":"Require mentions in threads started by this bot. False permits unmentioned messages; true requires a mention. Omit to preserve existing mention behavior.","type":"boolean"},"groupSessionScope":{"type":"string","enum":["group","group_sender","group_topic","group_topic_sender"]},"topicSessionMode":{"type":"string","enum":["disabled","enabled"]},"replyInThread":{"type":"string","enum":["disabled","enabled"]}},"additionalProperties":false}},"historyLimit":{"type":"integer","minimum":0,"maximum":9007199254740991},"dmHistoryLimit":{"type":"integer","minimum":0,"maximum":9007199254740991},"dms":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","properties":{"enabled":{"type":"boolean"},"systemPrompt":{"type":"string"}},"additionalProperties":false}},"textChunkLimit":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991},"mediaMaxMb":{"type":"number","exclusiveMinimum":0},"httpTimeoutMs":{"type":"integer","exclusiveMinimum":0,"maximum":300000},"heartbeatVisibility":{"type":"object","properties":{"visibility":{"type":"string","enum":["visible","hidden"]},"intervalMs":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991}},"additionalProperties":false},"renderMode":{"type":"string","enum":["auto","raw","card"]},"streaming":{"type":"object","properties":{"mode":{"type":"string","enum":["off","partial"]},"chunkMode":{"type":"string","enum":["length","newline"]},"block":{"type":"object","properties":{"enabled":{"type":"boolean"},"coalesce":{"type":"object","properties":{"minChars":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991},"maxChars":{"type":"integer","exclusiveMinimum":0,"maximum":9007199254740991},"idleMs":{"type":"integer","minimum":0,"maximum":9007199254740991}},"additionalProperties":false}},"additionalProperties":false}},"additionalProperties":false},"tools":{"type":"object","properties":{"doc":{"type":"boolean"},"chat":{"type":"boolean"},"wiki":{"type":"boolean"},"drive":{"type":"boolean"},"perm":{"type":"boolean"},"scopes":{"type":"boolean"},"bitable":{"type":"boolean"}},"additionalProperties":false},"actions":{"type":"object","properties":{"reactions":{"type":"boolean"},"sticker":{"type":"boolean"}},"additionalProperties":false},"replyInThread":{"type":"string","enum":["disabled","enabled"]},"reactionNotifications":{"type":"string","enum":["off","own","all"]},"typingIndicator":{"type":"boolean"},"resolveSenderNames":{"type":"boolean"},"allowBots":{"type":"boolean"},"vcAutoJoin":{"type":"boolean"},"tts":{"type":"object","properties":{"auto":{"type":"string","enum":["off","always","inbound","tagged"]},"enabled":{"type":"boolean"},"mode":{"type":"string","enum":["final","all"]},"provider":{"type":"string"},"persona":{"type":"string"},"personas":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{}}},"summaryModel":{"type":"string"},"modelOverrides":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{}},"providers":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{"type":"object","propertyNames":{"type":"string"},"additionalProperties":{}}},"prefsPath":{"type":"string"},"maxTextLength":{"type":"integer","minimum":1,"maximum":9007199254740991},"timeoutMs":{"type":"integer","minimum":1000,"maximum":120000}},"additionalProperties":false},"groupSessionScope":{"type":"string","enum":["group","group_sender","group_topic","group_topic_sender"]},"topicSessionMode":{"type":"string","enum":["disabled","enabled"]}},"additionalProperties":false}}},"additionalProperties":false},"uiHints":{"accounts.*.automationProducerToken":{"sensitive":true}}} },

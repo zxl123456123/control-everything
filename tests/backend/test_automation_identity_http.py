@@ -147,6 +147,25 @@ class IdentityHTTPTests(unittest.TestCase):
         self.server.remote_connector = None
         self.assertEqual(self.request()[0],503)
 
+    def test_grant_new_task_role_with_a_separately_selected_reviewer(self):
+        from tests.backend.test_automation_queue import bind_actor
+
+        initiator = bind_actor(self.profile.store, 'p', 'initiator')
+        reviewer = bind_actor(self.profile.store, 'p', 'reviewer')
+        with self.profile.store.connection() as db:
+            db.execute("INSERT INTO project_directories VALUES('p','main','fixture','fixture',1)")
+        body = {'binding_id': initiator, 'reviewer_binding_id': reviewer, 'directory_id': 'main', 'enabled': True}
+        self.assertEqual(self.request('/assignment', 'POST', body, {'X-Session-CSRF': 'wrong'})[0], 403)
+        self.assertEqual(self.request('/assignment', 'POST', {**body, 'reviewer_binding_id': 'reviewer'})[0], 400)
+        self.assertEqual(self.request('/assignment', 'POST', body), (200, body))
+        with self.profile.store.connection() as db:
+            stored = db.execute('SELECT binding_id,reviewer_binding_id,directory_id FROM automation_assignment_grants').fetchone()
+            self.assertEqual(tuple(stored), (initiator, reviewer, 'main'))
+        revoked = {**body, 'enabled': False}
+        self.assertEqual(self.request('/assignment', 'POST', revoked), (200, revoked))
+        with self.profile.store.connection() as db:
+            self.assertIsNone(db.execute('SELECT 1 FROM automation_assignment_grants').fetchone())
+
     def test_pending_configuration_change_rejects_without_writes(self):
         from types import SimpleNamespace
         self.server.desktop = SimpleNamespace(configuration_changed=True)

@@ -294,15 +294,18 @@ class AutomationDeliveryReviewTests(AutomationQueueFixture):
         with self.profile.store.connection() as c:
             self.assertEqual(c.execute('SELECT COUNT(*) FROM task_reviews').fetchone()[0],0)
 
-    def test_changes_requested_is_a_human_fact_without_automatic_repair(self):
+    def test_changes_requested_records_the_decision_before_running_repair(self):
         result=self.service.review_task_delivery(self.item['id'],{**self.approval,'verdict':'changes_requested'})
         self.assertEqual(result['item']['state'],'doing')
         self.assertIsNone(result['item']['accepted_delivery_id'])
         with self.profile.store.connection() as c:
             flow=c.execute('SELECT * FROM automation_flows').fetchone()
             self.assertEqual(json.loads(flow['attention_json'])['reason'],'acceptance_changes_requested')
-        self.pump()
         self.assertEqual(len(self.host.calls),3)
+        final = self.pump()
+        self.assertEqual(len(self.host.calls),4)
+        self.assertEqual(final['flow']['status'], 'awaiting_acceptance')
+        self.assertNotEqual(final['flow']['attention']['delivery_id'], self.delivery)
 
     def test_dispatch_uses_requested_historical_delivery_source(self):
         from uuid import uuid4

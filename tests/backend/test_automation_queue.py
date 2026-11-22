@@ -96,9 +96,21 @@ class FeishuAssignmentTests(AutomationQueueFixture):
                             'text': '请做这个任务'})})
         bind_actor(self.profile.store, self.project['id'], 'ou-owner')
         designate_actor(self.profile.store, other['id'], 'ou-owner')
+        import sys
+        spec = {'argv': [sys.executable, '-V'], 'source_files': ['test.py'], 'timeout': 5}
+        with self.profile.store.connection() as connection:
+            directory_id = connection.execute('SELECT binding_id FROM project_directories WHERE project_id=?',
+                                              (self.project['id'],)).fetchone()['binding_id']
+        self.service.set_project_automation_verification(self.project['id'], {
+            'directory_id': directory_id, 'verification': spec})
         applied = apply_feishu_assignments(self.profile.store, binding)
         self.assertEqual(applied[0]['event']['task_id'], other['id'])
-        self.assertTrue(apply_feishu_assignments(self.profile.store, binding)[0]['replayed'])
+        self.assertEqual(applied[0]['event']['payload']['request']['verification'], spec)
+        self.service.set_project_automation_verification(self.project['id'], {
+            'directory_id': directory_id, 'verification': None})
+        replay = apply_feishu_assignments(self.profile.store, binding)[0]
+        self.assertTrue(replay['replayed'])
+        self.assertEqual(replay['event']['payload']['request']['verification'], spec)
         with self.profile.store.connection() as connection:
             self.assertEqual(connection.execute("SELECT COUNT(*) FROM automation_events WHERE task_id=?",
                                                 (other['id'],)).fetchone()[0], 1)
@@ -212,7 +224,7 @@ class AutomationQueueStorageTests(AutomationQueueFixture):
             connection.commit()
             original = dict(connection.execute('SELECT * FROM automation_events').fetchone())
         result = task_migration.migrate_tasks(str(root))
-        self.assertEqual(result['schema_version'], 16)
+        self.assertEqual(result['schema_version'], 18)
         self.assertEqual(backups.validate_backup(result['backup'])['schema_version'], 11)
         with Profile.open(str(root)).store.connection() as connection:
             event = dict(connection.execute('SELECT * FROM automation_events').fetchone())

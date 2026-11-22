@@ -179,7 +179,6 @@ WEB_ASSETS = {
     "/product": ("product/index.html", "text/html; charset=utf-8"),
     "/product.css": ("product/product.css", "text/css; charset=utf-8"),
     "/product.js": ("product/product.js", "text/javascript; charset=utf-8"),
-    "/workspace": ("workspace/workspace.html", "text/html; charset=utf-8"),
     "/workspace.js": ("workspace/workspace.js", "text/javascript; charset=utf-8"),
     "/onboarding.js": ("workspace/onboarding.js", "text/javascript; charset=utf-8"),
     "/agents.js": ("workspace/agents.js", "text/javascript; charset=utf-8"),
@@ -356,7 +355,7 @@ class PanelHandler(BaseHTTPRequestHandler):
             return self.reply(200, {"app": APP, "protocol_version": 1})
         if path.path == "/progress" and not path.query and self.profile() is not None:
             self.send_response(302)
-            self.send_header("Location", "/workspace#projects")
+            self.send_header("Location", "/studio#projects")
             self.send_header("Content-Length", "0")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
@@ -1296,10 +1295,12 @@ class PanelServer(ThreadingHTTPServer):
             from control_everything.workspace.automation_flow import AutomationQueue
             from control_everything.workspace.automation_consumer import AutomationConsumer, AutomationConsumerService
             from control_everything.execution.verification import run_verification, read_verification_receipt
-            from control_everything.execution.develop_integration import run_develop_integration
+            from control_everything.execution.develop_integration import preflight_develop_target, run_develop_integration
+            from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
             adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
             self.workspace.native_progress.adapter = adapter
             self.workspace.check_verification = None
+            self.workspace.integration_preflight = None
             if runtime is not None:
                 profile = self.profile
                 def verify(step, flow):
@@ -1315,15 +1316,28 @@ class PanelServer(ThreadingHTTPServer):
                     receipt = read_verification_receipt(output_dir=output, argv=spec['argv'], cwd=scope['cwd'],
                         task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'], source_files=spec['source_files'])
                     return {'receipt': receipt, 'output_dir': str(output)}
-                def integrate(step, flow, *, cancel_event, checkpoint):
+                def integrate(step, flow, *, cancel_event, checkpoint, recover=False):
                     output = profile.data_dir / 'automation-integration' / flow['id'] / step['id']
                     source_output = profile.data_dir / 'automation-verification' / flow['id'] / step['request']['integration_target']['verify_step_id']
                     return run_develop_integration(step, flow, git_executable=runtime.config.git_executable,
-                        output_dir=output, source_output_dir=source_output, cancel_event=cancel_event, checkpoint=checkpoint)
+                        output_dir=output, source_output_dir=source_output, cancel_event=cancel_event,
+                        checkpoint=checkpoint, recover=recover, own_process_tree=True)
+                def recover_integration(step, flow, *, cancel_event, checkpoint):
+                    return integrate(step, flow, cancel_event=cancel_event, checkpoint=checkpoint, recover=True)
+                def preflight(source, target):
+                    return preflight_develop_target(source, target, git_executable=runtime.config.git_executable)
+
+                def prepare_integration(flow):
+                    return prepare_acceptance_offer(self.workspace, flow)
+
                 self.workspace.check_verification = check_verification
+                self.workspace.integration_preflight = preflight
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
+                custom_integration = getattr(self, 'automation_integration', None)
                 consumer = AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification,
-                                              integration=getattr(self, "automation_integration", None) or integrate)
+                                              integration=custom_integration or integrate,
+                                              recover_integration=None if custom_integration else recover_integration,
+                                              prepare_integration=prepare_integration)
                 consumer.review_service = self.workspace
                 self.automation_consumer_service = AutomationConsumerService(consumer)
                 try:

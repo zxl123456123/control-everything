@@ -89,6 +89,8 @@ Import Linter 的固定依赖在 `tools/architecture/requirements.txt`。内容/
 
 入口先核 HEAD、原文件完整 hash、patch/LICENSE hash、实际 Node/pnpm 版本，再在输出目录从原始字节正反应用 U0 patch 并严格核重建字节。应用使用 `git apply --unidiff-zero`，不忽略空白或尝试模糊匹配。原源码只允许未改动基线或精确匹配本 patch 的已应用状态；不覆盖其它工作。`--check` 仅作这些校验；完整运行再执行上述官方测试和局部 runtime 构建，产出 runtime 文件、逐文件 hash、命令日志与 receipt，失败也记录 receipt。子进程临时目录归该输出，不改系统 TEMP/TMP。构建器边界验证使用 `python -m unittest -v tests.backend.test_openclaw_feishu_build`。
 
+`--pack` 与 `--check` 互斥，在本轮测试与 runtime 构建之后调用固定上游 npm manifest overlay 和 `npm pack --json --ignore-scripts`，不执行发布脚本。需要所选 Node 工具链相邻的 npm CLI；依赖打包可能访问公共 npm registry，缓存、空 npm 配置和 HOME 均属于本次输出。检查通过后，构建收据写入 `packageBuilt` 和 tgz 的 SHA-256。测试与运行时构建的完整输出分别保存在 `command-1.log` 和 `command-2.log`。安装验收在隔离的固定版本宿主中单独进行，记录同一 tgz 的 SHA-256、实际加载入口和注册的飞书通道。许可或包检查失败保留失败收据。
+
 ## 功能目录与新增代码归属
 
 管理后端沿用 Python，Windows 进程观察由 Rust 组件负责。内置工作台使用独立 React/TypeScript/Node 构建单元；Studio、账号、新闻及兼容页面保留 HTML/CSS 和普通脚本，本机观察与资讯模块使用 TypeScript 源码及已生成 JS。单独运行 Python 管理服务无需 Node/npm，完整 Windows 产品自带所需 Node 运行时；开发完整工作台按下文准备工具与构建。后端按实际职责组织，新增代码优先放入下表对应功能包；不为每个功能预建空的通用分层。

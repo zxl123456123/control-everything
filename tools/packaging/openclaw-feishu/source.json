@@ -3,7 +3,7 @@
   "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
   "version": "2026.11.2",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
-  "patchSha256": "fa8e13e7cc6bdf692ab417f90402d6105c4f884b8ac5a427a1e0458069194236",
+  "patchSha256": "4babcf25f52ced5410954a5761cf5da318009b363e2a377869261dd094265b23",
   "patchFormat": "unified-zero-context; git apply --unidiff-zero",
   "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
   "npm": {
@@ -16,14 +16,55 @@
       "integrity": "sha512-iINSCr1yjq+bkj8gVh2t+Qbgp442ypcTWuarOtNMM0tIdtdEtPocx4rl35jsT+asCMODrXQikH1dx4G8q2DQuA=="
     }
   },
+  "packPolicy": {
+    "assets": {
+      "assets/activity.svg": "fb27167a7d00c565e5b0a97aa2b9b6991c3fc8a7bc9a4a00cd902ce761d08442",
+      "assets/icon.png": "a7e978fcbbf6e1a4b83ab36cd2b0829fa2eb29fa740242821ab5672b1da1b2eb"
+    },
+    "licenseReadmes": {
+      "agent-base": {
+        "version": "6.0.2",
+        "sha256": "f1425c3b72330fe4fb2aa5a2fb152e939bdf534692a32b5f0b38f74147b98556"
+      },
+      "https-proxy-agent": {
+        "version": "5.0.1",
+        "sha256": "32f0856d2c43df7d05cca960fdee84e1e38ab545bd7b2186433dfa41aa90a712"
+      },
+      "isarray": {
+        "version": "1.0.0",
+        "sha256": "ff138e683771b187f3629c383db72ee7d632009010a36d08e18e8d2a34222ec7"
+      }
+    },
+    "fsSafeNativeLicense": {
+      "source": "https://github.com/openclaw/fs-safe/blob/88f8255eb3970c091aaa69c31f274653f3fb54e4/LICENSE",
+      "version": "0.26.5",
+      "licenseSha256": "8d703995c48aeb3726ab83f111a10ee696835e096802ee0329ac50216ab9434e",
+      "bindingSha256": {
+        "@openclaw/fs-safe-darwin-arm64": "8c6ffcbd9e1a13bbbf09e45843cc0276c7d5b168feede6c943d3dd027eb7a0a6",
+        "@openclaw/fs-safe-darwin-x64": "d4f005caacd3d54dba11f1bc7d89df30d3580833a8cf6d11d52336c94f392256",
+        "@openclaw/fs-safe-freebsd-arm64": "671a1d46573e02874b02e6d0822ec41e2f4079021a08f128f532713d525a101a",
+        "@openclaw/fs-safe-freebsd-x64": "e7c2628add7b3570d781175ac6a5fc33ad7a03ecee22979ea0f7d4345fb8c6fe",
+        "@openclaw/fs-safe-linux-arm64-gnu": "c493508cffbef5eee14dddc9ecd9f6aefeb9b22c1cd21cd4ef8c2b8dbe2df9d5",
+        "@openclaw/fs-safe-linux-arm64-musl": "07a30f5d7167f70a57c412d58b8da23aeb14960cb54126f6f8aa24111e2557a6",
+        "@openclaw/fs-safe-linux-x64-gnu": "0ad5b8e1a6e1dfdc00becaf6a7080186788b64e93669c082cfab647f4332369b",
+        "@openclaw/fs-safe-linux-x64-musl": "8a3f33c9691293fe9165aff8341ef2b4316271bb55128fd49493218cc05290a4",
+        "@openclaw/fs-safe-win32-arm64-msvc": "78377ba184767159f68a3142766b41a39cd68fb9c7be511e531ba218adb60e01",
+        "@openclaw/fs-safe-win32-x64-msvc": "ac134c9b6634ca14044436d4136f20a030b3bc7ee85c3738fd0fbe76fc8a7f87"
+      }
+    }
+  },
   "files": {
+    "extensions/feishu/openclaw.plugin.json": {
+      "originalSha256": "2f97dc3cda60716356e736235cdc0016861a1392dd99635c6658f3afc3462bad",
+      "patchedSha256": "760e7e6d85eafcfa6b93cc80f1b45f01613783eba9db45bb41b036fc27285290"
+    },
     "extensions/feishu/src/accounts.ts": {
       "originalSha256": "944c3d3f0c8a8e2760cabd3f411dbac77abd0503b4ce83c1e17b4e71d6a9c7a8",
       "patchedSha256": "e17e8de90de7f8165597cdf448f2d36b2b950dfade3566955b58ff19da39e2f3"
     },
     "extensions/feishu/src/automation-config.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "5ef0cb887baea56e9f9b2c8eeaf7141502df97d35d4b5aeda60bba77479fbd8a"
+      "patchedSha256": "eeeef166af10768127ed74496c37ceedadc1e332162770ac68ddc652128c8517"
     },
     "extensions/feishu/src/config-schema.ts": {
       "originalSha256": "8cbf3bc318627ecda0c52c9df483a62c359f183049c81b3680b9f96ae18a8277",
@@ -43,27 +84,27 @@
     },
     "extensions/feishu/src/automation-identity-sender.ts": {
       "originalSha256": null,
-      "patchedSha256": "23bbe998bf773b3f052aaf7c77789ed15b3cc5da40355e6a69bab1318ef7429a"
+      "patchedSha256": "1b015fff52efd4f62d9859888690f9ae3faaae03f9b40fe89c901bb1491217a1"
     },
     "extensions/feishu/src/automation-identity-sender.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "8e50ae6ce5644d4416112d23b016bbc21174837be9ccb7c157716e7f3c81b6ac"
+      "patchedSha256": "9577f90d0a9d73fead010fd5c9d198ae00ebb773c5213c4201c71f54bada4d73"
     },
     "extensions/feishu/src/send.ts": {
       "originalSha256": "9daa090cfc25309fe240534bc9f1d0780eab5f3549caeec9f83c782f5f47607e",
-      "patchedSha256": "15edcf6689e610e80b0bb300305152694124069aa23619dd85d0ed5f23a0bc13"
+      "patchedSha256": "0daa2e775582d575ef27819551cde74cca1b233ab69a4d94af9abb5903afed5d"
     },
     "extensions/feishu/src/automation-card-ingress.ts": {
       "originalSha256": null,
-      "patchedSha256": "34ff904136dca0cccc3119bc29d08aa8ed79ba628b1a90834f96b6ac2ecf8ab7"
+      "patchedSha256": "035d8936c8dfbad90548b09c1ce1d312a09973c1dc8642ec9899c7ac51ee622e"
     },
     "extensions/feishu/src/automation-card-ingress.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "7726a3d880849dcb7759ddf8035d00f1a90b325aeed79c7d84d2571d553b2f14"
+      "patchedSha256": "acc836cf359c18f79b56eeccd48be825e8aa0a383ccb9d6833a8f2aa69bdd11e"
     },
     "extensions/feishu/src/feishu-ingress.ts": {
       "originalSha256": "4e28f530904a62eea3f3a833c26a5e44770052f2336501356ebd8ba7b6d61c21",
-      "patchedSha256": "f4ce1718517f26c067e5689b6feb19294b98a9d1b6b5691b7f6c8c6b7f97e6c1"
+      "patchedSha256": "722efb6c953d764a069f6c05871d14112f245b4e4e1686198b7b926c50f09655"
     },
     "extensions/feishu/src/feishu-ingress.test.ts": {
       "originalSha256": "9f9a8dac5c7663f4c50cb8d57cf105cce5d1c2390db57074e20a714de6887e59",
@@ -71,19 +112,23 @@
     },
     "extensions/feishu/src/monitor.account.ts": {
       "originalSha256": "a4ba4249e3c9daa1a1e3c13a1f04aa9c7d9b3666896c7066b10f2d6ea604b26c",
-      "patchedSha256": "b4dfd4cc231bafe140ccafe967c0b34418e51d278359d70b15d23bee00f92499"
+      "patchedSha256": "076f67e785ab0ca7610c54c439670a661b73833ad8e26f34b3860938c98413ff"
     },
     "extensions/feishu/src/automation-outbound-sender.ts": {
       "originalSha256": null,
-      "patchedSha256": "16df0ee4e3a93be325ba5832e403368216cb2ce033d6b75bf489ad50d373cafa"
+      "patchedSha256": "dcb7cdf15480e1917ebe1baf96e86c5607ee077423964e89e40c5409fae1223c"
     },
     "extensions/feishu/src/automation-outbound-sender.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "b4b852874e8cea79bee87e2b1e4dfc18efc1dfdf01ec5c7ee7690aea9866b4d4"
+      "patchedSha256": "c2ac62f46edf7882e9d9a863a3f46a7c43acb2b782bc209615ae9274d6f7000c"
     },
     "extensions/feishu/src/automation-reply.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "923adccaa2987d481a72f68abdac906cedeb40905d47e3bffa28e108decca542"
+      "patchedSha256": "5ba07a5aed58e4f4183fdb70d5d3d8632f8127e0debc4f0b41aa2ba0399a8fe6"
+    },
+    "extensions/feishu/src/monitor.message-handler.ts": {
+      "originalSha256": "0d72e66c6f7e24ebd1013e7ba8ce4426c896d22146df76149efd0c52dd00a7bd",
+      "patchedSha256": "1f0ffc4a78088bf60abda45688cd90623f4db71e25239f7eabc675a74d649a6f"
     }
   },
   "tests": [
@@ -102,5 +147,5 @@
     "extensions/feishu"
   ],
   "runtimeOutput": "extensions/feishu/dist",
-  "delivery": "runtime-build-material; not an installable plugin package"
+  "delivery": "runtime build by default; --pack builds a local npm candidate for separate host validation"
 }

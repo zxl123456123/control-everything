@@ -7,7 +7,17 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+from control_everything.workspace import dispatch
 from control_everything.workspace.store import now_utc
+
+
+def confirmed_identity(db, project_id, binding_id, device):
+    return db.execute('''SELECT c.open_id,h.app_id,h.producer_id,h.account_id,h.chat_id
+        FROM automation_identity_bindings b JOIN automation_identity_candidates c ON c.id=b.candidate_id
+        JOIN automation_identity_challenges h ON h.id=b.challenge_id
+        WHERE b.id=? AND b.project_id=? AND b.state='active' AND h.state='confirmed' AND h.project_id=?
+        AND h.hub_origin=? AND h.device_id=? AND h.generation=? AND c.app_id=h.app_id''',
+        (binding_id, project_id, project_id, device['hub_origin'], device['device_id'], device['generation'])).fetchone()
 
 
 class IdentityService:
@@ -169,6 +179,29 @@ class IdentityService:
                 ON CONFLICT(task_id) DO UPDATE SET app_id=excluded.app_id, open_id=excluded.open_id, set_at=excluded.set_at''',
                 (task_id, fact['app_id'], fact['open_id'], now_utc()))
             return {'task_id': task_id, 'app_id': fact['app_id'], 'open_id': fact['open_id']}
+
+    def set_assignment_grant(self, project_id, binding_id, reviewer_binding_id, directory_id, enabled):
+        """The local owner independently chooses who initiates and reviews new project tasks."""
+        with self._transaction(project_id) as (db, device):
+            if enabled:
+                initiator = confirmed_identity(db, project_id, binding_id, device)
+                reviewer = confirmed_identity(db, project_id, reviewer_binding_id, device)
+                if not initiator or not reviewer or tuple(initiator)[1:] != tuple(reviewer)[1:]:
+                    raise ValueError('assignment_binding_unavailable')
+                directory = dispatch._directory(db, project_id, directory_id)
+                db.execute('''INSERT INTO automation_assignment_grants
+                    (binding_id,reviewer_binding_id,project_id,directory_id,directory_path,set_at) VALUES(?,?,?,?,?,?)
+                    ON CONFLICT(binding_id) DO UPDATE SET reviewer_binding_id=excluded.reviewer_binding_id,
+                    directory_id=excluded.directory_id,directory_path=excluded.directory_path,set_at=excluded.set_at
+                    WHERE automation_assignment_grants.reviewer_binding_id<>excluded.reviewer_binding_id
+                       OR automation_assignment_grants.directory_id<>excluded.directory_id
+                       OR automation_assignment_grants.directory_path<>excluded.directory_path''',
+                    (binding_id, reviewer_binding_id, project_id, directory_id, directory['path'], now_utc()))
+            else:
+                db.execute('DELETE FROM automation_assignment_grants WHERE binding_id=? AND project_id=?',
+                           (binding_id, project_id))
+        return {'binding_id': binding_id, 'reviewer_binding_id': reviewer_binding_id,
+                'directory_id': directory_id, 'enabled': enabled}
 
 
 def trusted_context(payload):

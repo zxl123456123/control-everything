@@ -15,6 +15,22 @@ from control_everything.profiles import task_migration as migration, profile_imp
 
 
 class IdentitySchemaTests(unittest.TestCase):
+    def test_upgrade_from_schema16_to_project_verification(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'profile.json').write_text(json.dumps(DEFAULT_CONFIG), encoding='utf-8')
+            profile = Profile(root)
+            with closing(migration.raw_connection(profile.store.path)) as connection:
+                schema.install_schema16(connection, fresh=True)
+                connection.commit()
+                before = schema.table_facts(connection, 16)
+            result = migration.migrate_tasks(str(root))
+            self.assertEqual(result['schema_version'], 18)
+            with Profile.open(str(root)).store.connection() as connection:
+                self.assertEqual(schema.table_facts(connection, 16), before)
+                self.assertEqual(connection.execute(
+                    'SELECT COUNT(*) FROM automation_project_verification').fetchone()[0], 0)
+
     def test_real14_migration_and_failure_backup(self):
         for fail in (False, True):
             with self.subTest(fail=fail), TemporaryDirectory() as temporary:
@@ -45,7 +61,7 @@ class IdentitySchemaTests(unittest.TestCase):
                         self.assertEqual(schema.table_facts(connection, 14), before)
                 else:
                     result = migration.migrate_tasks(str(root))
-                    self.assertEqual(result['schema_version'], 16)
+                    self.assertEqual(result['schema_version'], 18)
                     backup = result['backup']
                     with profile.store.connection() as connection:
                         after = schema.table_facts(connection, 15)

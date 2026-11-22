@@ -14,6 +14,8 @@ class PlanningHost(FakeHost):
         self.kind, self.verdict, self.code_verdict, self.model = 'small', 'approve', 'approve', 'requested'
         self.code_text = None
         self.questions = []
+        self.decision = None
+        self.planner_decision = None
 
     def create(self, params, *, cancel_event=None):
         self.calls.append(copy.deepcopy(params))
@@ -28,6 +30,10 @@ class PlanningHost(FakeHost):
                  {'kind': self.kind, 'plan': 'Read code and verify.', 'needs_human': False, 'questions': self.questions}
                  if 'PLAN_REVIEW' not in prompt else
                  {'kind': self.kind, 'verdict': self.verdict, 'rationale': 'Scope checked.', 'questions': self.questions})
+        if prompt.startswith('PLAN_REVIEW') and self.decision is not None:
+            value['decision'] = self.decision
+        if prompt.startswith('PLAN\n') and self.planner_decision is not None:
+            value.update(needs_human=True, decision=self.planner_decision)
         reply = copy.deepcopy(self.reply)
         reply['binding'] = copy.deepcopy(binding)
         message = self.code_text if prompt.startswith('CODE_REVIEW') and self.code_text else json.dumps(value)
@@ -49,11 +55,13 @@ class ConsumerTests(AutomationQueueFixture):
         self.host = PlanningHost()
         self.consumer = AutomationConsumer(self.queue, self.host)
 
-    def pump(self, count=30):
+    def pump(self, count=30, *, flow_id=None):
         for _ in range(count):
             self.consumer.run_once()
         with self.profile.store.connection() as connection:
-            return self.queue._view(connection, connection.execute('SELECT id FROM automation_flows').fetchone()[0])
+            if flow_id is None:
+                flow_id = connection.execute('SELECT id FROM automation_flows').fetchone()[0]
+            return self.queue._view(connection, flow_id)
 
     def test_small_implementation_is_unverified_and_restart_does_not_call(self):
         cards = []
@@ -71,6 +79,7 @@ class ConsumerTests(AutomationQueueFixture):
         with self.profile.store.connection() as connection:
             steps = [dict(row) for row in connection.execute('SELECT * FROM automation_steps ORDER BY ordinal')]
         self.assertEqual([s['kind'] for s in steps], ['prepare', 'plan', 'plan_review', 'implement'])
+        self.assertTrue(all('plan_choices' not in json.loads(step['request_json']) for step in steps))
         review = json.loads(steps[2]['request_json'])
         self.assertEqual(review['review_of']['step_id'], steps[1]['id'])
         self.assertNotEqual(json.loads(steps[2]['binding_json'])['providerSession'], json.loads(steps[1]['binding_json'])['providerSession'])
@@ -78,6 +87,26 @@ class ConsumerTests(AutomationQueueFixture):
     def test_feature_waits_for_user(self):
         self.host.kind = 'feature'
         self.assertEqual(self.pump()['flow']['status'], 'waiting_user')
+
+    def test_task_detail_reads_the_workflow_from_the_same_task(self):
+        from control_everything.workspace.agent_runs import task_detail
+
+        before = task_detail(self.profile.store, self.item['id'])['automation']
+        self.assertIsNotNone(before['pending_since'])
+        self.assertEqual(before['flows'], [])
+        self.pump()
+        after = task_detail(self.profile.store, self.item['id'])['automation']
+        self.assertIsNone(after['pending_since'])
+        flow, = after['flows']
+        self.assertEqual(flow['reason'], 'verification_not_configured')
+        self.assertEqual(next(step['review_verdict'] for step in flow['steps'] if step['kind'] == 'plan_review'), 'approve')
+        self.assertEqual([step['kind'] for step in flow['steps']], ['prepare', 'plan', 'plan_review', 'implement'])
+        self.assertNotIn('request', flow['steps'][-1])
+        self.assertNotIn('result', flow['steps'][-1])
+        other = self.profile.store.save_item({'title': 'Manual task', 'project_id': self.project['id'],
+            'provider_id': None, 'state': 'todo', 'session_key': None})
+        self.assertEqual(task_detail(self.profile.store, other['id'])['automation'],
+                         {'pending_since': None, 'flows': []})
 
     def test_questions_wait_for_user(self):
         self.host.questions = ['Which scope?']
@@ -634,7 +663,7 @@ class ConsumerTests(AutomationQueueFixture):
         accepted = [card for card in cards if card['body']['elements'][1]['value'].get('verdict') == 'approved']
         self.assertEqual(accepted[0]['body']['elements'][1]['value']['delivery_id'],
                          result['flow']['attention']['delivery_id'])
-        self.assertEqual(accepted[0]['body']['elements'][1]['text']['content'], '这个版本通过，集成 develop')
+        self.assertEqual(accepted[0]['body']['elements'][1]['text']['content'], '通过验收')
         verdicts = [item['value']['verdict'] for item in accepted[0]['body']['elements'] if item.get('tag') == 'button']
         self.assertEqual(verdicts, ['approved', 'changes_requested', 'rejected'])
         self.assertEqual({item['value']['delivery_id'] for item in accepted[0]['body']['elements'] if item.get('tag') == 'button'},
@@ -673,12 +702,40 @@ class ConsumerTests(AutomationQueueFixture):
         apply_waiting_reply(self.consumer, waiting['flow'], cards[0]['body']['elements'][1]['value'], 'owner')
         result = self.pump()
         self.assertEqual(result['flow']['attention']['reason'], 'repair_budget_exhausted')
+        flow, = self.service.agent_task_detail(self.item['id'])['automation']['flows']
+        reviews = [step['review_verdict'] for step in flow['steps'] if step['kind'] == 'code_review']
+        self.assertTrue(reviews)
+        self.assertEqual(set(reviews), {'revise'})
         budget = [card for card in cards if card['body']['elements'][1]['value'].get('reason') == 'repair_budget_exhausted']
         self.assertEqual(budget[0]['body']['elements'][1]['value']['flow_id'], result['flow']['id'])
         self.assertNotIn('choice', budget[0]['body']['elements'][1]['value'])
         with self.profile.store.connection() as connection:
             repairs = [row for row in connection.execute("SELECT request_json FROM automation_steps WHERE kind='implement'")]
         self.assertEqual(sum(1 for row in repairs if json.loads(row['request_json']).get('repair_of')), 2)
+
+    def test_feature_acceptance_requests_repair_and_rechecks_second_delivery(self):
+        from control_everything.workspace.automation_human_decisions import apply_waiting_reply
+
+        self.host.kind = 'feature'
+        self.configure_verification()
+        self.service.check_verification = self.consumer.check_verification
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        release = cards[-1]['body']['elements'][1]['value']
+        apply_waiting_reply(self.consumer, waiting['flow'], release, 'owner')
+        first = self.pump()
+        self.assertEqual(first['flow']['status'], 'awaiting_acceptance')
+        self.assertEqual(first['step']['kind'], 'code_review')
+        changes = cards[-1]['body']['elements'][2]['value']
+        body = {key: changes[key] for key in ('delivery_id', 'verdict', 'expected_revision', 'progress_revision')}
+        self.service.review_task_delivery(self.item['id'], {
+            **body, 'reason': 'Correct the work', 'confirmed': True, 'client_token': 'first-review'})
+        second = self.pump()
+        self.assertEqual(second['flow']['status'], 'awaiting_acceptance')
+        self.assertEqual(second['flow']['id'], first['flow']['id'])
+        self.assertEqual(second['step']['kind'], 'code_review')
+        self.assertNotEqual(second['flow']['attention']['delivery_id'], body['delivery_id'])
 
     def _store_release(self, flow_id, revision, message_id='om-release'):
         from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
@@ -692,6 +749,256 @@ class ConsumerTests(AutomationQueueFixture):
                 'plan_release': {'namespace': 'control-everything.automation.v1', 'flow_id': flow_id,
                                  'text': '按已审方案实现', 'requirement_revision': revision}}})
         self.consumer.current_binding = lambda: binding
+
+    def test_plan_choice_resumes_only_the_current_decision_for_the_named_task(self):
+        from control_everything.workspace.automation_human_decisions import apply_waiting_reply
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        from tests.backend.test_automation_queue import bind_actor, designate_actor
+
+        self.host.kind = 'feature'
+        self.configure_verification('raise SystemExit(1)')
+        self.host.planner_decision = {'question': 'Which surface should change?', 'options': [
+            {'id': 'existing', 'label': 'Keep existing surface', 'impact': 'Recommended: existing links keep working.'},
+            {'id': 'separate', 'label': 'Add a separate surface', 'impact': 'New links require documentation.'},
+        ]}
+        cards = []
+        self.consumer.on_wait = cards.append
+        first = self.pump()
+        self.assertEqual(first['flow']['status'], 'waiting_user')
+        buttons = [element['value'] for element in cards[-1]['body']['elements'] if element['tag'] == 'button']
+        original_choice, alternate = [value for value in buttons if 'choice_id' in value]
+        self.assertEqual(buttons[-1]['reason'], 'human_decision_required')
+        self.assertEqual(original_choice['task_id'], self.item['id'])
+        self.assertEqual(cards[-1]['project_id'], self.project['id'])
+        self.assertEqual(original_choice['decision_id'], first['step']['id'])
+        self.assertEqual(alternate['choice_id'], 'separate')
+        self.assertIn('New links require documentation.', json.dumps(cards[-1]))
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                   'credential_revision': 1}
+        self.consumer.current_binding = lambda: binding
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        bind_actor(self.profile.store, self.project['id'], 'ou-other')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+        inbox = RemoteAutomationInbox(self.profile.store)
+
+        def receive(message_id, choice, actor='ou-owner'):
+            inbox.receive(binding, {'id': message_id, 'source': 'feishu:test', 'event_id': message_id,
+                'lease_id': 'lease', 'lease_expires_at': 10, 'payload': {
+                    'kind': 'feishu_plan_choice', 'project_id': self.project['id'], 'app_id': 'app',
+                    'actor_open_id': actor, 'plan_choice': choice}})
+
+        receive('om-unknown', {**original_choice, 'choice_id': 'bogus'})
+        receive('om-other-task', {**original_choice, 'task_id': 'wrong'})
+        receive('om-other-revision', {**original_choice,
+                                     'requirement_revision': original_choice['requirement_revision'] + 1})
+        receive('om-not-designated', original_choice, 'ou-other')
+        self.assertEqual(self.pump()['step']['id'], first['step']['id'])
+        receive('om-selected', original_choice)
+        self.host.planner_decision = None
+        self.host.verdict = 'discuss'
+        self.host.decision = {'question': 'Who can use the existing surface?', 'options': [
+            {'id': 'owners', 'label': 'Owners only', 'impact': 'Recommended: owners retain access.'},
+            {'id': 'members', 'label': 'All members', 'impact': 'All project members gain access.'},
+        ]}
+        second = self.pump()
+        next_choice = [element['value'] for element in cards[-1]['body']['elements'] if element['tag'] == 'button'][0]
+        self.assertEqual(second['flow']['id'], first['flow']['id'])
+        self.assertEqual(next_choice['requirement_revision'], original_choice['requirement_revision'])
+        self.assertNotEqual(next_choice['decision_id'], original_choice['decision_id'])
+        receive('om-stale-competing', alternate)
+        self.assertEqual(self.pump()['step']['id'], second['step']['id'])
+        with self.profile.store.connection() as connection:
+            steps = [tuple(row) for row in connection.execute(
+                'SELECT kind,request_json,binding_json FROM automation_steps ORDER BY ordinal')]
+        self.assertEqual([row[0] for row in steps], ['prepare', 'plan', 'plan_review', 'plan', 'plan_review'])
+        selected = json.loads(steps[3][1])['plan_choice']
+        self.assertEqual(selected['actor_id'], 'ou-owner')
+        self.assertEqual(selected['choice_id'], 'existing')
+        self.assertEqual(selected['impact'], 'Recommended: existing links keep working.')
+        self.assertIn(selected['impact'], self.host.calls[2]['prompt'])
+        self.assertNotIn('ou-owner', self.host.calls[2]['prompt'])
+        self.assertNotEqual(json.loads(steps[3][2])['providerSession']['id'],
+                            json.loads(steps[4][2])['providerSession']['id'])
+        # Resume a checkpoint written by the previous request shape.
+        with self.profile.store.connection() as connection:
+            for step_kind in ('plan', 'plan_review'):
+                connection.execute("UPDATE automation_steps SET request_json=json_remove(request_json, "
+                                   "'$.plan_choices', '$.plan_choice.question') "
+                                   "WHERE kind=? AND ordinal>=3", (step_kind,))
+        self.consumer = self.consumer_type(self.queue, self.host, on_wait=cards.append,
+                                           verification=self.consumer.verification)
+        self.consumer.current_binding = lambda: binding
+        self.host.verdict, self.host.decision = 'approve', None
+        receive('om-selected-second', next_choice)
+        released = self.pump()
+        self.assertTrue(released['flow']['attention']['release_ready'])
+        history = released['step']['request']['plan_choices']
+        self.assertEqual([answer['decision_id'] for answer in history],
+                         [original_choice['decision_id'], next_choice['decision_id']])
+        self.assertEqual([answer['choice_id'] for answer in history], ['existing', 'owners'])
+        self.assertEqual([answer['actor_id'] for answer in history], ['ou-owner', 'ou-owner'])
+        for call in self.host.calls[4:6]:
+            self.assertTrue(all(answer['impact'] in call['prompt'] for answer in history))
+        apply_waiting_reply(self.consumer, released['flow'], cards[-1]['body']['elements'][1]['value'], 'owner')
+        result = self.pump()
+        self.assertEqual(result['flow']['attention']['reason'], 'repair_budget_exhausted')
+        with self.profile.store.connection() as connection:
+            writes = [json.loads(row['request_json']) for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE kind='implement' ORDER BY ordinal")]
+        self.assertEqual(len(writes), 3)
+        for request in writes:
+            self.assertEqual(request['plan_choices'], history)
+            self.assertTrue(all(answer['impact'] in request['params']['prompt'] for answer in history))
+
+    def test_implementation_choice_preserves_writes_and_repair_lineage(self):
+        from pathlib import Path
+
+        from control_everything.workspace.automation_human_decisions import apply_plan_choices, apply_waiting_reply
+        from control_everything.workspace.automation_planning import IMPLEMENT_DECISION_MARKER
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        from control_everything.workspace.native_progress import digest
+        from tests.backend.test_automation_queue import bind_actor, designate_actor
+
+        self.host.kind = 'feature'
+        self.configure_verification(
+            "from pathlib import Path; assert Path('input.txt').read_bytes().endswith(b' done')")
+        self.service.check_verification = self.consumer.check_verification
+        decision = IMPLEMENT_DECISION_MARKER + '\n' + json.dumps({'decision': {
+            'question': 'Which internal implementation should we keep?',
+            'options': [{'id': 'keep', 'label': 'Reuse the helper', 'impact': 'Smaller internal change'},
+                        {'id': 'inline', 'label': 'Inline the logic', 'impact': 'One fewer internal call'}],
+        }})
+        original_create, original_observe = self.host.create, self.host.observe
+        writes = []
+
+        def create(params, **kwargs):
+            if params['model'] == 'gpt-6.1-sol':
+                path = Path(params['cwd']) / 'input.txt'
+                with path.open('ab') as stream:
+                    stream.write(b' partial' if len(writes) % 2 == 0 else b' done')
+                writes.append(params)
+            return original_create(params, **kwargs)
+
+        def observe(binding, **kwargs):
+            result = original_observe(binding, **kwargs)
+            if self.host.calls[-1]['model'] == 'gpt-6.1-sol' and len(writes) % 2 == 1:
+                result['status']['lastAssistantMessage'] = decision
+            return result
+
+        self.host.create, self.host.observe = create, observe
+        cards = []
+        self.consumer.on_wait = cards.append
+        waiting = self.pump()
+        apply_waiting_reply(self.consumer, waiting['flow'], cards[-1]['body']['elements'][1]['value'], 'owner')
+        first = self.pump()
+        self.assertEqual((first['flow']['status'], first['flow']['phase']), ('waiting_user', 'implement'))
+        self.assertEqual(first['step']['status'], 'completed')
+        path = self.root / 'repo' / 'input.txt'
+        self.assertTrue(path.read_bytes().endswith(b' partial'))
+        self.assertEqual(self.verification_calls, [])
+        self.assertIn(IMPLEMENT_DECISION_MARKER, writes[0]['prompt'])
+        binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1, 'credential_revision': 1}
+        self.consumer.current_binding = lambda: binding
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+        inbox = RemoteAutomationInbox(self.profile.store)
+
+        def receive(message_id, choice):
+            inbox.receive(binding, {'id': message_id, 'source': 'feishu:test', 'event_id': message_id,
+                'lease_id': 'lease', 'lease_expires_at': 10, 'payload': {
+                    'kind': 'feishu_plan_choice', 'project_id': self.project['id'], 'app_id': 'app',
+                    'actor_open_id': 'ou-owner', 'plan_choice': choice}})
+
+        def latest_choice():
+            return next(element['value'] for element in cards[-1]['body']['elements'] if element['tag'] == 'button')
+
+        old_choice = latest_choice()
+        receive('first-choice', old_choice)
+        other = self.profile.store.save_item({'title': 'Concurrent task', 'project_id': self.project['id'],
+            'provider_id': None, 'state': 'todo', 'session_key': None})
+        event = self.service.enable_task_automation(other['id'], {**self.body, 'client_token': 'concurrent-choice'})
+        occupied = self.queue.claim(self.consumer.lease, event['id'])['step']
+        apply_plan_choices(self.profile.store, self.consumer, binding)
+        with self.profile.store.connection() as connection:
+            blocked = self.queue._view(connection, first['flow']['id'])
+        self.assertEqual(blocked['step']['id'], first['step']['id'])
+        self.assertEqual(blocked['flow']['status'], 'waiting_user')
+        prepared = self.consumer.launch.prepare(self.consumer.lease, occupied)
+        self.queue.wait(self.consumer.lease, prepared, 'waiting_external', 'prepare', {})
+        flow_id = first['flow']['id']
+        first_delivery = self.pump(flow_id=flow_id)
+        self.assertEqual(first_delivery['flow']['status'], 'awaiting_acceptance')
+        changes = cards[-1]['body']['elements'][2]['value']
+        review = self.service.review_task_delivery(self.item['id'], {
+            **{key: changes[key] for key in ('delivery_id', 'verdict', 'expected_revision', 'progress_revision')},
+            'reason': 'Correct the implementation', 'confirmed': True, 'client_token': 'first-review',
+        })['review']
+        repair = self.pump(flow_id=flow_id)
+        self.assertEqual((repair['flow']['status'], repair['flow']['phase']), ('waiting_user', 'implement'))
+        self.assertTrue(path.read_bytes().endswith(b' partial done partial'))
+        self.assertEqual(len(self.verification_calls), 1)
+        self.assertIn(IMPLEMENT_DECISION_MARKER, writes[2]['prompt'])
+        repair_choice = latest_choice()
+        receive('stale-competing-choice', {**old_choice, 'choice_id': 'inline'})
+        self.assertEqual(self.pump(flow_id=flow_id)['step']['id'], repair['step']['id'])
+        receive('repair-choice', repair_choice)
+        final = self.pump(flow_id=flow_id)
+        self.assertEqual(final['flow']['id'], first['flow']['id'])
+        self.assertEqual(final['flow']['status'], 'awaiting_acceptance')
+        self.assertTrue(path.read_bytes().endswith(b' partial done partial done'))
+        self.assertEqual(len(self.verification_calls), 2)
+        self.assertEqual(len({(params['cwd'], params['worktreeId']) for params in writes}), 1)
+        with self.profile.store.connection() as connection:
+            implementation_ids = [row['id'] for row in connection.execute(
+                "SELECT id FROM automation_steps WHERE kind='implement' ORDER BY ordinal")]
+        original, continued, repair_original, repair_continued = map(self.queue.get_step, implementation_ids)
+        self.assertEqual(original['id'], first['step']['id'])
+        self.assertEqual(continued['request']['continuation_of']['step_id'], original['id'])
+        self.assertEqual(repair_original['id'], repair['step']['id'])
+        request = repair_continued['request']
+        self.assertNotIn('repair_of', request)
+        self.assertEqual(request['continuation_of']['repair_of']['review_id'], review['id'])
+        self.assertEqual(request['plan_choice']['actor_id'], 'ou-owner')
+        self.assertEqual(request['plan_choice']['choice_id'], 'keep')
+        self.assertTrue(request['requires_code_review'])
+        self.assertEqual(final['step']['kind'], 'code_review')
+        verify = self.queue.get_step(final['step']['request']['verify_step_id'])
+        for step in (verify, final['step']):
+            self.assertEqual(step['request']['implement_step_id'], repair_continued['id'])
+            self.assertEqual(step['request']['implement_hash'], digest(repair_continued['result']['text']))
+        self.assertNotEqual(final['flow']['attention']['delivery_id'], changes['delivery_id'])
+
+    def test_explicit_implementation_decision_errors_cannot_start_verification(self):
+        from control_everything.workspace.automation_planning import IMPLEMENT_DECISION_MARKER
+
+        self.configure_verification()
+        original = self.host.observe
+
+        def observe(binding, **kwargs):
+            result = original(binding, **kwargs)
+            if self.host.calls[-1]['model'] == 'gpt-6.1-sol':
+                result['status']['lastAssistantMessage'] = IMPLEMENT_DECISION_MARKER + '\n{"decision":{}}'
+            return result
+
+        self.host.observe = observe
+        cards = []
+        self.consumer.on_wait = cards.append
+        result = self.pump()
+        self.assertEqual((result['flow']['status'], result['flow']['phase']), ('waiting_user', 'implement'))
+        self.assertEqual(result['flow']['attention']['reason'], 'invalid_implementation_decision')
+        self.assertNotIn('choice_id', cards[-1]['body']['elements'][1]['value'])
+        self.assertFalse(self.verification_calls)
+
+    def test_invalid_decision_does_not_generate_actionable_buttons(self):
+        self.host.verdict = 'discuss'
+        option = {'id': 'same', 'label': 'Same', 'impact': 'Same'}
+        self.host.decision = {'question': 'Duplicate choices?', 'options': [option, option]}
+        cards = []
+        self.consumer.on_wait = cards.append
+        final = self.pump()
+        self.assertEqual(final['flow']['attention']['reason'], 'invalid_planning_result')
+        self.assertFalse(any(element.get('value', {}).get('choice_id')
+                             for card in cards for element in card['body']['elements']))
 
     def test_stored_release_starts_the_named_wait_once(self):
         self.host.kind = 'feature'

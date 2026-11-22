@@ -113,6 +113,36 @@ class PlanningPolicyTests(unittest.TestCase):
         self.plan_result(needs_human=True)
         self.assertEqual(self.policy.planning_outcome(self.plan, self.review)['action'], 'wait_for_user')
 
+    def test_reviewer_can_replace_a_planner_question(self):
+        decision = {'question': 'Which export format?', 'options': [
+            {'id': 'csv', 'label': 'CSV', 'impact': 'Recommended: readable in a spreadsheet.'},
+            {'id': 'json', 'label': 'JSON', 'impact': 'Preserves nested metadata.'},
+        ]}
+        self.plan_result(kind='feature', needs_human=True, decision=decision)
+        revised = {**decision, 'question': 'Which format should be the export default?'}
+        self.review_result(verdict='discuss', decision=revised)
+        result = self.policy.planning_outcome(self.plan, self.review)
+        self.assertEqual(result['action'], 'wait_for_user')
+        self.assertEqual(result['decision'], {'decision_id': 'review', **revised})
+        self.plan_result(kind='small')
+        with self.assertRaisesRegex(ProfileError, 'invalid_planning_result'):
+            self.policy.read_plan(self.plan)
+
+    def test_reviewer_revision_withholds_unreviewed_planner_options(self):
+        self.plan_result(kind='feature', needs_human=True, decision={
+            'question': 'Where should results appear?', 'options': [
+                {'id': 'inline', 'label': 'Inline', 'impact': 'Recommended: no extra navigation.'},
+                {'id': 'page', 'label': 'Dedicated page', 'impact': 'More room for context.'},
+            ]})
+        self.review_result(verdict='revise', rationale='The dedicated page cannot be linked from here.')
+        for attempt in range(3):
+            self.plan['request']['plan_attempt'] = attempt
+            result = self.policy.planning_outcome(self.plan, self.review)
+            self.assertNotIn('decision', result)
+            self.assertNotIn('release_ready', result)
+            self.assertEqual(result['action'], 'revise_plan' if attempt < 2 else 'wait_for_user')
+        self.assertEqual(result['reason'], 'plan_revision_limit')
+
     def test_invalid_budget_cannot_reset_revision_count(self):
         for attempt in (-1, True, '0', None):
             self.plan['request']['plan_attempt'] = attempt

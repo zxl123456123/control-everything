@@ -52,8 +52,13 @@ class HumanDecisionTests(unittest.TestCase):
         from control_everything.workspace.automation_human_decisions import acceptance_card, acceptance_reply
         flow = {'id': 'flow-1', 'task_id': 'task-1', 'status': 'awaiting_acceptance',
                 'attention': {'delivery_id': 'delivery-1', 'expected_revision': 2, 'progress_revision': 3}}
-        card = acceptance_card(flow)
+        accept_only = acceptance_card(flow)
+        self.assertEqual(acceptance_reply('通过验收', accept_only)['decision_id'], 'record-delivery-1')
+        self.assertIsNone(acceptance_reply('这个版本通过，集成 develop', accept_only))
+        card = acceptance_card(flow, approval={'decision_id': 'integrate-exact-offer', 'target': {'remote_name': 'origin'}})
         approved = acceptance_reply('这个版本通过，集成 develop', card)
+        self.assertEqual(approved['decision_id'], 'integrate-exact-offer')
+        self.assertEqual(acceptance_reply('通过验收', card)['decision_id'], 'record-delivery-1')
         self.assertEqual(approved['verdict'], 'approved')
         self.assertEqual(approved['delivery_id'], 'delivery-1')
         self.assertNotIn('flow_id', approved)

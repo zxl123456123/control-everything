@@ -1,21 +1,81 @@
 """Real local Git execution through the owner HTTP and background consumer boundary."""
+import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from types import SimpleNamespace
 from unittest.mock import patch
 from http.client import HTTPConnection
+from functools import partial
 
 from tests.backend.test_automation_integration_targets import IntegrationTargetTests
+from tests.backend import test_automation_mailbox_http as mailbox_http
 from control_everything.http.gateway import HOST, PanelHandler, PanelServer
+from control_everything.execution import develop_integration
+from control_everything.execution.develop_integration import (
+    _write_push_guard, preflight_develop_target, run_develop_integration,
+)
+from control_everything.input_validation import ProfileError
+from control_everything.integrations.remote_connector import RemoteConnector, RemotePeer
+from control_everything.integrations.remote_hub.automation_producer import AutomationProducers
+from control_everything.profiles.profile import Profile
+from control_everything.workspace.automation_consumer import AutomationConsumer
+from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
+from control_everything.workspace.automation_flow import AutomationQueue, OwnerLease
+from control_everything.workspace.automation_human_decisions import acceptance_card, apply_acceptance_decisions
+from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+from tests.backend.test_automation_consumer import PlanningHost
+from tests.backend.test_automation_queue import AutomationQueueFixture, bind_actor, designate_actor
+
+
+def run_and_interrupt_integration():
+    data = json.load(sys.stdin)
+    step, flow = data['step'], data['flow']
+    lease = OwnerLease(**data['lease'])
+    queue = AutomationQueue(Profile.open(data['profile']).store, owner_id=lease.owner_id)
+
+    def checkpoint():
+        queue.renew(lease)
+        queue.check_current(lease, step)
+
+    write = develop_integration._write_json
+
+    def interrupted(path, value):
+        if (path.name == data['record'] and value.get('stage') == data['stage']
+                and (data['argument'] is None or data['argument'] in value['argv'])):
+            if path.name in ('intent.json', 'copy-intent.json'):
+                write(path, value)
+            os._exit(73)
+        write(path, value)
+
+    with patch.object(develop_integration, '_write_json', side_effect=interrupted):
+        run_develop_integration(step, flow, **data['runner'], checkpoint=checkpoint)
+
+
+def interrupt_runner(fixture, step, flow, output, record, stage, *, argument=None, own_process_tree=False):
+    source_output = fixture.profile.data_dir/'automation-verification'/flow['id']/step['request']['integration_target']['verify_step_id']
+    data = {'step': step, 'flow': flow, 'profile': str(fixture.profile.data_dir),
+            'lease': vars(fixture.consumer.lease), 'record': record, 'stage': stage, 'argument': argument,
+            'runner': {'git_executable': fixture.git_exe, 'output_dir': str(output),
+                       'source_output_dir': str(source_output), 'own_process_tree': own_process_tree}}
+    child = subprocess.run([sys.executable, '-B', '-c',
+        'from tests.backend.test_develop_integration import run_and_interrupt_integration; '
+        'run_and_interrupt_integration()'], input=json.dumps(data), text=True, capture_output=True, timeout=90)
+    fixture.assertEqual(child.returncode, 73, child.stderr)
 
 
 class DevelopIntegrationTests(IntegrationTargetTests):
     def setUp(self):
         super().setUp()
+        self.configure_git()
+        self.request['target']['expected_base'] = self.base
+
+    def configure_git(self):
         self.git_exe = str(Path(shutil.which('git')).resolve())
         (self.root/'empty-hooks').mkdir()
         self.target = self.root/'target'
@@ -34,7 +94,6 @@ class DevelopIntegrationTests(IntegrationTargetTests):
         self.git(self.target,'remote','add','origin',str(self.bare))
         self.git(self.target,'push','-u','origin','develop')
         self.git(self.target,'worktree','add','-b','fixture-candidate',str(self.root/'candidate'),self.base)
-        self.request['target']['expected_base']=self.base
         source=self.root/'repo'
         self.git(source,'init','-b','source-fixture')
         self.git(source,'config','user.name','Fixture Owner')
@@ -102,6 +161,28 @@ class DevelopIntegrationTests(IntegrationTargetTests):
             time.sleep(.02)
         return view
 
+    def test_http_background_runner_recovers_a_dispatched_step_after_worker_exit(self):
+        flow_id = self.request['flow_id']
+        original = {}
+
+        def before_attach():
+            lease = self.consumer.lease
+            with self.profile.store.connection() as connection:
+                flow = self.queue._view(connection, flow_id)['flow']
+            reserved = self.queue.reserve_integration(lease, flow_id, flow['revision'])
+            step = self.queue.record(lease, reserved, 'dispatching')
+            original.update(step)
+            output = self.profile.data_dir/'automation-integration'/flow_id/step['id']
+            interrupt_runner(self, step, flow, output, 'intent.json', 'git', argument='--git-common-dir')
+
+        self.before_attach = before_attach
+        server = self.start_registered()
+        view = self.wait_result(server)
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(view['step']['operation_id'], original['operation_id'])
+        self.assertTrue(view['step']['result']['recovered'])
+
     def test_http_background_runner_integrates_exactly_one_commit(self):
         source_before={p:(self.root/'repo'/p).read_bytes() for p in ('input.txt','verify.py')}
         server=self.start_registered()
@@ -132,6 +213,92 @@ class DevelopIntegrationTests(IntegrationTargetTests):
             self.assertEqual(Path(result[key]['command_directory'],'stdout.log').read_text().strip(),'verified')
         for name,data in source_before.items():
             self.assertEqual((self.target/name).read_bytes(),data)
+
+    def test_github_preflight_checks_both_urls_and_exact_remote_develop(self):
+        url = 'https://github.com/owner/repo.git'
+        target = {**self.request['target'], 'remote_url': url}
+        self.git(self.target, 'remote', 'set-url', 'origin', url)
+        real_run = subprocess.run
+        network_calls = []
+        output = (self.base+'\trefs/heads/develop\n').encode()
+
+        def run(argv, **kwargs):
+            if 'ls-remote' not in argv:
+                return real_run(argv, **kwargs)
+            network_calls.append(argv)
+            self.assertEqual(argv[-4:], ['ls-remote','--refs','origin','refs/heads/develop'])
+            self.assertIn(f'http.{url}.followRedirects=false', argv)
+            self.assertIn(f'http.{url}.sslVerify=true', argv)
+            self.assertEqual(kwargs['env']['GIT_ALLOW_PROTOCOL'], 'https')
+            self.assertEqual(kwargs['env']['GIT_TERMINAL_PROMPT'], '0')
+            self.assertEqual(kwargs['env']['GCM_INTERACTIVE'], 'false')
+            return subprocess.CompletedProcess(argv, 0, stdout=output)
+
+        with patch('control_everything.execution.develop_integration.subprocess.run', side_effect=run):
+            def preflight():
+                return preflight_develop_target(self.root/'repo', target, git_executable=self.git_exe)
+
+            self.assertEqual(preflight(), self.base)
+            valid = output
+            for invalid in (b'', b'invalid\trefs/heads/develop\n', valid + valid,
+                            valid.replace(b'develop', b'main')):
+                with self.subTest(output=invalid), self.assertRaisesRegex(ValueError, 'integration_remote_ref_missing'):
+                    output = invalid
+                    preflight()
+            output = b'0'*len(self.base)+b'\trefs/heads/develop\n'
+            with self.assertRaisesRegex(ValueError, 'integration_remote_advanced'):
+                preflight()
+            before = len(network_calls)
+            self.git(self.target, 'remote', 'set-url', '--push', 'origin', 'https://github.com/owner/other.git')
+            with self.assertRaisesRegex(ValueError, 'integration_remote_url_changed'):
+                preflight()
+            self.assertEqual(len(network_calls), before)
+
+    def test_push_guard_rejects_remote_rollback_and_deleted_ref(self):
+        self.git(self.target, 'commit', '--allow-empty', '-m', 'test: expected develop base')
+        expected = self.git(self.target, 'rev-parse', 'HEAD').strip()
+        self.git(self.target, 'commit', '--allow-empty', '-m', 'test: one accepted commit')
+        accepted = self.git(self.target, 'rev-parse', 'HEAD').strip()
+        url = self.bare.as_uri()
+        hooks = self.root/'push-guard'
+        _write_push_guard(hooks, url, expected, accepted)
+
+        def push():
+            return subprocess.run([self.git_exe, '-c', 'core.hooksPath='+str(hooks),
+                                   'push', url, accepted+':refs/heads/develop'], cwd=self.target,
+                                  capture_output=True, check=False)
+
+        result = push()
+        self.assertNotEqual(result.returncode, 0, result)
+        self.assertEqual(self.git(self.bare,'rev-parse','refs/heads/develop').strip(), self.base)
+        self.git(self.bare,'update-ref','-d','refs/heads/develop')
+        result = push()
+        self.assertNotEqual(result.returncode, 0, result)
+        self.assertEqual(self.git(self.target,'ls-remote','--refs',url,'refs/heads/develop'), '')
+        self.git(self.target,'push',url,expected+':refs/heads/develop')
+        result = push()
+        self.assertEqual(result.returncode, 0, result)
+        self.assertEqual(self.git(self.bare,'rev-parse','refs/heads/develop').strip(), accepted)
+
+    def test_runner_rejects_changed_push_url_without_recording_credentials(self):
+        url = 'https://github.com/owner/repo.git'
+        marker = 'placeholder-credential'
+        self.request['target']['remote_url'] = url
+        self.git(self.target, 'remote', 'set-url', 'origin', url)
+        self.git(self.target, 'remote', 'set-url', '--push', 'origin',
+                 url.replace('https://', f'https://{marker}@'))
+        server = self.start_registered()
+        view = self.wait_result(server)
+        self.assertEqual(view['step']['status'], 'unknown')
+        output = self.profile.data_dir/'automation-integration'/view['flow']['id']/view['step']['id']
+        incomplete = json.loads((output/'incomplete.json').read_text(encoding='utf-8'))
+        self.assertEqual(incomplete['reason'], 'integration_remote_url_changed')
+        self.assertFalse(any('ls-remote' in command['argv'] or 'push' in command['argv']
+                             for command in incomplete['commands']))
+        for artifact in output.rglob('*'):
+            if artifact.is_file():
+                self.assertNotIn(marker.encode(), artifact.read_bytes(), artifact)
+        self.assertEqual(self.git(self.target, 'rev-parse', 'HEAD').strip(), self.base)
 
 
     def assert_no_reexecution(self,server,view):
@@ -278,3 +445,595 @@ class DevelopIntegrationTests(IntegrationTargetTests):
             self.assertTrue(Path(command['directory']).name.isdigit())
             receipt=json.loads((Path(command['directory'])/'receipt.json').read_text(encoding='utf-8'))
             self.assertEqual(receipt['stage'],command['stage'])
+
+
+class PreparedIntegrationOfferTests(AutomationQueueFixture):
+    configure_git = DevelopIntegrationTests.configure_git
+    git = DevelopIntegrationTests.git
+    prepare = IntegrationTargetTests.prepare
+    pump = IntegrationTargetTests.pump
+
+    def setUp(self):
+        super().setUp()
+        self.queue, self.host = AutomationQueue(self.profile.store), PlanningHost()
+        self.cards = []
+        self.consumer_type = partial(AutomationConsumer, on_wait=self.cards.append,
+            prepare_integration=partial(prepare_acceptance_offer, self.service), integration=self.integrate)
+        self.binding = {'hub_origin': 'https://hub.example.test', 'device_id': 'device', 'generation': 1,
+                        'credential_revision': 1}
+        bind_actor(self.profile.store, self.project['id'], 'ou-owner')
+        designate_actor(self.profile.store, self.item['id'], 'ou-owner')
+
+    def configure_verification(self):
+        IntegrationTargetTests.configure_verification(self)
+        self.configure_git()
+        self.service.integration_preflight = partial(preflight_develop_target, git_executable=self.git_exe)
+        self.configuration = {
+            'directory_id': self.event['payload']['directory']['binding_id'],
+            'verification': self.event['payload']['request']['verification'],
+            'confirmed': True,
+            'integration': {'repository_path': str(self.target), 'target_worktree_path': str(self.target),
+                'candidate_worktree_path': str(self.root/'candidate'), 'remote_name': 'origin',
+                'remote_url': str(self.bare)},
+        }
+        if self.before_publication:
+            self.before_publication()
+
+    def integrate(self, step, flow, *, cancel_event, checkpoint, recover=False):
+        source_output = self.profile.data_dir / 'automation-verification' / flow['id'] / self.view['step']['id']
+        return run_develop_integration(step, flow, git_executable=self.git_exe,
+            output_dir=self.root/'integrated', source_output_dir=source_output,
+            cancel_event=cancel_event, checkpoint=checkpoint, recover=recover,
+            own_process_tree=getattr(self, 'own_process_tree', False))
+
+    def save_target(self, **values):
+        self.service.set_project_automation_verification(self.project['id'], {**self.configuration, **values})
+
+    def publish_card(self, configure=None):
+        self.before_publication = configure
+        self.prepare()
+        self.service.check_verification = self.consumer.check_verification
+        self.published = self.pump()
+        self.assertEqual(self.published['flow']['status'], 'awaiting_acceptance')
+        return self.cards[-1]['body']['elements'][1]
+
+    def click(self, button, identity='click', *, message_id=None, **overrides):
+        decision = {k: v for k, v in button['value'].items() if k != 'flow_id'}
+        RemoteAutomationInbox(self.profile.store).receive(self.binding, {
+            'id': identity, 'source': 'feishu:test', 'event_id': 'event-'+identity, 'lease_id': 'lease',
+            'lease_expires_at': 10, 'payload': {'kind': 'feishu_card_decision', 'project_id': self.project['id'],
+                'app_id': 'app', 'actor_open_id': 'ou-owner', 'message_id': message_id or 'om-'+identity,
+                'decision': {**decision, **overrides}}})
+        return self.apply_clicks()
+
+    def apply_clicks(self):
+        return apply_acceptance_decisions(self.profile.store, self.service, self.binding)
+
+    def test_card_updates_retry_after_real_integration_without_repeating_git(self):
+        def configure():
+            self.save_target()
+            self.service.integration_preflight = lambda *_: self.base
+
+        self.publish_card(configure)
+        card = self.cards[-1]
+        self.assertIs(card['config']['update_multi'], True)
+        button = card['body']['elements'][1]
+        self.assertFalse(self.click(button, identity='accepted')[0]['replayed'])
+        self.assertTrue(all(item['replayed'] for item in self.click(button, identity='another-card')))
+        updates = []
+
+        def publish(card):
+            update = card['acceptance_update']
+            updates.append(update)
+            if update['stage'] == 'integrated' and len(updates) == 2:
+                raise OSError('temporary Hub outage')
+            return {'id': 'receipt', 'duplicate': False, 'state': 'pending'}
+
+        self.consumer.on_wait = publish
+        self.consumer.current_binding = lambda: self.binding
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed')
+        self.assertEqual(updates, [{'inbox_id': 'accepted', 'stage': 'approved'}])
+        sha = view['step']['result']['remote_sha']
+        self.assertEqual(self.heads(), (sha,) * 3)
+        self.assertIsNone(self.consumer.run_once())
+        self.queue.release(self.consumer.lease)
+
+        restarted = AutomationConsumer(AutomationQueue(self.profile.store), self.host, on_wait=publish,
+                                       integration=lambda *_: self.fail('integration must not run twice'))
+        restarted.current_binding = lambda: {**self.binding, 'generation': 2}
+        self.assertIsNone(restarted.run_once())
+        self.assertEqual(len(updates), 2)
+        restarted.current_binding = lambda: self.binding
+        step_id = view['step']['id']
+        with self.profile.store.connection() as db:
+            original = db.execute('SELECT result_json FROM automation_steps WHERE id=?', (step_id,)).fetchone()[0]
+            incomplete = {**json.loads(original), 'target_test_passed': False}
+            db.execute('UPDATE automation_steps SET result_json=? WHERE id=?', (json.dumps(incomplete), step_id))
+        self.assertIsNone(restarted.run_once())
+        self.assertEqual(len(updates), 2)
+        with self.profile.store.connection() as db:
+            db.execute('UPDATE automation_steps SET result_json=? WHERE id=?', (original, step_id))
+        self.assertIsNone(restarted.run_once())
+        self.assertIsNone(restarted.run_once())
+        self.assertEqual(updates[1:], [{'inbox_id': 'accepted', 'stage': 'integrated', 'commit_sha': sha}] * 2)
+        self.assertEqual(self.heads(), (sha,) * 3)
+
+    def heads(self):
+        return tuple(self.git(root, 'rev-parse', ref).strip() for root, ref in (
+            (self.target,'HEAD'), (self.root/'candidate','HEAD'), (self.bare,'refs/heads/develop')))
+
+    def interrupt_approved_integration(self, record, stage, *, argument=None):
+        # This test exercises real Git execution; offer timing is independent of recovery.
+        def configure():
+            self.save_target()
+            self.service.integration_preflight = lambda *_: self.base
+
+        button = self.publish_card(configure)
+        flow = self.published['flow']
+        self.assertEqual(len(self.click(button)), 1)
+        def interrupt(step, flow, **_):
+            interrupt_runner(self, step, flow, self.root/'integrated', record, stage, argument=argument,
+                             own_process_tree=getattr(self, 'own_process_tree', False))
+            raise SystemExit('the external worker stopped without returning')
+
+        self.consumer.integration = interrupt
+        with self.assertRaises(SystemExit):
+            self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, flow['id'])
+        self.assertEqual(view['step']['status'], 'dispatching')
+        self.queue = AutomationQueue(self.profile.store, clock=lambda: time.time()+120)
+        self.consumer = self.consumer_type(self.queue, self.host,
+            check_verification=self.consumer.check_verification,
+            recover_integration=partial(self.integrate, recover=True))
+        return view['step']
+
+    def test_restart_resumes_first_read_only_intent_for_the_same_feishu_approval(self):
+        original = self.interrupt_approved_integration('intent.json', 'git', argument='--git-common-dir')
+        root = self.root/'integrated'
+        interrupted = next(path for path in root.glob('*/intent.json') if b'--git-common-dir' in path.read_bytes())
+        intent = interrupted.read_bytes()
+        self.assertIn(b'--git-common-dir', intent)
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(view['step']['operation_id'], original['operation_id'])
+        self.assertEqual(interrupted.read_bytes(), intent)
+        self.assertIsNone(self.consumer.run_once())
+        self.assertEqual(self.heads(), (view['step']['result']['remote_sha'],) * 3)
+
+    def test_restart_reads_back_a_push_that_had_no_receipt(self):
+        original = self.interrupt_approved_integration('receipt.json', 'push-develop')
+        head = self.heads()[2]
+        self.assertNotEqual(head, self.base)
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(view['step']['result']['remote_sha'], head)
+        self.assertNotIn('push-develop', {command['stage'] for command in view['step']['result']['commands']})
+        self.assertIsNone(self.consumer.run_once())
+        self.assertEqual(self.heads(), (head,) * 3)
+
+    def test_restart_reuses_the_candidate_commit_when_merge_had_not_launched(self):
+        if os.name != 'nt':
+            self.skipTest('Windows Job ownership is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('intent.json', 'fast-forward-develop')
+        target, head, remote = self.heads()
+        self.assertNotEqual(head, self.base)
+        self.assertEqual((target, remote), (self.base, self.base))
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (head,) * 3)
+        stages = {command['stage'] for command in view['step']['result']['commands']}
+        self.assertNotIn('commit-approved-files', stages)
+        self.assertIn('fast-forward-develop', stages)
+
+    def test_restart_reuses_a_committed_candidate_after_the_commit_receipt_was_lost(self):
+        if os.name != 'nt':
+            self.skipTest('Windows Job ownership is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('receipt.json', 'commit-approved-files')
+        target, head, remote = self.heads()
+        self.assertNotEqual(head, self.base)
+        self.assertEqual((target, remote), (self.base, self.base))
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertNotIn('commit-approved-files', {command['stage'] for command in view['step']['result']['commands']})
+
+    def test_restart_pushes_the_same_verified_sha_when_previous_push_had_not_launched(self):
+        if os.name != 'nt':
+            self.skipTest('Windows Job ownership is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('intent.json', 'push-develop')
+        target, head, remote = self.heads()
+        self.assertEqual(target, head)
+        self.assertEqual(remote, self.base)
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertIsNone(self.consumer.run_once())
+        pushes = [command for command in view['step']['result']['commands'] if command['stage'] == 'push-develop']
+        self.assertEqual(len(pushes), 1)
+        self.assertEqual(pushes[0]['argv'][-1], head+':refs/heads/develop')
+
+    def test_restart_does_not_push_when_legacy_push_intent_is_ambiguous(self):
+        original = self.interrupt_approved_integration('intent.json', 'push-develop')
+        target, head, remote = self.heads()
+        self.assertEqual(target, head)
+        self.assertEqual(remote, self.base)
+        step = self.consumer.run_once()
+        self.assertEqual(step['id'], original['id'])
+        self.assertEqual(step['status'], 'unknown', step['result'])
+        self.assertEqual(step['result']['recovery_reason'], 'integration_previous_push_unconfirmed')
+        self.assertEqual(self.heads(), (head, head, self.base))
+        self.assertIsNone(self.consumer.run_once())
+
+    def test_restart_resumes_the_locked_copy_before_any_candidate_write(self):
+        if os.name != 'nt':
+            self.skipTest('Windows copy locking is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('copy-intent.json', None)
+        self.assertEqual(self.git(self.root/'candidate','status','--porcelain=v1'), '')
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (view['step']['result']['remote_sha'],) * 3)
+
+    def test_restart_preserves_all_approved_candidate_bytes_when_copy_receipt_is_missing(self):
+        if os.name != 'nt':
+            self.skipTest('Windows copy locking is required')
+        self.own_process_tree = True
+        original = self.interrupt_approved_integration('copy-complete.json', None)
+        root = self.root/'integrated'
+        self.assertFalse((root/'copy-complete.json').exists())
+        self.assertEqual((self.root/'candidate'/'input.txt').read_bytes(), (self.root/'repo'/'input.txt').read_bytes())
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed', view['step']['result'])
+        self.assertEqual(view['step']['id'], original['id'])
+        self.assertEqual(self.heads(), (view['step']['result']['remote_sha'],) * 3)
+        self.assertFalse((root/'r001'/'copy-intent.json').exists())
+
+    def test_restart_preserves_the_existing_remote_conflict(self):
+        original = self.interrupt_approved_integration('intent.json', 'git')
+        other = self.root/'other'
+        self.git(self.root,'clone','--branch','develop',str(self.bare),str(other))
+        self.git(other,'-c','user.name=Fixture','-c','user.email=fixture@example.test','commit','--allow-empty','-m','test: concurrent push')
+        self.git(other,'push','origin','develop')
+        expected = self.heads()
+        step = self.consumer.run_once()
+        self.assertEqual(step['id'], original['id'])
+        self.assertEqual(step['status'], 'unknown', step['result'])
+        self.assertEqual(step['result']['recovery'], 'needs_review')
+        self.assertEqual(self.heads(), expected)
+
+    def test_accept_only_card_finishes_with_no_integration_wait_even_if_a_target_is_added(self):
+        button = self.publish_card()
+        self.assertEqual(button['text']['content'], '通过验收')
+        self.assertNotIn('develop', self.cards[-1]['body']['elements'][0]['content'])
+        self.save_target()
+        self.assertEqual(len(self.click(button)), 1)
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        count = len(self.cards)
+        self.consumer.current_binding = lambda: self.binding
+        updates = []
+        def publish(card):
+            updates.append(card)
+            return {'state': 'pending'}
+        self.consumer.on_wait = publish
+        self.consumer.run_once()
+        self.consumer.run_once()
+        self.assertEqual(len(self.cards), count)
+        self.assertEqual(updates, [{'acceptance_update': {'inbox_id': 'click', 'stage': 'approved'}}])
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        item = self.profile.store.get_item(self.item['id'])
+        self.assertEqual((item['state'], item['accepted_delivery_id']), ('done', button['value']['delivery_id']))
+        with self.profile.store.connection() as connection:
+            flow = self.queue._view(connection, self.published['flow']['id'])['flow']
+        self.assertEqual((flow['status'], flow['phase']), ('completed', 'acceptance'))
+        self.assertNotIn('integration_target', flow['attention'])
+
+    def test_dirty_candidate_can_only_offer_acceptance(self):
+        def configure():
+            self.save_target()
+            (self.root/'candidate'/'untracked.txt').write_text('owner file', encoding='utf-8')
+        self.assertEqual(self.publish_card(configure)['text']['content'], '通过验收')
+        self.assertEqual(self.heads(), (self.base,) * 3)
+
+    def test_owner_reissues_integration_for_the_same_independently_accepted_delivery(self):
+        def configure():
+            self.save_target()
+
+            def preflight(source, target):
+                self.assertEqual(Path(source), self.root/'repo')
+                self.assertEqual(Path(target['remote_url']), self.bare)
+                self.assertEqual(target['branch'], 'develop')
+                return self.base
+
+            self.service.integration_preflight = preflight
+
+        self.publish_card(configure)
+        original_card = self.cards[-1]
+        buttons = {element['text']['content']: element for element in original_card['body']['elements'][1:]}
+        old_integrate = buttons['这个版本通过，集成 develop']
+        record = buttons['通过验收']
+        first_review, = self.click(record, 'record')
+        item = self.profile.store.get_item(self.item['id'])
+        flow_id = self.published['flow']['id']
+        body = dict(delivery_id=item['accepted_delivery_id'], expected_revision=item['revision'],
+                    progress_revision=item['progress_revision'], confirmed=True)
+
+        hub = mailbox_http.AutomationMailboxHTTPTests()
+        self.addCleanup(hub.doCleanups)
+        hub.setUp()
+        with hub.hub.store.transaction() as connection:
+            connection.execute('DELETE FROM automation_inbox WHERE id=?', (hub.received['id'],))
+        self.binding['device_id'] = hub.device['device_id']
+        self.binding['generation'] = hub.device['generation']
+        with self.profile.store.connection() as connection:
+            connection.execute('UPDATE automation_identity_challenges SET device_id=?,generation=?',
+                               (self.binding['device_id'], self.binding['generation']))
+        producer_token = 'fixture-producer-' + 'a' * 43
+        producer = {
+            'producer_id': 'father', 'channel_account_id': 'account', 'app_id': 'app', 'chat_id': 'chat',
+            'project_id': self.project['id'], 'device_id': self.binding['device_id'],
+            'generation': self.binding['generation'],
+            'token_sha256': hashlib.sha256(producer_token.encode()).hexdigest(),
+        }
+        hub.hub.automation_producers = AutomationProducers([producer])
+        peer = RemotePeer(SimpleNamespace(issuer='https://issuer.example.test',
+            hub_origin=f'http://127.0.0.1:{hub.server.server_address[1]}'))
+        transport = SimpleNamespace(peer=peer, store=SimpleNamespace(
+            read=lambda *args, **kwargs: {'control_token': hub.token}))
+
+        server = PanelServer((HOST, 0), PanelHandler)
+        server.workspace, server.profile = self.service, self.profile
+        server.remote_connector = SimpleNamespace(remote_access=None,
+            list_identity_contexts=lambda: peer.request('GET', '/remote/desktop/config',
+                token=hub.token)['automation_identity_contexts'],
+            publish_waiting_card=partial(RemoteConnector.publish_waiting_card, transport))
+        server.expected_host = f'127.0.0.1:{server.server_address[1]}'
+        server.origin = server.local_origin = 'http://' + server.expected_host
+        server.csrf_token = 'fixture-owner'
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(thread.join, 3)
+        self.addCleanup(server.shutdown)
+
+        def request_card(csrf=server.csrf_token, **changes):
+            connection = HTTPConnection(*server.server_address, timeout=10)
+            try:
+                connection.request('POST', f"/api/workspace/tasks/{item['id']}/automation-integration-card",
+                    json.dumps(dict(body, **changes)), {'Origin': server.origin, 'X-Session-CSRF': csrf,
+                        'X-Session-Client': 'panel', 'Content-Type': 'application/json'})
+                response = connection.getresponse()
+                return response.status, json.loads(response.read())
+            finally:
+                connection.close()
+
+        self.assertEqual(request_card(csrf='invalid')[0], 403)
+        self.assertEqual(request_card(expected_revision=item['revision'] - 1)[0], 409)
+        self.save_target(integration=None)
+        self.assertEqual(request_card()[0], 409)
+        self.save_target()
+        self.assertEqual(hub.request('/remote/desktop/automation/card', original_card)[0], 200)
+
+        def outbound():
+            status, card, _ = hub.request('/remote/producer/automation/outbound/claim',
+                                         {'producer_id': 'father'}, token=producer_token)
+            self.assertEqual(status, 200)
+            return card
+
+        old = outbound()
+        hub.hub.automation_producers = AutomationProducers([dict(producer, project_id='another-project')])
+        self.assertEqual(request_card()[0], 409)
+        self.assertIsNone(outbound()['card'])
+        hub.hub.automation_producers = AutomationProducers([producer])
+        status, issued = request_card()
+        self.assertEqual(status, 200, issued)
+        self.assertFalse(issued['duplicate'])
+        self.assertNotEqual(issued['id'], old['id'])
+        self.assertEqual(request_card(), (200, {'id': issued['id'], 'duplicate': True, 'state': 'pending'}))
+        card = outbound()['card']
+        self.assertIn(item['title'], card['header']['title']['content'])
+        description, button = card['body']['elements']
+        self.assertIn(item['accepted_delivery_id'], description['content'])
+        self.assertEqual(button['value']['expected_revision'], item['revision'])
+        self.assertNotEqual(button['value']['decision_id'], old_integrate['value']['decision_id'])
+
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertEqual(self.profile.store.get_item(item['id']), item)
+        with self.profile.store.connection() as connection:
+            flow = self.queue._view(connection, flow_id)['flow']
+        self.assertEqual((flow['status'], flow['phase']), ('completed', 'acceptance'))
+        self.assertEqual(flow['attention']['accepted_review_id'], first_review['review']['id'])
+
+        def receive_click(selected, event_id, actor='ou-owner', token=producer_token):
+            decision = {key: value for key, value in selected['value'].items() if key != 'flow_id'}
+            return hub.request('/remote/producer/automation/receive', dict(
+                producer_id='father', event_id=event_id, message_id='om-card',
+                chat_id='chat', actor_open_id=actor, decision=decision), token=token)[0]
+
+        def deliver_click():
+            message = hub.request(mailbox_http.CLAIM)[1]['message']
+            RemoteAutomationInbox(self.profile.store).receive(self.binding, message)
+            self.assertEqual(hub.request(mailbox_http.ACK, {'message_id': message['id'],
+                'lease_id': message['lease_id']})[0], 200)
+
+        self.assertEqual(receive_click(button, 'invalid-token', token='wrong-token'), 401)
+        for selected, event_id, actor in ((old_integrate, 'stale', 'ou-owner'),
+                                           (button, 'foreign', 'other-user')):
+            self.assertEqual(receive_click(selected, event_id, actor), 200)
+            deliver_click()
+            self.assertTrue(all(result['replayed'] for result in self.apply_clicks()))
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertEqual(receive_click(button, 'current'), 200)
+        deliver_click()
+        approval, = [result for result in self.apply_clicks() if not result['replayed']]
+        self.assertEqual(approval['item']['accepted_delivery_id'], item['accepted_delivery_id'])
+        self.assertTrue(all(result['replayed'] for result in self.apply_clicks()))
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.consumer.run_once()
+        head = self.git(self.bare, 'rev-parse', 'refs/heads/develop').strip()
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertEqual(self.git(self.bare, 'rev-list', '--count', self.base+'..'+head).strip(), '1')
+        self.assertEqual(receive_click(button, 'current'), 200)
+        self.assertIsNone(hub.request(mailbox_http.CLAIM)[1]['message'])
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (head,) * 3)
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, flow_id)
+            self.assertEqual(view['flow']['status'], 'completed', view['step']['result'])
+            self.assertEqual(view['step']['kind'], 'integrate')
+            self.assertEqual(connection.execute("SELECT count(*) FROM task_reviews").fetchone()[0], 2)
+            self.assertEqual(connection.execute("SELECT count(*) FROM automation_steps WHERE kind='integrate'").fetchone()[0], 1)
+
+    def test_card_and_approval_preflight_allow_other_store_connections(self):
+        queries = []
+
+        def configure():
+            real_preflight = self.service.integration_preflight
+
+            def preflight(source, target):
+                queried = threading.Event()
+
+                def query():
+                    with self.service.store.connection() as connection:
+                        queries.append(connection.execute('SELECT 1').fetchone()[0])
+                    queried.set()
+
+                worker = threading.Thread(target=query, daemon=True)
+                worker.start()
+                self.addCleanup(worker.join, 3)
+                self.assertTrue(queried.wait(3), 'another store connection blocked during Git preflight')
+                return real_preflight(source, target)
+
+            self.service.integration_preflight = preflight
+            self.save_target()
+
+        button = self.publish_card(configure)
+        self.assertTrue(button['value']['decision_id'].startswith('integrate-'))
+        self.assertEqual(len(self.click(button)), 1)
+        self.assertEqual(queries, [1, 1])
+
+    def test_changed_then_revoked_target_cannot_accept_stale_offer_after_restoring_configuration(self):
+        button = self.publish_card(self.save_target)
+        fallback = self.cards[-1]['body']['elements'][2]
+        self.assertEqual(fallback['text']['content'], '通过验收')
+        self.assertTrue(button['value']['decision_id'].startswith('integrate-'))
+        self.save_target(integration={**self.configuration['integration'], 'remote_name': 'other'})
+        self.assertEqual(self.click(button), [])
+        self.save_target(integration=None)
+        self.assertEqual(self.apply_clicks(), [])
+        self.save_target()
+        self.assertEqual(self.apply_clicks(), [])
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertIsNone(self.profile.store.get_item(self.item['id'])['accepted_delivery_id'])
+        offer = prepare_acceptance_offer(self.service, self.published['flow'])
+        self.assertNotEqual(acceptance_card(self.published['flow'], approval=offer)['body']['elements'][1]['value'],
+                            button['value'])
+        self.save_target(integration=None)
+        applied = self.click(fallback, 'fallback')
+        self.assertEqual(len(applied), 1)
+        self.assertFalse(applied[0]['replayed'])
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertFalse((self.root/'integrated').exists())
+        item = self.profile.store.get_item(self.item['id'])
+        self.assertEqual((item['state'], item['accepted_delivery_id']), ('done', button['value']['delivery_id']))
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM task_reviews").fetchone()[0], 1)
+            self.assertEqual(connection.execute("SELECT count(*) FROM automation_steps WHERE kind='integrate'").fetchone()[0], 0)
+
+    def test_confirmed_project_offer_runs_one_exact_commit_and_replays_without_writes(self):
+        def configure():
+            with self.assertRaisesRegex(ProfileError, 'invalid_integration_target'):
+                self.save_target(confirmed=False)
+            self.save_target()
+        button = self.publish_card(configure)
+        self.assertEqual(button['text']['content'], '这个版本通过，集成 develop')
+        self.assertIn('origin/develop', self.cards[-1]['body']['elements'][0]['content'])
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.assertFalse((self.root/'integrated').exists())
+        self.assertEqual(self.click(button, 'stale', expected_revision=button['value']['expected_revision']-1), [])
+        self.assertEqual(self.click(button, 'foreign', decision_id='integrate-' + '0'*64), [])
+        self.assertEqual(len(self.click(button)), 1)
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        self.assertEqual(self.heads(), (self.base,) * 3)
+        self.consumer.run_once()
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, self.published['flow']['id'])
+        self.assertEqual(view['flow']['status'], 'completed', view['step'].get('result'))
+        self.assertEqual(view['step']['result']['integration_target']['target']['expected_base'], self.base)
+        self.assertEqual(view['step']['result']['integration_target']['accepted_flow_revision'],
+                         self.published['flow']['revision']+1)
+        head = self.git(self.target, 'rev-parse', 'HEAD').strip()
+        next_target = dict(view['step']['result']['integration_target']['target'])
+        del next_target['expected_base']
+        self.assertEqual(preflight_develop_target(self.root/'repo', next_target, git_executable=self.git_exe), head)
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertEqual(self.git(self.target, 'rev-list', '--count', self.base+'..HEAD').strip(), '1')
+        self.assertEqual(set(self.git(self.target,'diff','--name-only',self.base,'HEAD').splitlines()), {'input.txt'})
+        self.assertTrue(view['step']['result']['candidate_test_passed'])
+        self.assertTrue(view['step']['result']['target_test_passed'])
+        self.assertTrue(self.apply_clicks()[0]['replayed'])
+        self.consumer.run_once()
+        self.assertEqual(self.heads(), (head,) * 3)
+        with self.profile.store.connection() as connection:
+            self.assertEqual(connection.execute("SELECT count(*) FROM task_reviews").fetchone()[0], 1)
+            self.assertEqual(connection.execute("SELECT count(*) FROM automation_steps WHERE kind='integrate'").fetchone()[0], 1)
+
+    def test_confirmed_github_offer_uses_guarded_push_and_readback(self):
+        url = 'https://github.com/owner/repo.git'
+        real_popen = subprocess.Popen
+        network_calls = []
+
+        def configure():
+            self.git(self.target, 'remote', 'set-url', 'origin', url)
+            self.save_target(integration={**self.configuration['integration'], 'remote_url': url})
+
+        def local_transport(argv, *args, **kwargs):
+            if (kwargs.get('env') or {}).get('GIT_ALLOW_PROTOCOL') != 'https':
+                return real_popen(argv, *args, **kwargs)
+            network_calls.append(argv)
+            push = 'push' in argv
+            if push:
+                self.assertEqual(kwargs['stderr'], subprocess.DEVNULL)
+                self.assertIn('core.hooksPath='+str(self.root/'integrated'/'push-guard'), argv)
+            transport = [self.bare.as_uri() if token == 'origin' else token for token in argv]
+            kwargs['env'] = {**kwargs['env'], 'GIT_ALLOW_PROTOCOL': 'file'}
+            return real_popen(transport, *args, **kwargs)
+
+        with patch('control_everything.execution.develop_integration.subprocess.Popen', side_effect=local_transport), \
+             patch('control_everything.execution.develop_integration._write_push_guard',
+                   side_effect=lambda hooks, _, base, sha: _write_push_guard(hooks, self.bare.as_uri(), base, sha)):
+            button = self.publish_card(configure)
+            self.assertEqual(len(self.click(button)), 1)
+            self.consumer.run_once()
+
+        with self.profile.store.connection() as connection:
+            view = self.queue._view(connection, self.published['flow']['id'])
+        self.assertEqual(view['flow']['status'], 'completed', view['step'].get('result'))
+        result = view['step']['result']
+        head = result['candidate_sha']
+        self.assertEqual(self.heads(), (head,) * 3)
+        self.assertEqual(self.git(self.target, 'rev-list', '--count', self.base+'..HEAD').strip(), '1')
+        self.assertTrue(result['candidate_test_passed'])
+        self.assertTrue(result['target_test_passed'])
+        pushes = [argv for argv in network_calls if 'push' in argv]
+        self.assertEqual(len(pushes), 1)
+        self.assertEqual(pushes[0][-2:], ['origin',head+':refs/heads/develop'])
+        self.assertFalse(any(arg.startswith('--force') for arg in pushes[0]))
+        self.assertIn('ls-remote', network_calls[-1])
+        for command in result['commands']:
+            if 'get-url' in command['argv']:
+                self.assertEqual((Path(command['directory'])/'stdout.log').read_bytes(), b'')

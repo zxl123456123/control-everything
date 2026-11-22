@@ -1,14 +1,19 @@
 """Classify a trusted human reply. A model summary is not a decision."""
 import json
+import logging
+import re
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_delivery_reviews import review_delivery
 from control_everything.workspace.automation_identities import decision_authorized, trusted_context
-from control_everything.workspace.native_progress import row_view
+from control_everything.workspace.native_progress import digest, packed, row_view
+
+_INBOX_BINDING = ('hub_origin', 'device_id', 'generation')
 
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
 ACCEPTANCE_REPLIES = {
+    '通过验收': 'approved',
     '这个版本通过，集成 develop': 'approved',
     '这一版要修改': 'changes_requested',
     '这一版不通过': 'rejected',
@@ -16,16 +21,20 @@ ACCEPTANCE_REPLIES = {
 
 
 def integration_failure_card(flow, step):
-    """A failed develop retest. The button does not claim success or retry."""
+    """An incomplete develop integration requires checking the receipts."""
     task_id = (flow or {}).get('task_id')
     if (not task_id or (step or {}).get('kind') != 'integrate' or step.get('status') != 'unknown'
             or (step.get('result') or {}).get('reason') != 'integration_incomplete'):
         raise ValueError('integration_failure_card_unavailable')
-    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': 'develop 复测未通过'}, 'type': 'primary',
+    needs_review = step['result'].get('recovery') == 'needs_review'
+    label = 'develop 集成需核对' if needs_review else 'develop 复测未通过'
+    description = ('后台已尝试恢复这次集成。请核对工作台的集成记录和远端 develop。'
+                   if needs_review else 'develop 复测没有通过。这不是成功，也不会自动重试。')
+    button = {'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary',
               'value': {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'flow_id': flow['id'],
                         'requirement_revision': 0, 'reason': 'integration_retest_failed'}}
     return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '集成没有完成'}},
-            'body': {'elements': [{'tag': 'markdown', 'content': 'develop 复测没有通过。这不是成功，也不会自动重试。'}, button]}}
+            'body': {'elements': [{'tag': 'markdown', 'content': description}, button]}}
 
 
 def rejection_card(flow):
@@ -349,25 +358,44 @@ def target_wait_card(flow):
             'body': {'elements': [{'tag': 'markdown', 'content': '验收已记录。还没有 develop 集成目标，所以不会开始集成。'}, button]}}
 
 
-def acceptance_card(flow):
+def acceptance_card(flow, *, approval=None, task_title=None):
     """A card for the current delivery. It does not accept by being sent."""
     attention = (flow or {}).get('attention') or {}
     delivery_id = attention.get('delivery_id')
     task_id = flow.get('task_id')
-    if (flow.get('status') != 'awaiting_acceptance' or not task_id or not isinstance(delivery_id, str) or not delivery_id
+    integration_only = task_title is not None
+    expected_status = 'completed' if integration_only else 'awaiting_acceptance'
+    if (flow.get('status') != expected_status or (integration_only and not approval)
+            or not task_id or not isinstance(delivery_id, str) or not delivery_id
             or type(attention.get('expected_revision')) is not int or type(attention.get('progress_revision')) is not int):
         raise ValueError('acceptance_card_unavailable')
     shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id, 'delivery_id': delivery_id,
               'flow_id': flow['id'], 'expected_revision': attention['expected_revision'],
               'progress_revision': attention['progress_revision']}
+    choices = [
+        ('record-' + delivery_id, 'approved', '通过验收'),
+        ('change-' + delivery_id, 'changes_requested', '这一版要修改'),
+        ('reject-' + delivery_id, 'rejected', '这一版不通过'),
+    ]
+    description = '当前交付可以验收。通过后完成任务。'
+    if approval:
+        choices.insert(0, (approval['decision_id'], 'approved', '这个版本通过，集成 develop'))
+        destination = approval['target']['remote_name'] + '/develop'
+        description = ('可通过并集成到 `' + destination + '`。目标不可用时，也可选「通过验收」完成任务，仅记录验收。')
+        if integration_only:
+            choices = choices[:1]
+            remote = approval['target']['remote_url']
+            if remote.startswith('https://github.com/'):
+                destination = remote + '（develop）'
+            description = (f'交付 `{delivery_id}` 已通过验收。确认后将同一版本集成到 `{destination}`。'
+                           '先复测候选和目标，通过后再推送。')
     buttons = [{'tag': 'button', 'text': {'tag': 'plain_text', 'content': label}, 'type': 'primary',
-                'value': {**shared, 'decision_id': prefix + delivery_id, 'verdict': verdict}}
-               for prefix, verdict, label in (
-                   ('accept-', 'approved', '这个版本通过，集成 develop'),
-                   ('change-', 'changes_requested', '这一版要修改'),
-                   ('reject-', 'rejected', '这一版不通过'))]
-    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': '待验收'}},
-            'body': {'elements': [{'tag': 'markdown', 'content': '当前交付可以验收。通过后只集成 develop。'}, *buttons]}}
+                'value': {**shared, 'decision_id': decision_id, 'verdict': verdict}}
+               for decision_id, verdict, label in choices]
+    title = f'确认集成 · {task_title}' if integration_only else '待验收'
+    return {'schema': '2.0', 'config': {'update_multi': True},
+            'header': {'title': {'tag': 'plain_text', 'content': title}},
+            'body': {'elements': [{'tag': 'markdown', 'content': description}, *buttons]}}
 
 
 def waiting_card(flow):
@@ -379,6 +407,21 @@ def waiting_card(flow):
     revision = attention.get('versions', {}).get('requirement_revision')
     shared = {'namespace': 'control-everything.automation.v1', 'task_id': task_id,
               'flow_id': flow['id'], 'requirement_revision': revision}
+    decision = attention.get('decision')
+    if decision:
+        elements = [{'tag': 'div', 'text': {'tag': 'plain_text', 'content': decision['question']}}]
+        for option in decision['options']:
+            elements.extend([
+                {'tag': 'div', 'text': {'tag': 'plain_text', 'content': option['label'] + '：' + option['impact']}},
+                {'tag': 'button', 'text': {'tag': 'plain_text', 'content': option['label']},
+                 'value': {**shared, 'decision_id': decision['decision_id'], 'choice_id': option['id']}},
+            ])
+        elements.append({'tag': 'button', 'text': {'tag': 'plain_text', 'content': '暂缓'},
+                         'value': {**shared, 'reason': 'human_decision_required'}})
+        title = '实现中需要决定' if flow.get('phase') == 'implement' else '需要决定'
+        return {'project_id': flow['project_id'], 'schema': '2.0',
+                'header': {'title': {'tag': 'plain_text', 'content': title}},
+                'body': {'elements': elements}}
     if attention.get('release_ready') is True and not attention.get('questions'):
         question = '已审方案可以开始实现吗？'
         label = PLAN_RELEASE
@@ -400,7 +443,7 @@ def apply_acceptance_decisions(store, service, binding):
     if service is None or any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
         return []
     with store.connection() as db:
-        rows = db.execute('''SELECT payload_json FROM automation_remote_inbox
+        rows = db.execute('''SELECT message_id,event_id,payload_json FROM automation_remote_inbox
             WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
             ORDER BY received_at,message_id''',
             (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
@@ -410,8 +453,15 @@ def apply_acceptance_decisions(store, service, binding):
         if decision is None or not decision_authorized(
                 store, decision['actor_id'], task_id=decision['task_id'], trusted=decision['trusted'], device=binding):
             continue
+        message_id = decision['message_id']
+        card = None
+        if decision['approval'] and isinstance(message_id, str) and message_id and message_id != row['event_id']:
+            card = {**{key: binding[key] for key in _INBOX_BINDING}, 'inbox_id': row['message_id'],
+                    'event_id': row['event_id'], 'message_id': message_id}
         try:
-            applied.append(review_delivery(service, decision['task_id'], decision['body'], reviewer=decision['actor_id']))
+            applied.append(review_delivery(service, decision['task_id'], decision['body'],
+                                           reviewer=decision['actor_id'], approval=decision['approval'],
+                                           acceptance_card=card))
         except ProfileError as error:
             if str(error) == 'automation_owner_lost':
                 raise
@@ -434,11 +484,77 @@ def _stored_acceptance(raw):
             or any(type(decision.get(key)) is not int or decision[key] < 0 for key in ('expected_revision', 'progress_revision'))
             or type(actor) is not str or not actor or trusted_context(payload) is None):
         return None
-    reason = {'approved': '这个版本通过，集成 develop', 'changes_requested': '飞书要求修改', 'rejected': '飞书拒绝'}
-    return {'task_id': decision['task_id'], 'trusted': trusted_context(payload), 'body': {
+    decision_id, verdict = decision['decision_id'], decision['verdict']
+    approval = None
+    if verdict == 'approved':
+        if decision_id.startswith('integrate-'):
+            approval = 'integrate'
+        elif decision_id.startswith('record-'):
+            approval = 'record'
+    reason = {'approved': '通过验收' if approval == 'record' else '这个版本通过，集成 develop',
+              'changes_requested': '飞书要求修改', 'rejected': '飞书拒绝'}
+    return {'task_id': decision['task_id'], 'trusted': trusted_context(payload), 'approval': approval,
+            'message_id': payload.get('message_id'), 'body': {
         'expected_revision': decision['expected_revision'], 'progress_revision': decision['progress_revision'],
-        'delivery_id': decision['delivery_id'], 'verdict': decision['verdict'], 'reason': reason[decision['verdict']],
-        'confirmed': True, 'client_token': decision['decision_id']}, 'actor_id': actor}
+        'delivery_id': decision['delivery_id'], 'verdict': verdict, 'reason': reason[verdict],
+        'confirmed': True, 'client_token': decision_id}, 'actor_id': actor}
+
+
+def sync_acceptance_cards(store, binding, publish):
+    """Enqueue updates for the exact inbox event that wrote a durable approval."""
+    with store.connection() as db:
+        rows = db.execute("""SELECT r.*,i.payload_json,i.event_id,s.operation_id,s.request_json,s.result_json
+            FROM automation_remote_inbox i
+            JOIN task_reviews r ON r.task_id=json_extract(i.payload_json,'$.decision.task_id')
+                AND r.client_token=json_extract(i.payload_json,'$.decision.decision_id')
+                AND json_extract(r.evidence_json,'$.acceptance_card.inbox_id')=i.message_id
+            LEFT JOIN automation_steps s ON s.flow_id=json_extract(r.evidence_json,'$.flow_id')
+                AND r.client_token LIKE 'integrate-%' AND s.kind='integrate' AND s.status='completed'
+                AND json_extract(s.request_json,'$.integration_target.review_id')=r.id
+            WHERE i.hub_origin=? AND i.device_id=? AND i.generation=? AND r.verdict='approved'
+                AND (json_extract(r.evidence_json,'$.acceptance_card.state') IS NULL
+                    OR (s.id IS NOT NULL AND json_extract(r.evidence_json,'$.acceptance_card.state')='approved'))
+            ORDER BY i.received_at,i.message_id""", tuple(binding[key] for key in _INBOX_BINDING)).fetchall()
+    for row in rows:
+        evidence = json.loads(row['evidence_json'])
+        card = evidence['acceptance_card']
+        decision = _stored_acceptance(row['payload_json'])
+        if (not decision or decision['approval'] is None or card['event_id'] != row['event_id']
+                or card['message_id'] != decision['message_id']
+                or any(card[key] != binding[key] for key in _INBOX_BINDING)
+                or row['reviewer'] != decision['actor_id'] or row['delivery_id'] != decision['body']['delivery_id']
+                or row['request_hash'] != digest(decision['body'])):
+            continue
+        stage = 'approved'
+        update = {'inbox_id': card['inbox_id'], 'stage': stage}
+        if card.get('state') == 'approved':
+            request, result = json.loads(row['request_json']), json.loads(row['result_json'])
+            snapshot = request['integration_target']
+            sha = result.get('remote_sha')
+            if (decision['approval'] != 'integrate' or not isinstance(sha, str)
+                    or not re.fullmatch(r'[0-9a-f]{40}(?:[0-9a-f]{24})?', sha)
+                    or snapshot['delivery_id'] != row['delivery_id'] or snapshot['target']['branch'] != 'develop'
+                    or snapshot['client_token'] != row['client_token'] or snapshot['request_hash'] != row['request_hash']
+                    or result.get('operation_id') != row['operation_id'] or result.get('request_hash') != digest(request)
+                    or result.get('integration_target') != snapshot
+                    or result.get('candidate_sha') != sha or result.get('target_sha') != sha
+                    or result.get('candidate_test_passed') is not True or result.get('target_test_passed') is not True
+                    or result.get('source_unchanged') is not True or result.get('cleanup_verified') is not True):
+                continue
+            stage = 'integrated'
+            update.update(stage=stage, commit_sha=sha)
+        try:
+            response = publish({'acceptance_update': update})
+        except Exception as error:
+            logging.getLogger(__name__).warning('Automation acceptance card update failed: %s', type(error).__name__)
+            continue
+        state = response.get('state') if isinstance(response, dict) else None
+        if state not in ('pending', 'leased', 'sent', 'unavailable'):
+            continue
+        card['state'] = 'unavailable' if state == 'unavailable' else stage
+        with store.connection() as db:
+            db.execute('UPDATE task_reviews SET evidence_json=? WHERE id=? AND evidence_json=?',
+                       (packed(evidence), row['id'], row['evidence_json']))
 
 
 def apply_plan_releases(store, consumer, binding):
@@ -490,6 +606,33 @@ def _stored_release(raw):
         return None
     return {'flow_id': release['flow_id'], 'requirement_revision': release['requirement_revision'],
             'actor_id': actor, 'trusted': trusted_context(payload)}
+
+
+def apply_plan_choices(store, consumer, binding):
+    if any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
+        return
+    with store.connection() as db:
+        rows = db.execute("""SELECT payload_json FROM automation_remote_inbox
+            WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
+              AND json_extract(payload_json, '$.kind')='feishu_plan_choice'
+            ORDER BY received_at,message_id""",
+            (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
+    fields = {'namespace', 'task_id', 'flow_id', 'requirement_revision', 'decision_id', 'choice_id'}
+    for row in rows:
+        payload = json.loads(row['payload_json'])
+        choice, actor = payload.get('plan_choice'), payload.get('actor_open_id')
+        if (type(choice) is not dict or set(choice) != fields
+                or choice['namespace'] != 'control-everything.automation.v1'
+                or type(choice['requirement_revision']) is not int or choice['requirement_revision'] < 0
+                or any(type(choice[key]) is not str or not choice[key]
+                       for key in ('task_id', 'flow_id', 'decision_id', 'choice_id'))
+                or type(actor) is not str or not actor):
+            continue
+        try:
+            consumer.select_plan_option(choice, actor, trusted_context(payload), binding)
+        except ProfileError as error:
+            if str(error) == 'automation_owner_lost':
+                raise
 
 
 def _flow_ends(store, flow_id):

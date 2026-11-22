@@ -7,7 +7,7 @@ from control_everything.input_validation import ProfileError
 from control_everything.workspace.store import WorkspaceError
 from control_everything.workspace.validation import project_id_valid
 
-ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-identities(?:/(contexts|challenges|confirm|revoke|send|acceptor))?\Z')
+ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-identities(?:/(contexts|challenges|confirm|revoke|send|acceptor|assignment))?\Z')
 _TRANSPORT_STATES = {'queued', 'sending', 'unknown', 'sent', 'expired'}
 
 
@@ -48,6 +48,17 @@ def handle(handler, path, *, write=False):
         elif not write:
             result = {'identities':service.list(project_id)}
         else:
+            if action == 'assignment':
+                if (type(body) is not dict or set(body) != {'binding_id', 'reviewer_binding_id', 'directory_id', 'enabled'}
+                        or not all(type(body[key]) is str and re.fullmatch('[0-9a-f]{32}', body[key])
+                                   for key in ('binding_id', 'reviewer_binding_id'))
+                        or type(body['directory_id']) is not str or not 1 <= len(body['directory_id']) <= 64
+                        or type(body['enabled']) is not bool):
+                    raise ValueError('invalid_request')
+                result = service.set_assignment_grant(project_id, body['binding_id'], body['reviewer_binding_id'],
+                                                      body['directory_id'], body['enabled'])
+                handler.reply(200, result)
+                return True
             if action == 'acceptor':
                 if (type(body) is not dict or set(body) != {'task_id', 'binding_id'}
                         or any(type(body[key]) is not str or not body[key] or len(body[key]) > 256 for key in body)
