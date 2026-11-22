@@ -1,7 +1,100 @@
 /* Platform presentation only; terminal sizing, drag geometry and saved layouts stay native. */
 .platform-task-workflow[data-slot="sheet-content"] {
+  width: min(100%, 512px);
   background: var(--ce-workbench-glass);
   backdrop-filter: var(--ce-workbench-content-backdrop);
+  font-size: 15px;
+}
+
+.platform-workflow-launch {
+  background: var(--ce-workbench-control);
+  border: 1px solid var(--ce-workbench-line);
+}
+
+.platform-workflow-field {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--ce-workbench-line);
+  border-radius: 8px;
+  color: var(--ce-workbench-ink);
+  background: var(--ce-workbench-glass);
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+
+.platform-workflow-field option {
+  background: var(--ce-workbench-panel);
+}
+
+.platform-workflow-primary-button,
+.platform-workflow-quiet-button {
+  min-height: 44px;
+  border-radius: 8px;
+  padding-inline: 12px;
+  font-weight: 500;
+}
+
+.platform-workflow-primary-button {
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.platform-workflow-primary-button:enabled:hover {
+  opacity: 0.87;
+}
+
+.platform-workflow-primary-button:disabled {
+  opacity: 0.5;
+}
+
+.platform-workflow-quiet-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.platform-workflow-quiet-button:hover,
+.platform-workflow-stage-row:is(summary):hover {
+  background: var(--ce-workbench-hover);
+}
+
+.platform-workflow-field:focus-visible,
+.platform-workflow-primary-button:focus-visible,
+.platform-workflow-quiet-button:focus-visible {
+  outline: 2px solid var(--ce-workbench-ring);
+  outline-offset: 2px;
+}
+
+.platform-workflow-stages > li {
+  border-bottom: 1px solid var(--ce-workbench-line);
+}
+
+.platform-workflow-stages > li[aria-current="step"] {
+  border-radius: 8px;
+  background: var(--ce-workbench-selected);
+}
+
+.platform-workflow-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+
+.platform-workflow-stages > li > .platform-workflow-stage-row {
+  padding-inline-end: 36px;
+}
+
+.platform-workflow-stage-row::-webkit-details-marker {
+  display: none;
+}
+
+.platform-workflow-stages details[open] > summary > svg:last-child {
+  transform: rotate(180deg);
 }
 :root:has(.platform-workspace-header) {
   --platform-header-height: 44px;

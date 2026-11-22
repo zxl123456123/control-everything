@@ -23,8 +23,8 @@ export type PendingAutomation = {
   body: { expected_revision: number; brief_revision: number; client_token: string; agent: 'codex'; worktree_id: string }
 }
 
-const fieldClass = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground'
-const buttonClass = 'w-fit rounded-md border border-border px-3 py-2 text-sm hover:bg-accent disabled:opacity-50'
+const fieldClass = 'platform-workflow-field'
+const buttonClass = 'platform-workflow-primary-button'
 const readHeaders = { 'X-Session-Client': 'panel' }
 
 async function post(path: string, body: object): Promise<Response> {
@@ -42,9 +42,9 @@ async function post(path: string, body: object): Promise<Response> {
   })
 }
 
-export function RunAutomation({ execution, task, pending, available, flowId, activeFlow }: {
+export function RunAutomation({ execution, task, pending, available, pendingDispatch, flowId, activeFlow }: {
   execution: PlatformProjectBootstrap; task: Item; pending: Map<string, PendingAutomation>; available: boolean
-  flowId?: string; activeFlow: boolean
+  pendingDispatch: boolean; flowId?: string; activeFlow: boolean
 }): React.JSX.Element {
   const projectId = execution.project.id
   const hostId = toRuntimeExecutionHostId(execution.runtime.environmentId)
@@ -60,8 +60,11 @@ export function RunAutomation({ execution, task, pending, available, flowId, act
   const [feedback, setFeedback] = useState('')
   const selected = worktrees.find((row) => row.id === worktreeId)
   const retry = pending.get(task.id)
-  if (queued && flowId && (activeFlow || flowId !== queued.previousFlowId)) return <></>
-  if (!available && !retry && !busy && !queued) return <></>
+  if (queued) {
+    if (pendingDispatch || (flowId && (activeFlow || flowId !== queued.previousFlowId))) return <></>
+    return <p role="status" className="text-muted-foreground">已入队，等待调度。</p>
+  }
+  if (!available && !retry && !busy) return <></>
 
   async function start(): Promise<void> {
     if (busy || queued || remoteContext() || (!retry && !selected)) return
@@ -102,7 +105,6 @@ export function RunAutomation({ execution, task, pending, available, flowId, act
           result.data.project_id !== projectId || result.data.source_event_id !== request.body.client_token) throw new Error()
       pending.delete(task.id)
       setQueued({ previousFlowId: activeFlow ? undefined : flowId })
-      setFeedback('已入队，等待调度。')
     } catch {
       setFeedback(request ? '启动结果尚未确认。重试会沿用同一请求。' : '无法读取事项需求，请重试。')
     } finally {
@@ -110,19 +112,22 @@ export function RunAutomation({ execution, task, pending, available, flowId, act
     }
   }
 
-  return <section aria-label="本机自动推进" className="grid gap-2 rounded-lg border border-border/60 p-3">
-    {retry ? <p className="break-all text-sm">本机工作树 · {retry.worktreeLabel}</p> :
-      <label className="grid gap-1.5 text-sm font-medium">本机工作树
-        <select className={fieldClass} value={worktreeId} disabled={busy || Boolean(queued)}
+  return <section aria-label="本机自动推进" className="platform-workflow-launch grid min-w-0 gap-3 rounded-xl p-4">
+    {retry ? <div className="grid gap-1">
+      <span className="font-medium">本机工作树</span>
+      <p className="text-muted-foreground [overflow-wrap:anywhere]">{retry.worktreeLabel}</p>
+    </div> :
+      <label className="grid min-w-0 gap-1.5 font-medium">本机工作树
+        <select className={fieldClass} value={worktreeId} disabled={busy || !worktrees.length} title={selected?.path}
           onChange={(event) => setWorktreeId(event.target.value)}>
           <option value="">{worktrees.length ? '请选择本机工作树' : '没有可用的本机工作树'}</option>
           {worktrees.map((row) => <option key={row.id} value={row.id}>{row.displayName} · {row.path}</option>)}
         </select>
       </label>}
-    <button type="button" className={buttonClass} disabled={busy || Boolean(queued) || (!selected && !retry)} onClick={() => void start()}>
-      {busy ? '正在提交…' : queued ? '已入队' : retry ? '重试原启动请求' : '用 Codex 启动自动推进'}
+    <button type="button" className={buttonClass} disabled={busy || (!selected && !retry)} onClick={() => void start()}>
+      {busy ? '正在提交…' : retry ? '重试原启动请求' : '启动 Codex'}
     </button>
-    {feedback && <p role="status" className="text-sm text-muted-foreground">{feedback}</p>}
+    {feedback && <p role="status" className="text-muted-foreground">{feedback}</p>}
   </section>
 }
 
@@ -171,7 +176,6 @@ export function CreateWorkflowTask({ projectId, onCreated }: {
       setTitle('')
       setRequest('')
       setCreated(undefined)
-      setFeedback('事项与需求已保存。')
     } catch {
       setUnknownItem(!item)
       setFeedback(item ? '事项已创建，需求保存结果待核对。可重试保存需求。' : '事项创建结果待核对。请重新打开抽屉查看项目事项。')
@@ -180,21 +184,18 @@ export function CreateWorkflowTask({ projectId, onCreated }: {
     }
   }
 
-  return <details className="rounded-lg border border-border/60 p-3">
-      <summary className="cursor-pointer text-sm font-medium">新建项目事项</summary>
-      <form className="grid gap-2 pt-3" onSubmit={(event) => { event.preventDefault(); void save() }}>
-        <label className="grid gap-1 text-sm">事项标题
-          <input className={fieldClass} value={title} maxLength={2000} required disabled={busy || Boolean(created) || unknownItem}
-            onChange={(event) => setTitle(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-sm">需求说明
-          <textarea className={fieldClass} value={request} maxLength={20000} required rows={3} disabled={busy || Boolean(created) || unknownItem}
-            onChange={(event) => setRequest(event.target.value)} />
-        </label>
-        <button className={buttonClass} type="submit" disabled={busy || unknownItem || !title.trim() || !request.trim()}>
-          {busy ? '正在保存…' : created ? '重试保存需求' : '保存事项与需求'}
-        </button>
-        {feedback && <p role="status" className="text-sm text-muted-foreground">{feedback}</p>}
-      </form>
-    </details>
+  return <form className="platform-workflow-launch grid gap-3 rounded-xl p-4" onSubmit={(event) => { event.preventDefault(); void save() }}>
+    <label className="grid gap-1.5 font-medium">事项标题
+      <input className={fieldClass} value={title} maxLength={2000} required disabled={busy || Boolean(created) || unknownItem}
+        onChange={(event) => setTitle(event.target.value)} />
+    </label>
+    <label className="grid gap-1.5 font-medium">需求说明
+      <textarea className={fieldClass} value={request} maxLength={20000} required rows={3} disabled={busy || Boolean(created) || unknownItem}
+        onChange={(event) => setRequest(event.target.value)} />
+    </label>
+    <button className={buttonClass} type="submit" disabled={busy || unknownItem || !title.trim() || !request.trim()}>
+      {busy ? '正在保存…' : created ? '重试保存需求' : '保存事项'}
+    </button>
+    {feedback && <p role="status" className="text-muted-foreground">{feedback}</p>}
+  </form>
 }

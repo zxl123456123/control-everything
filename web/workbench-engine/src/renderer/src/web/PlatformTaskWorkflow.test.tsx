@@ -90,7 +90,7 @@ it('queues the selected local task and worktree only after an explicit click and
   await act(async () => fireEvent.change(chooser, { target: { value: 'one' } }))
   await act(async () => { await vi.dynamicImportSettled() })
   expect(screen.queryByRole('option', { name: /远端检出/ })).toBeNull()
-  const start = screen.getByRole<HTMLButtonElement>('button', { name: '用 Codex 启动自动推进' })
+  const start = screen.getByRole<HTMLButtonElement>('button', { name: '启动 Codex' })
   expect(start.disabled).toBe(true)
   fireEvent.change(screen.getByRole('combobox', { name: '本机工作树' }), { target: { value: 'local-tree' } })
   expect(submissions).toHaveLength(0)
@@ -114,7 +114,7 @@ it('leaves the remote drawer read-only even when a project runtime is present', 
   await act(async () => fireEvent.change(chooser, { target: { value: 'one' } }))
   expect(screen.getByText('制定方案')).toBeTruthy()
   expect(screen.queryByRole('combobox', { name: '本机工作树' })).toBeNull()
-  expect(screen.queryByText('新建项目事项')).toBeNull()
+  expect(screen.queryByRole('button', { name: '新建事项' })).toBeNull()
   expect(fetch.mock.calls.every(([, options]) => !options?.method)).toBe(true)
 })
 
@@ -140,13 +140,15 @@ it('creates and selects a new project task, leaving automation to a separate lau
   render(<PlatformWorkspaceHeader projectId={project} execution={execution} />)
   const chooser = await openTasks()
   await act(async () => { await vi.dynamicImportSettled() })
-  const summary = await screen.findByText('新建项目事项')
-  const details = summary.closest('details')!
-  details.open = true
+  const create = screen.getByRole('button', { name: '新建事项' })
+  await act(async () => fireEvent.click(create))
   fireEvent.change(screen.getByLabelText('事项标题'), { target: { value: item.title } })
   fireEvent.change(screen.getByLabelText('需求说明'), { target: { value: requirement } })
-  await act(async () => fireEvent.submit(screen.getByRole('button', { name: '保存事项与需求' }).closest('form')!))
+  await act(async () => fireEvent.submit(screen.getByRole('button', { name: '保存事项' }).closest('form')!))
   expect(chooser.value).toBe(id)
+  expect(document.activeElement).toBe(chooser)
+  expect(create.getAttribute('aria-expanded')).toBe('false')
+  expect(screen.queryByRole('button', { name: '保存事项' })).toBeNull()
   expect(writes).toEqual([
     ['/api/workspace/items', { project_id: project, title: item.title }],
     [`/api/workspace/tasks/${id}/brief`, { expected_revision: 0, request_text: requirement,
@@ -166,6 +168,7 @@ it('polls authenticated task details and updates stages without replacing the se
   const summary = screen.getByText('制定方案').closest('summary')!
   const details = summary.closest('details')!
   expect(details.closest('li')?.getAttribute('aria-current')).toBe('step')
+  expect(screen.getByText('独立方案审查').closest('summary')).toBeNull()
   details.open = true
   summary.tabIndex = 0
   summary.focus()
