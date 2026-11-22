@@ -19,6 +19,27 @@ from .sessions import BrowserSessions
 from .store import ONLINE_WINDOW, RECOVERABLE, public_device
 
 
+_ACCEPTANCE_EDIT = 'acceptance-edit:'
+_EDIT_LEASE_SECONDS = 180
+_CARD_UPDATE_WINDOW = 14 * 24 * 60 * 60
+
+
+def _updated_acceptance_card(original, decision, sha):
+    title = '已集成 develop' if sha else '已批准'
+    description = ('候选副本与 develop 目标副本复测均已通过。\n'
+                   f'远端 develop 已确认提交 `{sha}`。' if sha else
+                   '批准已记录。候选和目标复测通过后将集成 develop。'
+                   if decision.startswith('integrate-') else '这次交付的批准已记录。')
+    header = original.get('header')
+    original_title = header.get('title') if type(header) is dict else None
+    label = original_title.get('content') if type(original_title) is dict else None
+    header = {'template': 'green', 'title': {'tag': 'plain_text', 'content': title}}
+    if isinstance(label, str) and label.startswith('确认集成 · '):
+        header['subtitle'] = {'tag': 'plain_text', 'content': label.removeprefix('确认集成 · ')}
+    return {'schema': '2.0', 'config': {'update_multi': True}, 'header': header,
+            'body': {'elements': [{'tag': 'markdown', 'content': description}]}}
+
+
 def _card_identity(card):
     elements = ((card or {}).get('body') or {}).get('elements') if type(card) is dict else None
     if type(card) is not dict or card.get('schema') != '2.0' or not isinstance(elements, list):
@@ -380,6 +401,8 @@ class RemoteHubService:
 
     def enqueue_waiting_card(self, token, card):
         device = self.store.authenticate_control(token)
+        if type(card) is dict and set(card) == {'acceptance_update'}:
+            return self._enqueue_acceptance_update(device, card['acceptance_update'])
         flow_id, revision = _card_identity(card)
         matches = self.automation_producers.for_device(device['device_id'], device['generation'])
         if flow_id.startswith('plan-choice:'):
@@ -402,6 +425,76 @@ class RemoteHubService:
                         revision, encoded, self.store.clock()))
             return {'id': identity, 'duplicate': False, 'state': 'pending'}
 
+    def _enqueue_acceptance_update(self, device, update):
+        if type(update) is not dict or update.get('stage') not in ('approved', 'integrated'):
+            raise HubError('invalid_acceptance_update', 400)
+        integrated = update['stage'] == 'integrated'
+        sha = update.get('commit_sha')
+        if (set(update) != ({'inbox_id', 'stage', 'commit_sha'} if integrated else {'inbox_id', 'stage'})
+                or not isinstance(update.get('inbox_id'), str) or not re.fullmatch('[a-f0-9]{32}', update['inbox_id'])
+                or (integrated and (not isinstance(sha, str) or not re.fullmatch('[a-f0-9]{40}(?:[a-f0-9]{24})?', sha)))):
+            raise HubError('invalid_acceptance_update', 400)
+        now = self.store.clock()
+        with self.store.transaction() as db:
+            inbox = db.execute('SELECT payload_json,event_id FROM automation_inbox WHERE id=? AND device_id=? AND generation=?',
+                               (update['inbox_id'], device['device_id'], device['generation'])).fetchone()
+            payload = json.loads(inbox['payload_json']) if inbox else {}
+            decision = payload.get('decision') or {}
+            message = payload.get('message_id')
+            token = decision.get('decision_id', '')
+            if (payload.get('kind') != 'feishu_card_decision' or decision.get('verdict') != 'approved'
+                    or not isinstance(token, str) or not token.startswith(('integrate-', 'record-'))
+                    or (integrated and not token.startswith('integrate-'))
+                    or not isinstance(message, str) or not re.fullmatch('om_[A-Za-z0-9_-]+', message)
+                    or inbox['event_id'] == message):
+                return {'state': 'unavailable'}
+            producers = self.automation_producers.for_device(device['device_id'], device['generation'])
+            producers = [row['producer_id'] for row in producers if all(payload.get(key) == row[key]
+                         for key in ('channel_account_id', 'app_id', 'chat_id', 'project_id'))]
+            if len(producers) != 1:
+                return {'state': 'unavailable'}
+            producer_id, = producers
+            original = db.execute('''SELECT * FROM automation_outbound_cards
+                WHERE device_id=? AND producer_id=? AND message_id=? AND flow_id LIKE 'acceptance:%' ''',
+                (device['device_id'], producer_id, message)).fetchone()
+            if original is None:
+                pending = db.execute('''SELECT 1 FROM automation_outbound_cards
+                    WHERE device_id=? AND producer_id=? AND message_id IS NULL AND flow_id LIKE 'acceptance:%'
+                    AND requirement_revision=? AND EXISTS (SELECT 1 FROM json_each(card_json,'$.body.elements')
+                        WHERE json_extract(value,'$.value.decision_id')=?)''',
+                    (device['device_id'], producer_id, decision['expected_revision'], token)).fetchone()
+                if pending:
+                    raise HubError('acceptance_card_receipt_pending', 409)
+                return {'state': 'unavailable'}
+            previous = json.loads(original['card_json'])
+            buttons = [element['value'] for element in previous['body']['elements']
+                       if type(element) is dict and element.get('tag') == 'button' and type(element.get('value')) is dict]
+            config = previous.get('config')
+            if (type(config) is not dict or config.get('update_multi') is not True
+                    or now >= original['created_at'] + _CARD_UPDATE_WINDOW
+                    or not any({key: value for key, value in button.items() if key != 'flow_id'} == decision
+                               for button in buttons)):
+                return {'state': 'unavailable'}
+            flow = _ACCEPTANCE_EDIT + original['id']
+            revision = 2 if integrated else 1
+            content = {'update_message_id': message, 'card': _updated_acceptance_card(previous, token, sha),
+                       'generation': device['generation'], 'expires_at': original['created_at'] + _CARD_UPDATE_WINDOW}
+            encoded = json.dumps(content, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            rows = {row['requirement_revision']: row for row in db.execute('''SELECT * FROM automation_outbound_cards
+                    WHERE device_id=? AND producer_id=? AND flow_id=?''', (device['device_id'], producer_id, flow))}
+            if integrated and 1 not in rows:
+                raise HubError('acceptance_approval_update_pending', 409)
+            if revision in rows:
+                existing = rows[revision]
+                if existing['card_json'] != encoded:
+                    raise HubError('acceptance_update_changed', 409)
+                state = 'sent' if existing['message_id'] else 'leased' if existing['lease_id'] else 'pending'
+                return {'id': existing['id'], 'duplicate': True, 'state': state}
+            identity = uuid.uuid4().hex
+            db.execute('INSERT INTO automation_outbound_cards(id,device_id,producer_id,flow_id,requirement_revision,card_json,created_at) VALUES(?,?,?,?,?,?,?)',
+                       (identity, device['device_id'], producer_id, flow, revision, encoded, now))
+            return {'id': identity, 'duplicate': False, 'state': 'pending'}
+
     def lookup_outbound_card(self, token, body):
         if (type(body) is not dict or set(body) != {'producer_id', 'message_id'}
                 or any(not isinstance(body.get(key), str) or not body[key] or len(body[key]) > 256
@@ -409,7 +502,7 @@ class RemoteHubService:
             raise HubError('invalid_request_fields', 400)
         config = self.automation_producers.authenticate(body['producer_id'], token)
         with self.store.transaction() as db:
-            row = db.execute('SELECT card_json FROM automation_outbound_cards WHERE producer_id=? AND message_id=?',
+            row = db.execute("SELECT card_json FROM automation_outbound_cards WHERE producer_id=? AND message_id=? AND flow_id NOT LIKE 'acceptance-edit:%'",
                              (config['producer_id'], body['message_id'])).fetchone()
             if row is None:
                 return {'card': None}
@@ -420,18 +513,28 @@ class RemoteHubService:
             raise HubError('invalid_request_fields', 400)
         config = self.automation_producers.authenticate(body['producer_id'], token)
         with self.store.transaction() as db:
-            row = db.execute('''SELECT id, card_json FROM automation_outbound_cards
-                WHERE producer_id=? AND message_id IS NULL AND lease_id IS NULL
-                ORDER BY created_at,id LIMIT 1''', (config['producer_id'],)).fetchone()
+            now = self.store.clock()
+            row = db.execute('''SELECT q.id,q.flow_id,q.card_json FROM automation_outbound_cards AS q
+                WHERE q.producer_id=? AND q.message_id IS NULL
+                AND (q.lease_id IS NULL OR (q.flow_id LIKE 'acceptance-edit:%' AND q.leased_at<=?))
+                AND (q.flow_id NOT LIKE 'acceptance-edit:%' OR (q.device_id=?
+                    AND json_extract(q.card_json,'$.generation')=? AND json_extract(q.card_json,'$.expires_at')>?
+                    AND EXISTS (SELECT 1 FROM devices d WHERE d.device_id=q.device_id AND d.generation=?
+                        AND d.state IN ('provisioned','online','offline')) AND NOT EXISTS (
+                    SELECT 1 FROM automation_outbound_cards AS prior WHERE prior.device_id=q.device_id
+                    AND prior.flow_id=q.flow_id AND prior.requirement_revision<q.requirement_revision AND prior.message_id IS NULL)))
+                ORDER BY q.created_at,q.id LIMIT 1''',
+                (config['producer_id'], now - _EDIT_LEASE_SECONDS, config['device_id'], config['generation'], now,
+                 config['generation'])).fetchone()
             if row is None:
                 return {'card': None}
             lease_id = secrets.token_urlsafe(32)
-            changed = db.execute('''UPDATE automation_outbound_cards SET lease_id=?,leased_at=?
-                WHERE id=? AND producer_id=? AND message_id IS NULL AND lease_id IS NULL''',
-                (lease_id, self.store.clock(), row['id'], config['producer_id']))
-            if changed.rowcount != 1:
-                return {'card': None}
-            return {'id': row['id'], 'lease_id': lease_id, 'card': json.loads(row['card_json'])}
+            db.execute('UPDATE automation_outbound_cards SET lease_id=?,leased_at=? WHERE id=?', (lease_id, now, row['id']))
+            content = json.loads(row['card_json'])
+            claim = {'id': row['id'], 'lease_id': lease_id}
+            if row['flow_id'].startswith(_ACCEPTANCE_EDIT):
+                return {**claim, 'card': content['card'], 'update_message_id': content['update_message_id']}
+            return {**claim, 'card': content}
 
     def mark_outbound_card(self, token, body):
         if (type(body) is not dict or set(body) != {'producer_id', 'id', 'message_id', 'lease_id'}
@@ -440,10 +543,14 @@ class RemoteHubService:
             raise HubError('invalid_request_fields', 400)
         config = self.automation_producers.authenticate(body['producer_id'], token)
         with self.store.transaction() as db:
-            row = db.execute('SELECT message_id, lease_id FROM automation_outbound_cards WHERE id=? AND producer_id=?',
+            row = db.execute('SELECT message_id,lease_id,flow_id,card_json FROM automation_outbound_cards WHERE id=? AND producer_id=?',
                              (body['id'], config['producer_id'])).fetchone()
             if row is None or row['lease_id'] != body['lease_id']:
                 raise HubError('outbound_card_changed', 409)
+            if row['flow_id'].startswith(_ACCEPTANCE_EDIT):
+                content = json.loads(row['card_json'])
+                if content['update_message_id'] != body['message_id'] or content['generation'] != config['generation']:
+                    raise HubError('outbound_card_changed', 409)
             if row['message_id'] == body['message_id']:
                 return {'id': body['id'], 'state': 'sent'}
             if row['message_id'] is not None:

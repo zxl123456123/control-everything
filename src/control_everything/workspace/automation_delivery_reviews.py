@@ -232,7 +232,7 @@ def register_target(service, task_id, body):
         return {'flow':AutomationQueue._view(connection,flow['id'])['flow'],'integration_target':snapshot,'recorded':True,'replayed':False}
 
 
-def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=None):
+def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=None, acceptance_card=None):
     body_fields(body, ('expected_revision','progress_revision','delivery_id','verdict','reason','confirmed','client_token'))
     if (body['confirmed'] is not True or body['verdict'] not in ('approved','changes_requested','rejected')
             or not isinstance(reviewer, str) or not reviewer or len(reviewer) > 256):
@@ -277,6 +277,8 @@ def review_delivery(service, task_id, body, *, reviewer='local_owner', approval=
         identity = str(uuid4())
         evidence = {'flow_id':flow['id'],'verify_step_id':verify['id'],'receipt_sha256':digest(checked['receipt']),
                     'output_dir':checked['output_dir'],'identity_scope':'declared_inputs'}
+        if acceptance_card is not None:
+            evidence['acceptance_card'] = acceptance_card
         connection.execute('INSERT INTO task_reviews(id,task_id,verdict,reason,evidence_json,reviewer,created_at,'
             'delivery_id,native_run_id,client_token,request_hash) VALUES(?,?,?,?,?,?,?, ?,NULL,?,?)',
             (identity,task_id,body['verdict'],body['reason'],packed(evidence),reviewer,now_utc(),

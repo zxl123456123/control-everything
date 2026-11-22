@@ -1371,9 +1371,15 @@ diff --git a/extensions/feishu/src/automation-outbound-sender.test.ts b/extensio
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-outbound-sender.test.ts
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,154 @@
 +import { describe, expect, it, vi } from "vitest";
 +import { runOutboundSender } from "./automation-outbound-sender.js";
++import { editMessageFeishu } from "./send.js";
++
++vi.mock("./send.js", () => ({
++  editMessageFeishu: vi.fn(),
++  sendCardFeishu: vi.fn(),
++}));
 +
 +const config = {
 +  hubOrigin: "https://hub.example.test",
@@ -1414,7 +1420,8 @@ new file mode 100644
 +      controller.abort();
 +      return json({ id: claimed.id, state: "sent" });
 +    });
-+    const sendCard = vi.fn(async () => ({ messageId: "om-card" }));
++    const sendCard = vi.fn<NonNullable<Parameters<typeof runOutboundSender>[0]["sendCard"]>>()
++      .mockResolvedValue({ messageId: "om-card" });
 +    await runOutboundSender({ config, signal: controller.signal, active: () => !controller.signal.aborted, sendCard });
 +    expect(sendCard).toHaveBeenCalledTimes(1);
 +    expect(sendCard.mock.calls[0]?.[0].uuid).toBe(claimed.id);
@@ -1434,7 +1441,7 @@ new file mode 100644
 +  it("does not mark or send again when the card has no message id", async () => {
 +    const controller = new AbortController();
 +    let claims = 0;
-+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
++    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
 +      claims += 1;
 +      if (claims > 1) controller.abort();
 +      return json(claimed);
@@ -1445,22 +1452,101 @@ new file mode 100644
 +    expect(vi.mocked(fetch).mock.calls.some((call) => String(call[0]).endsWith("/sent"))).toBe(false);
 +    vi.restoreAllMocks();
 +  });
++
++  it("retries an edit after lease recovery and acknowledges the original message", async () => {
++    const controller = new AbortController();
++    const cfg = {};
++    const sendCard = vi.fn();
++    const editCard = vi.mocked(editMessageFeishu);
++    editCard.mockReset();
++    editCard.mockRejectedValueOnce(new Error("Feishu rejected the edit"));
++    editCard.mockResolvedValueOnce({ messageId: "om_wrong", contentType: "interactive" });
++    editCard.mockResolvedValue({ messageId: "om_original", contentType: "interactive" });
++    let claims = 0;
++    const receipts: unknown[] = [];
++    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
++      if (String(url).endsWith("/claim")) {
++        claims += 1;
++        return json({ ...claimed, lease_id: "lease-" + claims, update_message_id: "om_original" });
++      }
++      receipts.push(JSON.parse(String(init?.body)));
++      if (receipts.length === 1) return json({ error: "lease expired" }, 409);
++      controller.abort();
++      return json({ id: claimed.id, state: "sent" });
++    });
++
++    await runOutboundSender({
++      config,
++      signal: controller.signal,
++      active: () => !controller.signal.aborted,
++      cfg,
++      accountId: "test-account",
++      sendCard,
++    });
++
++    expect(sendCard).not.toHaveBeenCalled();
++    expect(editCard).toHaveBeenCalledTimes(3);
++    const edit = {
++      cfg,
++      accountId: "test-account",
++      messageId: "om_original",
++      maxHttpTimeoutMs: 30_000,
++      card: {
++        schema: "2.0",
++        body: { elements: [{ tag: "markdown" }, { tag: "button", behaviors: [{ type: "callback", value }] }] },
++      },
++    };
++    expect(editCard).toHaveBeenNthCalledWith(1, edit);
++    expect(editCard).toHaveBeenNthCalledWith(2, edit);
++    expect(editCard).toHaveBeenNthCalledWith(3, edit);
++    expect(receipts).toEqual([
++      { producer_id: "father", id: "card-1", lease_id: "lease-3", message_id: "om_original" },
++      { producer_id: "father", id: "card-1", lease_id: "lease-4", message_id: "om_original" },
++    ]);
++    vi.restoreAllMocks();
++  }, 10_000);
++
++  it("rejects a malformed update claim without sending a new card", async () => {
++    const controller = new AbortController();
++    const sendCard = vi.fn();
++    const editCard = vi.mocked(editMessageFeishu);
++    editCard.mockClear();
++    let requests = 0;
++    vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
++      requests += 1;
++      if (requests > 1) controller.abort();
++      return json({ ...claimed, update_message_id: "bm_batch" });
++    });
++
++    await runOutboundSender({ config, signal: controller.signal, active: () => true, sendCard });
++
++    expect(sendCard).not.toHaveBeenCalled();
++    expect(editCard).not.toHaveBeenCalled();
++    expect(vi.mocked(fetch).mock.calls.every((call) => String(call[0]).endsWith("/claim"))).toBe(true);
++    vi.restoreAllMocks();
++  });
 +});
 diff --git a/extensions/feishu/src/automation-outbound-sender.ts b/extensions/feishu/src/automation-outbound-sender.ts
 new file mode 100644
 --- /dev/null
 +++ b/extensions/feishu/src/automation-outbound-sender.ts
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,144 @@
 +import { hubOriginAllowed } from "./automation-card-ingress.js";
 +import { isRecord } from "openclaw/plugin-sdk/channel-secret-basic-runtime";
 +import type { ClawdbotConfig } from "../runtime-api.js";
-+import { sendCardFeishu } from "./send.js";
++import { FEISHU_HTTP_TIMEOUT_MS } from "./client-timeout.js";
++import { editMessageFeishu, sendCardFeishu } from "./send.js";
 +import type { ResolvedFeishuAccount } from "./types.js";
 +
 +const IDLE_MS = 2_000;
 +
 +type Ingress = NonNullable<ResolvedFeishuAccount["automationIngress"]>;
-+type Claimed = { id: string; lease_id: string; card: Record<string, unknown> };
++type Claimed = {
++  id: string;
++  lease_id: string;
++  card: Record<string, unknown>;
++  update_message_id?: string;
++};
 +
 +function text(value: unknown): string {
 +  return typeof value === "string" && value.trim() && value.length <= 256 && ![...value].some((char) => char.charCodeAt(0) < 32)
@@ -1492,9 +1578,14 @@ new file mode 100644
 +  if (!isRecord(value) || !("card" in value)) return undefined;
 +  if (value.card === null && Object.keys(value).length === 1) return null;
 +  const keys = ["id", "lease_id", "card"];
++  const isUpdate = "update_message_id" in value;
++  if (isUpdate) keys.push("update_message_id");
 +  if (Object.keys(value).length !== keys.length || keys.some((key) => !(key in value))) return undefined;
-+  if (!text(value.id) || !text(value.lease_id) || !isRecord(value.card)) return undefined;
-+  return { id: text(value.id), lease_id: text(value.lease_id), card: value.card };
++  const id = text(value.id);
++  const leaseId = text(value.lease_id);
++  const updateMessageId = text(value.update_message_id);
++  if (!id || !leaseId || !isRecord(value.card) || (isUpdate && !/^om_[a-zA-Z0-9_-]+$/.test(updateMessageId))) return undefined;
++  return { id, lease_id: leaseId, card: value.card, update_message_id: updateMessageId || undefined };
 +}
 +
 +function cardForFeishu(card: Record<string, unknown>): Record<string, unknown> {
@@ -1515,7 +1606,7 @@ new file mode 100644
 +      if (response.status === 200) return;
 +      if (response.status === 409) return;
 +    } catch {
-+      // The same receipt may be retried. The card send is not.
++      // Retry the same receipt without repeating the Feishu operation.
 +    }
 +    await pause(signal, IDLE_MS);
 +  }
@@ -1558,11 +1649,24 @@ new file mode 100644
 +    let messageId = sent.get(claimed.id) ?? "";
 +    if (!sent.has(claimed.id)) {
 +      try {
-+        messageId = text((await sendCard({ uuid: claimed.id, card: cardForFeishu(claimed.card) })).messageId);
++        const card = cardForFeishu(claimed.card);
++        if (claimed.update_message_id) {
++          const result = await editMessageFeishu({
++            cfg: params.cfg as ClawdbotConfig,
++            messageId: claimed.update_message_id,
++            card,
++            accountId: params.accountId,
++            maxHttpTimeoutMs: FEISHU_HTTP_TIMEOUT_MS,
++          });
++          if (result.messageId === claimed.update_message_id) messageId = result.messageId;
++        } else {
++          messageId = text((await sendCard({ uuid: claimed.id, card })).messageId);
++        }
 +      } catch {
 +        messageId = "";
 +      }
-+      sent.set(claimed.id, messageId);
++      // A failed edit can be retried on a later lease for the same message.
++      if (messageId || !claimed.update_message_id) sent.set(claimed.id, messageId);
 +    }
 +    if (!messageId) {
 +      await pause(signal, IDLE_MS);
@@ -2110,15 +2214,24 @@ index 4437b9c..2ca1805 100644
 +      accountInactiveReason: "Feishu account is disabled or has no automationIngress.",
 +    });
 diff --git a/extensions/feishu/src/send.ts b/extensions/feishu/src/send.ts
-index 9c10e7e..3d5291a 100644
 --- a/extensions/feishu/src/send.ts
 +++ b/extensions/feishu/src/send.ts
-@@ -90,0 +91 @@ export async function sendReplyOrFallbackDirect(
+@@ -11,0 +12 @@
++import { resolveConfiguredHttpTimeoutMs } from "./client-timeout.js";
+@@ -90,0 +92 @@
 +    uuid?: string;
-@@ -105,0 +107 @@ export async function sendReplyOrFallbackDirect(
+@@ -105,0 +108 @@
 +              ...(params.uuid === undefined ? {} : { uuid: params.uuid }),
-@@ -436,0 +439 @@ type SendFeishuCardParams = Omit<
+@@ -436,0 +440 @@
 +  uuid?: string;
+@@ -455,0 +460 @@
++  maxHttpTimeoutMs?: number;
+@@ -469 +474,4 @@
+-  const client = createFeishuClient(account);
++  const client = createFeishuClient(params.maxHttpTimeoutMs === undefined ? account : {
++    ...account,
++    httpTimeoutMs: Math.min(resolveConfiguredHttpTimeoutMs(account), params.maxHttpTimeoutMs),
++  });
 diff --git a/extensions/feishu/src/types.ts b/extensions/feishu/src/types.ts
 index eeac93f..e66a60f 100644
 --- a/extensions/feishu/src/types.ts

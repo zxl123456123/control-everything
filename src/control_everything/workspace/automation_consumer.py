@@ -22,7 +22,7 @@ from control_everything.workspace.automation_human_decisions import (
     rejection_card, repair_budget_card,
     unavailable_card,
     requirement_card, target_wait_card,
-    verification_card, waiting_card)
+    sync_acceptance_cards, verification_card, waiting_card)
 from control_everything.workspace.automation_planning import (
     IMPLEMENT_DECISION_PROMPT, PLAN_DECISION_PROMPT, implementation_decision, planning_outcome, read_plan,
 )
@@ -81,6 +81,11 @@ class AutomationConsumer:
             apply_plan_choices(self.queue.store, self, binding)
             apply_plan_releases(self.queue.store, self, binding)
             apply_acceptance_decisions(self.queue.store, getattr(self, 'review_service', None), binding)
+            if self.on_wait is not None:
+                try:
+                    sync_acceptance_cards(self.queue.store, binding, self.on_wait)
+                except Exception as error:
+                    logging.getLogger(__name__).warning('Automation acceptance card sync failed: %s', type(error).__name__)
             apply_feishu_assignments(self.queue.store, binding)
         events = self.queue.pending_events(integration_only=not self.adapter.available)
         if self.cursor in events:

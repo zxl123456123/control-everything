@@ -497,16 +497,67 @@ class PreparedIntegrationOfferTests(AutomationQueueFixture):
         self.assertEqual(self.published['flow']['status'], 'awaiting_acceptance')
         return self.cards[-1]['body']['elements'][1]
 
-    def click(self, button, identity='click', **overrides):
+    def click(self, button, identity='click', *, message_id=None, **overrides):
         decision = {k: v for k, v in button['value'].items() if k != 'flow_id'}
         RemoteAutomationInbox(self.profile.store).receive(self.binding, {
             'id': identity, 'source': 'feishu:test', 'event_id': 'event-'+identity, 'lease_id': 'lease',
             'lease_expires_at': 10, 'payload': {'kind': 'feishu_card_decision', 'project_id': self.project['id'],
-                'app_id': 'app', 'actor_open_id': 'ou-owner', 'decision': {**decision, **overrides}}})
+                'app_id': 'app', 'actor_open_id': 'ou-owner', 'message_id': message_id or 'om-'+identity,
+                'decision': {**decision, **overrides}}})
         return self.apply_clicks()
 
     def apply_clicks(self):
         return apply_acceptance_decisions(self.profile.store, self.service, self.binding)
+
+    def test_card_updates_retry_after_real_integration_without_repeating_git(self):
+        def configure():
+            self.save_target()
+            self.service.integration_preflight = lambda *_: self.base
+
+        self.publish_card(configure)
+        card = self.cards[-1]
+        self.assertIs(card['config']['update_multi'], True)
+        button = card['body']['elements'][1]
+        self.assertFalse(self.click(button, identity='accepted')[0]['replayed'])
+        self.assertTrue(all(item['replayed'] for item in self.click(button, identity='another-card')))
+        updates = []
+
+        def publish(card):
+            update = card['acceptance_update']
+            updates.append(update)
+            if update['stage'] == 'integrated' and len(updates) == 2:
+                raise OSError('temporary Hub outage')
+            return {'id': 'receipt', 'duplicate': False, 'state': 'pending'}
+
+        self.consumer.on_wait = publish
+        self.consumer.current_binding = lambda: self.binding
+        view = self.consumer.run_once()
+        self.assertEqual(view['step']['status'], 'completed')
+        self.assertEqual(updates, [{'inbox_id': 'accepted', 'stage': 'approved'}])
+        sha = view['step']['result']['remote_sha']
+        self.assertEqual(self.heads(), (sha,) * 3)
+        self.assertIsNone(self.consumer.run_once())
+        self.queue.release(self.consumer.lease)
+
+        restarted = AutomationConsumer(AutomationQueue(self.profile.store), self.host, on_wait=publish,
+                                       integration=lambda *_: self.fail('integration must not run twice'))
+        restarted.current_binding = lambda: {**self.binding, 'generation': 2}
+        self.assertIsNone(restarted.run_once())
+        self.assertEqual(len(updates), 2)
+        restarted.current_binding = lambda: self.binding
+        step_id = view['step']['id']
+        with self.profile.store.connection() as db:
+            original = db.execute('SELECT result_json FROM automation_steps WHERE id=?', (step_id,)).fetchone()[0]
+            incomplete = {**json.loads(original), 'target_test_passed': False}
+            db.execute('UPDATE automation_steps SET result_json=? WHERE id=?', (json.dumps(incomplete), step_id))
+        self.assertIsNone(restarted.run_once())
+        self.assertEqual(len(updates), 2)
+        with self.profile.store.connection() as db:
+            db.execute('UPDATE automation_steps SET result_json=? WHERE id=?', (original, step_id))
+        self.assertIsNone(restarted.run_once())
+        self.assertIsNone(restarted.run_once())
+        self.assertEqual(updates[1:], [{'inbox_id': 'accepted', 'stage': 'integrated', 'commit_sha': sha}] * 2)
+        self.assertEqual(self.heads(), (sha,) * 3)
 
     def heads(self):
         return tuple(self.git(root, 'rev-parse', ref).strip() for root, ref in (
@@ -670,8 +721,16 @@ class PreparedIntegrationOfferTests(AutomationQueueFixture):
         self.assertEqual(len(self.click(button)), 1)
         self.assertTrue(self.apply_clicks()[0]['replayed'])
         count = len(self.cards)
+        self.consumer.current_binding = lambda: self.binding
+        updates = []
+        def publish(card):
+            updates.append(card)
+            return {'state': 'pending'}
+        self.consumer.on_wait = publish
+        self.consumer.run_once()
         self.consumer.run_once()
         self.assertEqual(len(self.cards), count)
+        self.assertEqual(updates, [{'acceptance_update': {'inbox_id': 'click', 'stage': 'approved'}}])
         self.assertEqual(self.heads(), (self.base,) * 3)
         item = self.profile.store.get_item(self.item['id'])
         self.assertEqual((item['state'], item['accepted_delivery_id']), ('done', button['value']['delivery_id']))

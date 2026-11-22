@@ -3,7 +3,7 @@
   "commit": "b556fdf457b026574bf0f1e7b4914b15f3f179ce",
   "version": "2026.11.2",
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
-  "patchSha256": "9e284fb97e47dd1f989f99eb80bb4fbf4cdf65575fe876cdefedf0d0a97eadc3",
+  "patchSha256": "4babcf25f52ced5410954a5761cf5da318009b363e2a377869261dd094265b23",
   "patchFormat": "unified-zero-context; git apply --unidiff-zero",
   "licenseSha256": "9efd316ecf1c4c60f6fd5d26433142fff2b6794d7d328e9bc6179b29bf9c82a4",
   "npm": {
@@ -92,7 +92,7 @@
     },
     "extensions/feishu/src/send.ts": {
       "originalSha256": "9daa090cfc25309fe240534bc9f1d0780eab5f3549caeec9f83c782f5f47607e",
-      "patchedSha256": "15edcf6689e610e80b0bb300305152694124069aa23619dd85d0ed5f23a0bc13"
+      "patchedSha256": "0daa2e775582d575ef27819551cde74cca1b233ab69a4d94af9abb5903afed5d"
     },
     "extensions/feishu/src/automation-card-ingress.ts": {
       "originalSha256": null,
@@ -116,11 +116,11 @@
     },
     "extensions/feishu/src/automation-outbound-sender.ts": {
       "originalSha256": null,
-      "patchedSha256": "062fec4829cceef180f30953e5b332bc31a1e1709ca605c73f8306b59d181b0f"
+      "patchedSha256": "dcb7cdf15480e1917ebe1baf96e86c5607ee077423964e89e40c5409fae1223c"
     },
     "extensions/feishu/src/automation-outbound-sender.test.ts": {
       "originalSha256": null,
-      "patchedSha256": "3dafb3734c5e3f1885b933a6dcd09a52bcc91079a965d67a7940fbe8226f1fb1"
+      "patchedSha256": "c2ac62f46edf7882e9d9a863a3f46a7c43acb2b782bc209615ae9274d6f7000c"
     },
     "extensions/feishu/src/automation-reply.test.ts": {
       "originalSha256": null,

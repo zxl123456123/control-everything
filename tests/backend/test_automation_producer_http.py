@@ -41,6 +41,65 @@ class AutomationProducerHTTPTests(unittest.TestCase):
     def receive(self, body=None, **options):
         return self.request(RECEIVE, self.body if body is None else body, token=self.producer_token, **options)
 
+    def test_edits_the_original_acceptance_card_in_order_after_a_lost_receipt(self):
+        now = self.hub.store.clock()
+        self.hub.store.clock = lambda: now
+        desktop = '/remote/desktop/automation/card'
+        producer = '/remote/producer/automation/outbound/'
+        credentials = {'producer_id': self.config['producer_id']}
+
+        def call(operation, **body):
+            return self.request(producer + operation, {**credentials, **body}, token=self.producer_token)
+
+        def mark(claim, message='om_original'):
+            return call('sent', id=claim['id'], lease_id=claim['lease_id'], message_id=message)
+
+        def update(inbox, stage, **detail):
+            return self.request(desktop, {'acceptance_update': {'inbox_id': inbox, 'stage': stage, **detail}})
+
+        decision = {**self.body['decision'], 'decision_id': 'integrate-current'}
+        card = {'schema': '2.0', 'config': {'update_multi': True}, 'body': {'elements': [
+            {'tag': 'markdown', 'content': 'Delivery'}, {'tag': 'button', 'value': {**decision, 'flow_id': 'one'}}]}}
+        self.assertEqual(self.request(desktop, card)[0], 200)
+        _, original, _ = call('claim')
+        self.assertNotIn('update_message_id', original)
+        click = {**self.body, 'decision': decision, 'message_id': 'om_original'}
+        _, receipt, _ = self.receive(click)
+        inbox = receipt['id']
+        self.assertEqual(update(inbox, 'approved')[0], 409)
+        self.assertEqual(mark(original)[0], 200)
+        for name, changed in [('message_id', 'om_other'), ('decision', {**decision, 'delivery_id': 'other'})]:
+            _, unrelated, _ = self.receive({**click, name: changed, 'event_id': 'changed-' + name})
+            self.assertEqual(update(unrelated['id'], 'approved')[1], {'state': 'unavailable'})
+        self.assertEqual(update(inbox, 'integrated', commit_sha='a'*40)[0], 409)
+        self.assertEqual(update(inbox, 'integrated', commit_sha='invalid')[0], 400)
+        status, approval, _ = update(inbox, 'approved')
+        self.assertEqual(status, 200)
+        self.assertEqual(update(inbox, 'approved')[1], {**approval, 'duplicate': True})
+        self.assertEqual(update(inbox, 'integrated', commit_sha='a'*40)[0], 200)
+        self.assertEqual(update(inbox, 'integrated', commit_sha='b'*40)[0], 409)
+
+        _, approved, _ = call('claim')
+        self.assertEqual(approved['update_message_id'], 'om_original')
+        self.assertEqual(approved['card']['header']['title']['content'], '已批准')
+        self.assertEqual(call('claim')[1], {'card': None})
+        self.assertEqual(mark(approved, 'om_other')[0], 409)
+        now += 181
+        _, retry, _ = call('claim')
+        self.assertEqual(retry['id'], approved['id'])
+        self.assertNotEqual(retry['lease_id'], approved['lease_id'])
+        self.assertEqual(retry['card'], approved['card'])
+        self.assertEqual(mark(approved)[0], 409)
+        self.assertEqual(mark(retry)[0], 200)
+        _, integrated, _ = call('claim')
+        self.assertEqual(integrated['update_message_id'], retry['update_message_id'])
+        self.assertEqual(integrated['card']['header']['title']['content'], '已集成 develop')
+        self.assertIn('a'*40, integrated['card']['body']['elements'][0]['content'])
+        self.assertEqual(mark(integrated)[0], 200)
+        self.assertEqual(update(inbox, 'approved')[1]['state'], 'sent')
+        self.assertEqual(call('claim')[1], {'card': None})
+        self.assertEqual(call('lookup', message_id='om_original')[1]['card'], card)
+
     def test_waiting_card_is_stored_once_and_claimed_by_its_producer(self):
         value = {'namespace': 'control-everything.automation.v1', 'task_id': 'task', 'flow_id': 'flow-1',
                  'requirement_revision': 3, 'choice': '按已审方案实现'}

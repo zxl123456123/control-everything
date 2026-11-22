@@ -1,10 +1,14 @@
 """Classify a trusted human reply. A model summary is not a decision."""
 import json
+import logging
+import re
 
 from control_everything.input_validation import ProfileError
 from control_everything.workspace.automation_delivery_reviews import review_delivery
 from control_everything.workspace.automation_identities import decision_authorized, trusted_context
-from control_everything.workspace.native_progress import row_view
+from control_everything.workspace.native_progress import digest, packed, row_view
+
+_INBOX_BINDING = ('hub_origin', 'device_id', 'generation')
 
 VAGUE = ('不错', '可以考虑', '再看看', '以后可以')
 PLAN_RELEASE = '按已审方案实现'
@@ -389,7 +393,8 @@ def acceptance_card(flow, *, approval=None, task_title=None):
                 'value': {**shared, 'decision_id': decision_id, 'verdict': verdict}}
                for decision_id, verdict, label in choices]
     title = f'确认集成 · {task_title}' if integration_only else '待验收'
-    return {'schema': '2.0', 'header': {'title': {'tag': 'plain_text', 'content': title}},
+    return {'schema': '2.0', 'config': {'update_multi': True},
+            'header': {'title': {'tag': 'plain_text', 'content': title}},
             'body': {'elements': [{'tag': 'markdown', 'content': description}, *buttons]}}
 
 
@@ -438,7 +443,7 @@ def apply_acceptance_decisions(store, service, binding):
     if service is None or any(not binding.get(key) for key in ('hub_origin', 'device_id', 'generation')):
         return []
     with store.connection() as db:
-        rows = db.execute('''SELECT payload_json FROM automation_remote_inbox
+        rows = db.execute('''SELECT message_id,event_id,payload_json FROM automation_remote_inbox
             WHERE hub_origin=? AND device_id=? AND generation=? AND ack_state IN ('pending','acknowledged')
             ORDER BY received_at,message_id''',
             (binding['hub_origin'], binding['device_id'], binding['generation'])).fetchall()
@@ -448,9 +453,15 @@ def apply_acceptance_decisions(store, service, binding):
         if decision is None or not decision_authorized(
                 store, decision['actor_id'], task_id=decision['task_id'], trusted=decision['trusted'], device=binding):
             continue
+        message_id = decision['message_id']
+        card = None
+        if decision['approval'] and isinstance(message_id, str) and message_id and message_id != row['event_id']:
+            card = {**{key: binding[key] for key in _INBOX_BINDING}, 'inbox_id': row['message_id'],
+                    'event_id': row['event_id'], 'message_id': message_id}
         try:
             applied.append(review_delivery(service, decision['task_id'], decision['body'],
-                                           reviewer=decision['actor_id'], approval=decision['approval']))
+                                           reviewer=decision['actor_id'], approval=decision['approval'],
+                                           acceptance_card=card))
         except ProfileError as error:
             if str(error) == 'automation_owner_lost':
                 raise
@@ -482,10 +493,68 @@ def _stored_acceptance(raw):
             approval = 'record'
     reason = {'approved': '通过验收' if approval == 'record' else '这个版本通过，集成 develop',
               'changes_requested': '飞书要求修改', 'rejected': '飞书拒绝'}
-    return {'task_id': decision['task_id'], 'trusted': trusted_context(payload), 'approval': approval, 'body': {
+    return {'task_id': decision['task_id'], 'trusted': trusted_context(payload), 'approval': approval,
+            'message_id': payload.get('message_id'), 'body': {
         'expected_revision': decision['expected_revision'], 'progress_revision': decision['progress_revision'],
         'delivery_id': decision['delivery_id'], 'verdict': verdict, 'reason': reason[verdict],
         'confirmed': True, 'client_token': decision_id}, 'actor_id': actor}
+
+
+def sync_acceptance_cards(store, binding, publish):
+    """Enqueue updates for the exact inbox event that wrote a durable approval."""
+    with store.connection() as db:
+        rows = db.execute("""SELECT r.*,i.payload_json,i.event_id,s.operation_id,s.request_json,s.result_json
+            FROM automation_remote_inbox i
+            JOIN task_reviews r ON r.task_id=json_extract(i.payload_json,'$.decision.task_id')
+                AND r.client_token=json_extract(i.payload_json,'$.decision.decision_id')
+                AND json_extract(r.evidence_json,'$.acceptance_card.inbox_id')=i.message_id
+            LEFT JOIN automation_steps s ON s.flow_id=json_extract(r.evidence_json,'$.flow_id')
+                AND r.client_token LIKE 'integrate-%' AND s.kind='integrate' AND s.status='completed'
+                AND json_extract(s.request_json,'$.integration_target.review_id')=r.id
+            WHERE i.hub_origin=? AND i.device_id=? AND i.generation=? AND r.verdict='approved'
+                AND (json_extract(r.evidence_json,'$.acceptance_card.state') IS NULL
+                    OR (s.id IS NOT NULL AND json_extract(r.evidence_json,'$.acceptance_card.state')='approved'))
+            ORDER BY i.received_at,i.message_id""", tuple(binding[key] for key in _INBOX_BINDING)).fetchall()
+    for row in rows:
+        evidence = json.loads(row['evidence_json'])
+        card = evidence['acceptance_card']
+        decision = _stored_acceptance(row['payload_json'])
+        if (not decision or decision['approval'] is None or card['event_id'] != row['event_id']
+                or card['message_id'] != decision['message_id']
+                or any(card[key] != binding[key] for key in _INBOX_BINDING)
+                or row['reviewer'] != decision['actor_id'] or row['delivery_id'] != decision['body']['delivery_id']
+                or row['request_hash'] != digest(decision['body'])):
+            continue
+        stage = 'approved'
+        update = {'inbox_id': card['inbox_id'], 'stage': stage}
+        if card.get('state') == 'approved':
+            request, result = json.loads(row['request_json']), json.loads(row['result_json'])
+            snapshot = request['integration_target']
+            sha = result.get('remote_sha')
+            if (decision['approval'] != 'integrate' or not isinstance(sha, str)
+                    or not re.fullmatch(r'[0-9a-f]{40}(?:[0-9a-f]{24})?', sha)
+                    or snapshot['delivery_id'] != row['delivery_id'] or snapshot['target']['branch'] != 'develop'
+                    or snapshot['client_token'] != row['client_token'] or snapshot['request_hash'] != row['request_hash']
+                    or result.get('operation_id') != row['operation_id'] or result.get('request_hash') != digest(request)
+                    or result.get('integration_target') != snapshot
+                    or result.get('candidate_sha') != sha or result.get('target_sha') != sha
+                    or result.get('candidate_test_passed') is not True or result.get('target_test_passed') is not True
+                    or result.get('source_unchanged') is not True or result.get('cleanup_verified') is not True):
+                continue
+            stage = 'integrated'
+            update.update(stage=stage, commit_sha=sha)
+        try:
+            response = publish({'acceptance_update': update})
+        except Exception as error:
+            logging.getLogger(__name__).warning('Automation acceptance card update failed: %s', type(error).__name__)
+            continue
+        state = response.get('state') if isinstance(response, dict) else None
+        if state not in ('pending', 'leased', 'sent', 'unavailable'):
+            continue
+        card['state'] = 'unavailable' if state == 'unavailable' else stage
+        with store.connection() as db:
+            db.execute('UPDATE task_reviews SET evidence_json=? WHERE id=? AND evidence_json=?',
+                       (packed(evidence), row['id'], row['evidence_json']))
 
 
 def apply_plan_releases(store, consumer, binding):
