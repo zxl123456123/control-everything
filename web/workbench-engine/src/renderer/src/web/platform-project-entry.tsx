@@ -569,6 +569,7 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       <PlatformWorkspaceHeader active={Boolean(projectId || workbench || globalSettings)}
         projectName={projectId ? (chosen?.name || archived?.name || '项目') : undefined}
         projectId={contextActive ? chosen?.id : undefined}
+        execution={showWorkspace && connection?.state === 'ready' && !remoteContext() ? data ?? undefined : undefined}
         settings={projectSettings || globalSettings} workspaceInert={!showWorkspace && !showWorkbench} />
       {navigationNotice && (
         <p role="status" className="platform-navigation-notice">

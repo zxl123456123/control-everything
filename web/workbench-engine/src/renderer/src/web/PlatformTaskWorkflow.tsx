@@ -1,9 +1,15 @@
 import { Check, ChevronDown, Circle, Clock3, GitPullRequest, LoaderCircle, OctagonAlert, Pause, X } from 'lucide-react'
 import { Dialog } from 'radix-ui'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
+import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../components/ui/sheet'
-import { contextFetch, onContextInactive } from './remote-context'
+import { contextFetch, onContextInactive, remoteContext } from './remote-context'
+import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
+import type { PendingAutomation } from './ProjectAutomationControls'
+
+const CreateWorkflowTask = lazy(() => import('./ProjectAutomationControls').then((module) => ({ default: module.CreateWorkflowTask })))
+const RunAutomation = lazy(() => import('./ProjectAutomationControls').then((module) => ({ default: module.RunAutomation })))
 
 const taskSchema = z.object({ id: z.string(), project_id: z.string().nullable(), title: z.string() })
 const taskPage = z.object({ items: z.array(taskSchema), total: z.number(), list_revision: z.number() })
@@ -185,7 +191,13 @@ async function readTasks(projectId: string, signal: AbortSignal): Promise<Task[]
   return []
 }
 
-function WorkflowProgress({ projectId, taskId }: { projectId: string; taskId: string }): React.JSX.Element {
+function WorkflowProgress({ projectId, task, execution, pending }: {
+  projectId: string
+  task: Task
+  execution?: PlatformProjectBootstrap
+  pending: Map<string, PendingAutomation>
+}): React.JSX.Element {
+  const taskId = task.id
   const [workflow, setWorkflow] = useState<Automation>()
   const [unavailable, setUnavailable] = useState(false)
   useEffect(() => {
@@ -215,10 +227,16 @@ function WorkflowProgress({ projectId, taskId }: { projectId: string; taskId: st
   }, [projectId, taskId])
   if (!workflow) return <p role="status" className="text-sm text-muted-foreground">{unavailable ? '暂时无法读取流水线，正在重试。' : '正在读取流水线…'}</p>
   const [current, ...history] = workflow.flows
+  const activeFlow = Boolean(current && !terminal.has(current.status))
+  const inProgress = Boolean(workflow.pending_since || activeFlow)
   const integration = current?.steps.filter((step) => step.kind === 'integrate').at(-1)
   const integrationState = current && integrationStatus(current, integration)
   return (
     <div className="grid gap-3">
+      {execution && <Suspense fallback={null}>
+        <RunAutomation execution={execution} task={task} pending={pending} available={!inProgress && !unavailable}
+          flowId={current?.id} activeFlow={activeFlow} />
+      </Suspense>}
       {unavailable && <p role="status" className="text-sm text-amber-500">刷新失败，显示上次读取的进度。</p>}
       {workflow.pending_since && <p role="status" className="text-sm text-muted-foreground">已收到新交办，等待调度。</p>}
       {current ? (
@@ -238,7 +256,11 @@ function WorkflowProgress({ projectId, taskId }: { projectId: string; taskId: st
   )
 }
 
-function ProjectWorkflowTasks({ projectId }: { projectId: string }): React.JSX.Element {
+function ProjectWorkflowTasks({ projectId, execution, pending }: {
+  projectId: string
+  execution?: PlatformProjectBootstrap
+  pending: Map<string, PendingAutomation>
+}): React.JSX.Element {
   const [tasks, setTasks] = useState<Task[]>()
   const [taskId, setTaskId] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -258,7 +280,8 @@ function ProjectWorkflowTasks({ projectId }: { projectId: string }): React.JSX.E
     <button type="button" className="ml-2 text-primary underline" onClick={() => { setUnavailable(false); setRetry((value) => value + 1) }}>重试</button>
   </p>
   if (!tasks) return <p role="status" className="text-sm text-muted-foreground">正在读取项目事项…</p>
-  if (!tasks.length) return <p className="text-sm text-muted-foreground">此项目还没有事项。</p>
+  const task = tasks.find((row) => row.id === taskId)
+  const canWrite = execution?.project.id === projectId && !remoteContext()
   return (
     <div className="grid gap-4">
       <label className="grid gap-1.5 text-sm font-medium">
@@ -269,13 +292,25 @@ function ProjectWorkflowTasks({ projectId }: { projectId: string }): React.JSX.E
           {tasks.map((task) => <option key={task.id} value={task.id}>{task.title}</option>)}
         </select>
       </label>
-      {taskId && <WorkflowProgress key={taskId} projectId={projectId} taskId={taskId} />}
+      {!tasks.length && <p className="text-sm text-muted-foreground">此项目还没有事项。</p>}
+      {canWrite && <Suspense fallback={null}>
+        <CreateWorkflowTask projectId={projectId} onCreated={(created) => {
+          setTasks((rows) => [...(rows ?? []), created])
+          setTaskId(created.id)
+        }} />
+      </Suspense>}
+      {task && <WorkflowProgress key={task.id} projectId={projectId} task={task} pending={pending}
+        execution={canWrite ? execution : undefined} />}
     </div>
   )
 }
 
-export function PlatformTaskWorkflow({ projectId }: { projectId: string }): React.JSX.Element {
+export function PlatformTaskWorkflow({ projectId, execution }: {
+  projectId: string
+  execution?: PlatformProjectBootstrap
+}): React.JSX.Element {
   const [open, setOpen] = useState(false)
+  const pending = useRef(new Map<string, PendingAutomation>())
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
@@ -285,11 +320,12 @@ export function PlatformTaskWorkflow({ projectId }: { projectId: string }): Reac
       </Dialog.Trigger>
       <SheetContent className="platform-task-workflow w-full sm:w-3/4" overlayClassName="bg-black/20" showCloseButton={false}>
         <SheetHeader className="flex-row items-start justify-between gap-4 border-b border-border/60 px-5 py-4">
-          <div><SheetTitle>任务流水线</SheetTitle><SheetDescription>选择项目事项，查看自动推进阶段与证据。</SheetDescription></div>
+          <div><SheetTitle>任务流水线</SheetTitle><SheetDescription>{execution && !remoteContext()
+            ? '选择项目事项和本机工作树，手动发起自动推进。' : '选择项目事项，查看自动推进阶段与证据。'}</SheetDescription></div>
           <SheetClose type="button" className="rounded-md p-2 hover:bg-accent" aria-label="关闭任务流水线"><X size={16} aria-hidden="true" /></SheetClose>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          {open && <ProjectWorkflowTasks projectId={projectId} />}
+          {open && <ProjectWorkflowTasks projectId={projectId} execution={execution} pending={pending.current} />}
         </div>
       </SheetContent>
     </Sheet>

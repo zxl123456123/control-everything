@@ -2,15 +2,28 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { PlatformWorkspaceHeader } from './PlatformWorkspaceHeader'
-import { contextFetch } from './remote-context'
+import { contextFetch, remoteContext } from './remote-context'
+import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
+
+const environmentId = '00000000-0000-4000-8000-000000000009'
+const mockStore = vi.hoisted(() => ({ repos: [] as object[], worktreesByRepo: {} as Record<string, object[]> }))
+vi.mock('@/store', () => ({ useAppStore: (select: (state: typeof mockStore) => unknown) => select(mockStore) }))
 
 vi.mock('./remote-context', () => ({
   contextFetch: vi.fn(),
+  remoteContext: vi.fn(),
   onContextInactive: () => () => {}
 }))
 
 const fetch = vi.mocked(contextFetch)
 const project = 'workbench'
+const execution: PlatformProjectBootstrap = {
+  project: { id: project, name: '测试项目' },
+  runtime: { environmentId, offer: { v: 2, scope: 'runtime', endpoint: 'ws://127.0.0.1:23456',
+    deviceToken: 'temporary-fixture-token', publicKeyB64: 'host-key' } },
+  target: { repoId: 'repo' },
+  returnUrl: '/studio#project/workbench'
+}
 const row = (id: string, projectId = project) => ({ id, project_id: projectId, title: `事项 ${id}` })
 const page = (projectId = project) => Response.json({ items: [row('one', projectId), row('two', projectId)], list_revision: 1, total: 2 })
 const step = (kind: string, status: string, exitCode: number | null = null) => ({
@@ -34,12 +47,112 @@ afterEach(() => {
   cleanup()
   vi.useRealTimers()
   fetch.mockReset()
+  vi.mocked(remoteContext).mockReset().mockReturnValue(null)
+  mockStore.repos = []
+  mockStore.worktreesByRepo = {}
 })
 
 async function openTasks(): Promise<HTMLSelectElement> {
   await act(async () => fireEvent.click(screen.getByRole('button', { name: '任务流水线' })))
   return screen.getByRole<HTMLSelectElement>('combobox', { name: '项目事项' })
 }
+
+it('queues the selected local task and worktree only after an explicit click and retries the same request', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  const hostId = `runtime:${environmentId}`
+  mockStore.repos = [{ id: 'repo', executionHostId: hostId, path: 'E:/fixture/project' }]
+  mockStore.worktreesByRepo = { repo: [
+    { id: 'local-tree', path: 'E:/fixture/worktree', displayName: '本机检出', hostId },
+    { id: 'other-tree', path: '/fixtures/remote', displayName: '远端检出', hostId: 'ssh:other', runtimeOwnerEnvironmentId: environmentId }
+  ] }
+  const submissions: string[] = []
+  fetch.mockImplementation(async (path, options) => {
+    const url = String(path)
+    if (url.startsWith('/api/workspace/items?')) return page()
+    if (url === '/api/workspace/agent-tasks/one') {
+      return submissions.length === 2 ? result('one', flow('plan')) :
+        Response.json({ item: row('one'), automation: { pending_since: null, flows: [] } })
+    }
+    if (url === '/api/workspace/tasks/one/brief') return Response.json({
+      item: { ...row('one'), origin: 'task', revision: 7 },
+      brief: { revision: 3, request_text: '核对发布', execution_directory_id: 'dir' },
+      directories: [{ binding_id: 'dir', path: 'E:/fixture/project' }]
+    })
+    if (url === '/api/bootstrap') return Response.json({ csrf_token: 'fixture-csrf' })
+    expect(url).toBe('/api/workspace/tasks/one/automation-enable')
+    expect(options?.headers).toMatchObject({ 'X-Session-CSRF': 'fixture-csrf' })
+    submissions.push(String(options?.body))
+    if (submissions.length === 1) throw new Error('connection interrupted')
+    return Response.json({ task_id: 'one', project_id: project, source_event_id: JSON.parse(submissions[0]).client_token }, { status: 202 })
+  })
+  render(<PlatformWorkspaceHeader projectId={project} execution={execution} />)
+  const chooser = await openTasks()
+  await act(async () => fireEvent.change(chooser, { target: { value: 'one' } }))
+  await act(async () => { await vi.dynamicImportSettled() })
+  expect(screen.queryByRole('option', { name: /远端检出/ })).toBeNull()
+  const start = screen.getByRole<HTMLButtonElement>('button', { name: '用 Codex 启动自动推进' })
+  expect(start.disabled).toBe(true)
+  fireEvent.change(screen.getByRole('combobox', { name: '本机工作树' }), { target: { value: 'local-tree' } })
+  expect(submissions).toHaveLength(0)
+  await act(async () => fireEvent.click(start))
+  expect(screen.getByText('启动结果尚未确认。重试会沿用同一请求。')).toBeTruthy()
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: '重试原启动请求' })))
+  expect(submissions).toHaveLength(2)
+  expect(submissions[0]).toBe(submissions[1])
+  expect(JSON.parse(submissions[0])).toMatchObject({ expected_revision: 7, brief_revision: 3, agent: 'codex', worktree_id: 'local-tree' })
+  expect(screen.getByText('已入队，等待调度。')).toBeTruthy()
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+  expect(screen.getByText('制定方案').closest('li')?.getAttribute('aria-current')).toBe('step')
+  expect(screen.queryByText('已入队，等待调度。')).toBeNull()
+})
+
+it('leaves the remote drawer read-only even when a project runtime is present', async () => {
+  vi.mocked(remoteContext).mockReturnValue({ context: 'fixture', scope: 'fixture' })
+  fetch.mockResolvedValueOnce(page()).mockResolvedValueOnce(receipt('one'))
+  render(<PlatformWorkspaceHeader projectId={project} execution={execution} />)
+  const chooser = await openTasks()
+  await act(async () => fireEvent.change(chooser, { target: { value: 'one' } }))
+  expect(screen.getByText('制定方案')).toBeTruthy()
+  expect(screen.queryByRole('combobox', { name: '本机工作树' })).toBeNull()
+  expect(screen.queryByText('新建项目事项')).toBeNull()
+  expect(fetch.mock.calls.every(([, options]) => !options?.method)).toBe(true)
+})
+
+it('creates and selects a new project task, leaving automation to a separate launch action', async () => {
+  const id = '00000000-0000-4000-8000-000000000021'
+  const item = { id, project_id: project, title: '核对发布流程', origin: 'task', revision: 1 }
+  const requirement = '运行发布检查并记录结果。'
+  const brief = (revision: number, request_text: string) => ({ item, directories: [],
+    brief: { revision, request_text, execution_directory_id: null } })
+  const writes: unknown[] = []
+  fetch.mockImplementation(async (path, options) => {
+    const url = String(path)
+    if (url.startsWith('/api/workspace/items?')) return Response.json({ items: [], total: 0, list_revision: 0 })
+    if (url === '/api/bootstrap') return Response.json({ csrf_token: 'fixture-csrf' })
+    if (options?.method === 'POST') {
+      writes.push([url, JSON.parse(String(options.body))])
+      return Response.json(url.endsWith('/brief') ? brief(1, requirement) : { item })
+    }
+    if (url === `/api/workspace/tasks/${id}/brief`) return Response.json(brief(0, ''))
+    expect(url).toBe(`/api/workspace/agent-tasks/${id}`)
+    return Response.json({ item, automation: { pending_since: null, flows: [] } })
+  })
+  render(<PlatformWorkspaceHeader projectId={project} execution={execution} />)
+  const chooser = await openTasks()
+  await act(async () => { await vi.dynamicImportSettled() })
+  const summary = await screen.findByText('新建项目事项')
+  const details = summary.closest('details')!
+  details.open = true
+  fireEvent.change(screen.getByLabelText('事项标题'), { target: { value: item.title } })
+  fireEvent.change(screen.getByLabelText('需求说明'), { target: { value: requirement } })
+  await act(async () => fireEvent.submit(screen.getByRole('button', { name: '保存事项与需求' }).closest('form')!))
+  expect(chooser.value).toBe(id)
+  expect(writes).toEqual([
+    ['/api/workspace/items', { project_id: project, title: item.title }],
+    [`/api/workspace/tasks/${id}/brief`, { expected_revision: 0, request_text: requirement,
+      acceptance_text: '', constraints_text: '', references: [], execution_directory_id: null }]
+  ])
+})
 
 it('polls authenticated task details and updates stages without replacing the selected control or expanded evidence', async () => {
   vi.useFakeTimers()

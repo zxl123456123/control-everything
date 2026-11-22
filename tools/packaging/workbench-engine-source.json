@@ -327183,6 +327183,7 @@
     "src/renderer/src/components/stats/ShareUsageCard.branding.test.tsx",
     "src/renderer/src/web/PlatformTaskWorkflow.tsx",
     "src/renderer/src/web/PlatformTaskWorkflow.test.tsx",
+    "src/renderer/src/web/ProjectAutomationControls.tsx",
     "src/renderer/src/web/PlatformWorkspaceHeader.tsx",
     "src/renderer/src/web/platform-workbench.css",
     "src/renderer/src/lib/platform-review-target.ts",

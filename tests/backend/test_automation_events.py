@@ -102,6 +102,24 @@ class AutomationEventStorageTests(unittest.TestCase):
             service.enable_task_automation(self.item['id'], changed)
         self.assertEqual(service.native_progress.adapter.mock_calls, [])
 
+    def test_local_launch_freezes_the_registered_verification_for_its_directory(self):
+        service = self.service()
+        project_id = self.project['id']
+        spec = {'argv': [sys.executable, 'verify.py'], 'source_files': ['verify.py'], 'timeout': 10}
+        service.set_project_automation_verification(project_id, {'directory_id': 'main', 'verification': spec})
+
+        request = self.request()
+        first = service.enable_task_automation(self.item['id'], request)
+        self.assertEqual(first['payload']['request']['verification'], spec)
+        changed = {**spec, 'timeout': 11}
+        service.set_project_automation_verification(project_id, {'directory_id': 'main', 'verification': changed})
+        self.assertEqual(service.enable_task_automation(self.item['id'], request), first)
+        second = service.enable_task_automation(self.item['id'], {**request, 'client_token': 'another-request'})
+        self.assertEqual(second['payload']['request']['verification'], changed)
+        explicit = service.enable_task_automation(self.item['id'], {**request, 'client_token': 'explicit',
+                                                                   'verification': spec})
+        self.assertEqual(explicit['payload']['request']['verification'], spec)
+
     def test_verification_rejects_invalid_paths_types_budgets_and_extra_fields(self):
         import sys
         valid = {'argv': [sys.executable, 'test.py'], 'source_files': ['test.py'], 'timeout': 10}

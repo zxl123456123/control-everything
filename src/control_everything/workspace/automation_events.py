@@ -279,6 +279,10 @@ def enable_local(store, task_id, body):
         if not brief['request_text'].strip():
             raise ProfileError('brief_required', status=409)
         directory = dispatch._directory(connection, item['project_id'], brief['execution_directory_id'])
+        if 'verification' not in body:
+            verification = _project_verification(connection, item['project_id'], directory)
+            if verification is not None:
+                body['verification'] = verification
         payload = {'request': body, 'title': item['title'], 'brief': brief, 'directory': directory}
         identity = str(uuid4())
         connection.execute(

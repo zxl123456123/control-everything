@@ -1,15 +1,18 @@
 import { ArrowLeft, ChevronRight } from 'lucide-react'
 import { PlatformTaskWorkflow } from './PlatformTaskWorkflow'
+import type { PlatformProjectBootstrap } from './platform-project-bootstrap'
 
 export function PlatformWorkspaceHeader({
   projectName,
   projectId,
+  execution,
   settings = false,
   active = true,
   workspaceInert = false
 }: {
   projectName?: string
   projectId?: string
+  execution?: PlatformProjectBootstrap
   settings?: boolean
   active?: boolean
   workspaceInert?: boolean
@@ -31,7 +34,7 @@ export function PlatformWorkspaceHeader({
       </nav>
       <div id="platform-workspace-controls" inert={workspaceInert} />
       <div id="platform-workspace-info" />
-      {active && projectId && <PlatformTaskWorkflow key={projectId} projectId={projectId} />}
+      {active && projectId && <PlatformTaskWorkflow key={projectId} projectId={projectId} execution={execution} />}
     </header>
   )
 }
