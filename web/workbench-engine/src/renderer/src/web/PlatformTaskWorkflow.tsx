@@ -122,21 +122,23 @@ function StageList({ flow, current }: { flow: Flow; current: boolean }): React.J
         }
         const hasEvidence = steps.length > 0 || (kind === 'acceptance' && deliveries.length > 0)
           || (kind === 'retest' && ['approved', 'unknown'].includes(status))
+        const quietStatus = status === 'idle' || (!active && ['completed', 'approved'].includes(status) && !['retest', 'integrate'].includes(kind))
+        const moving = active && ['running', 'integrating', 'integration_running', 'dispatching', 'cancelling'].includes(status)
         const row = <>
-          <StatusIcon status={status} />
+          <span className="platform-workflow-stage-marker"><StatusIcon status={status} /></span>
           <span className="min-w-0 font-medium">{title}</span>
-          <span className="ml-auto min-w-0 text-right text-sm text-muted-foreground">
+          <span className={quietStatus ? 'sr-only' : 'platform-workflow-stage-status ml-auto min-w-0 text-right text-sm text-muted-foreground'}>
             {active && flow.reason && !(kind === 'integrate' && integrationState) ? reasons[flow.reason] ?? label(status) : label(status)}
           </span>
         </>
         return (
-          <li key={kind} aria-current={active ? 'step' : undefined}>
+          <li key={kind} aria-current={active ? 'step' : undefined} data-status={status} data-moving={moving ? 'true' : undefined}>
             {hasEvidence ? <details>
               <summary className="platform-workflow-stage-row cursor-pointer list-none rounded focus-visible:outline-2 focus-visible:outline-primary">
                 {row}
                 <ChevronDown size={14} className="shrink-0 text-muted-foreground" aria-hidden="true" />
               </summary>
-              <div className="space-y-1 break-words px-3 pb-3 pl-10 text-sm text-muted-foreground">
+              <div className="platform-workflow-stage-evidence space-y-1 break-words pb-3 text-sm text-muted-foreground">
                 {steps.map((step, index) => <p key={`${step.attempt}:${index}`}>
                   第 {index + 1} 次 · {label(stepStatus(step))}
                   {step.exit_code === null ? '' : ` · 退出码 ${step.exit_code}`}
@@ -244,7 +246,7 @@ function WorkflowProgress({ projectId, task, execution, pending }: {
       {workflow.pending_since && <p role="status" className="text-muted-foreground">已收到新交办，等待调度。</p>}
       {current ? (
         <div key={current.id} className="grid gap-2">
-          <p role="status" className="break-words font-medium">
+          <p role="status" className="platform-workflow-current break-words font-medium">
             {integrationState ? label(integrationState) : (current.reason && reasons[current.reason]) || label(current.status)}
             {integrationState === 'integrated' && <> · 提交 <code className="break-all">{integration?.target_sha}</code></>}
           </p>
@@ -338,7 +340,7 @@ export function PlatformTaskWorkflow({ projectId, execution }: {
           <GitPullRequest size={15} aria-hidden="true" />任务流水线
         </button>
       </Dialog.Trigger>
-      <SheetContent className="platform-task-workflow" overlayClassName="bg-black/20" showCloseButton={false}>
+      <SheetContent className="platform-task-workflow" overlayClassName="platform-task-workflow-overlay" showCloseButton={false}>
         <SheetHeader className="flex-row items-center justify-between gap-4 border-b border-border/60 px-5 py-3 sm:px-6">
           <div><SheetTitle className="text-[22px]">任务流水线</SheetTitle><SheetDescription className="sr-only">{execution && !remoteContext()
             ? '选择项目事项和本机工作树，手动发起自动推进。' : '选择项目事项，查看自动推进阶段与证据。'}</SheetDescription></div>

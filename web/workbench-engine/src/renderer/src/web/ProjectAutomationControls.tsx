@@ -112,7 +112,7 @@ export function RunAutomation({ execution, task, pending, available, pendingDisp
     }
   }
 
-  return <section aria-label="本机自动推进" className="platform-workflow-launch grid min-w-0 gap-3 rounded-xl p-4">
+  return <section aria-label="本机自动推进" className="platform-workflow-launch grid min-w-0 gap-3 py-1">
     {retry ? <div className="grid gap-1">
       <span className="font-medium">本机工作树</span>
       <p className="text-muted-foreground [overflow-wrap:anywhere]">{retry.worktreeLabel}</p>
@@ -184,7 +184,7 @@ export function CreateWorkflowTask({ projectId, onCreated }: {
     }
   }
 
-  return <form className="platform-workflow-launch grid gap-3 rounded-xl p-4" onSubmit={(event) => { event.preventDefault(); void save() }}>
+  return <form className="platform-workflow-launch grid gap-3 py-1" onSubmit={(event) => { event.preventDefault(); void save() }}>
     <label className="grid gap-1.5 font-medium">事项标题
       <input className={fieldClass} value={title} maxLength={2000} required disabled={busy || Boolean(created) || unknownItem}
         onChange={(event) => setTitle(event.target.value)} />
