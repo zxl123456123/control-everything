@@ -262,6 +262,10 @@ def build(inputs_file, run_name, *, root=ROOT, runner=subprocess.run, check_only
         for name in ('PYTHONPATH', 'PYTHONHOME', 'NODE_OPTIONS', 'NODE_PATH'):
             native_env.pop(name, None)
         native_env.update({key: value for key, value in environment.items() if key.startswith('PYTHON')})
+        if not reuse_build:
+            step('observer-fetch', [native_tools['cargo'], 'fetch', '--locked', '--manifest-path',
+                                   'native/observer/Cargo.toml', '--target', 'x86_64-pc-windows-msvc'],
+                 env=native_env)
         step('engine-source', [*python, 'tools/packaging/workbench_engine.py', 'check-source'])
         if check_only:
             receipt['status'] = 'preflight-verified'

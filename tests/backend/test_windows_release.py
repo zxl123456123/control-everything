@@ -148,7 +148,7 @@ class WindowsReleaseTests(unittest.TestCase):
         result = self.build(run_name='retry', reuse_build='fixture')
         names = [name for name, _, _ in self.calls]
         self.assertEqual(names[-3:], ['product', 'inno-includes', 'installer'])
-        self.assertFalse(set(names) & {'desktop-window', 'python-package', 'observer-build', 'engine-build'})
+        self.assertFalse(set(names) & {'observer-fetch', 'desktop-window', 'python-package', 'observer-build', 'engine-build'})
         self.assertEqual(result['status'], 'candidate-built-awaiting-acceptance')
         self.assertEqual(result['reused_build']['run'], 'fixture')
         self.assertEqual(before, self.original_evidence())
@@ -287,12 +287,24 @@ class WindowsReleaseTests(unittest.TestCase):
             with self.subTest(previous=previous), self.assertRaisesRegex(ValueError, 'invalid_reuse_build'):
                 self.build(run_name='retry', reuse_build=previous)
 
+    def test_observer_fetch_failure_stops_before_source_scan_and_compilation(self):
+        self.fail_step = 'observer-fetch'
+        with self.assertRaisesRegex(ValueError, 'release_step_failed:observer-fetch:17'):
+            self.build()
+        self.assertEqual(self.calls[-1][1], [str(self.root / 'private-cargo.exe'), 'fetch', '--locked',
+                         '--manifest-path', 'native/observer/Cargo.toml', '--target',
+                         'x86_64-pc-windows-msvc'])
+        receipt = RELEASE.read(self.output / 'build-receipt.json')
+        self.assertEqual(receipt['status'], 'failed')
+        self.assertEqual(receipt['steps'][-1]['exit_code'], 17)
+        self.assertNotIn('engine-source', [name for name, _, _ in self.calls])
+
     def test_preflight_runs_same_checks_without_compiling_or_installing(self):
         result = self.build(check_only=True)
         self.assertEqual(result['status'], 'preflight-verified')
         self.assertEqual([name for name, _, _ in self.calls], [
             'source-commit', 'source-status', 'node-version', 'pnpm-version',
-            'inno-version', 'python-environment', 'python-dependencies', 'engine-source'])
+            'inno-version', 'python-environment', 'python-dependencies', 'observer-fetch', 'engine-source'])
         self.assertFalse(self.engine.exists())
         self.assertFalse((self.output / 'dist').exists())
         self.assertTrue(all(row['exit_code'] == 0 for row in result['steps']))

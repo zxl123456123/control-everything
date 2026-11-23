@@ -121,6 +121,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Preflight failed; inspect the exact input or e
 
 预检复用正式入口，检查 Windows 原生路径预算、固定工具和 Python 环境、依赖 wheel 的锁定版本/ABI/RECORD/hash、端点结构、WebView2 SDK/MSVC、Portable Git 及其许可材料、源码和来源清单。`preflight-verified` 只表示这些检查通过，不生成安装包；正式构建仍重新核对。路径及材料初检失败时不创建候选目录；进入工具和载荷检查后的失败会保留收据与日志，已有输出不会被自动清除。
 
+预检在首次昂贵的源码检查前，用固定 observer 工具链执行 `cargo fetch --locked --manifest-path native/observer/Cargo.toml --target x86_64-pc-windows-msvc`。该步骤只核对缓存或下载锁定依赖，不编译；遵循现有 Cargo 配置、代理及 `CARGO_NET_OFFLINE`，离线缓存缺失会直接失败并保留 `observer-fetch` 收据和日志。它仅覆盖 `native/observer`，不代表内置工作台其他 Rust 包已准备。依据见 [Cargo fetch 官方说明](https://doc.rust-lang.org/cargo/commands/cargo-fetch.html)。
+
+从依赖安装开始到构建、测试和产物综核结束，本次构建独占该 checkout 的依赖目录；不要并行运行任何可能自动安装依赖的 `pnpm exec` / `pnpm run`。UI 测试使用已锁定 Node 直接运行已安装的测试入口，或在另一个独立安装依赖的 worktree 中执行；不能共享 `node_modules`。
+
 构建从同一检出根执行，使用另一个新 run-name：
 
 ```powershell
@@ -151,7 +155,7 @@ python tools/packaging/build_windows_release.py --inputs C:/example/checkout/wor
 if ($LASTEXITCODE -ne 0) { throw 'Reassembly failed; retain both attempts' }
 ```
 
-恢复只接受带 `compilation` 检查点的原始失败收据，重新核对完整提交、检出路径、工具/输入/材料身份及编译文件集合、大小和摘要。新的产品与日志写入新 run，原编译收据保持不变；装配仍执行来源、产物和许可校验。旧版无检查点、编译未完成、已有成功候选或任何输入/产物变化都拒绝复用。恢复再次失败时，保留该次证据，继续引用原始编译 run 新建尝试。不能通过改收据、跳过步骤或自动删目录来强行恢复。
+`--reuse-build` 不重新编译，也跳过 observer 的 `cargo fetch`，不为复用引入依赖下载。恢复只接受带 `compilation` 检查点的原始失败收据，重新核对完整提交、检出路径、工具/输入/材料身份及编译文件集合、大小和摘要。新的产品与日志写入新 run，原编译收据保持不变；装配仍执行来源、产物和许可校验。旧版无检查点、编译未完成、已有成功候选或任何输入/产物变化都拒绝复用。恢复再次失败时，保留该次证据，继续引用原始编译 run 新建尝试。不能通过改收据、跳过步骤或自动删目录来强行恢复。
 
 | 本检出路径 | 用途 |
 | --- | --- |
