@@ -40,7 +40,7 @@ def build_service(config_path):
     # The user directory and the introspection credentials are optional: without credentials access
     # tokens are verified locally against the issuer JWKS, without a directory the admin page lists
     # the hub's own members.
-    optional = {"user_directory", "user_provisioning", "introspection_client_id", "introspection_client_secret", "token_verification"}
+    optional = {"automation_producers", "user_directory", "user_provisioning", "introspection_client_id", "introspection_client_secret", "token_verification"}
     if not required <= set(config) <= required | optional:
         raise ValueError("invalid_hub_config_fields")
     credentials = [config.get("introspection_client_id"), config.get("introspection_client_secret")]
@@ -69,5 +69,5 @@ def build_service(config_path):
                             SSHSignatureVerifier(config["ssh_keygen"]),
                             UnixProvisionerClient(config["provisioner_socket"]), public_origin=config["public_origin"],
                             route_proof=config["route_proof"], ssh_host=config["ssh_host"], ssh_host_key=config["ssh_host_key"],
-                            admin_subjects=admins, user_directory=directory, user_provisioning=provisioning, static_paths=config["static_paths"],
+                            automation_producers=config.get("automation_producers", ()), admin_subjects=admins, user_directory=directory, user_provisioning=provisioning, static_paths=config["static_paths"],
                             channel_probe=DeviceChannelProbe(config["public_origin"]))

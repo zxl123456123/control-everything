@@ -146,4 +146,14 @@ describe.skipIf(process.platform !== 'win32')('platform owner client real pipe t
     expect(result.code).toBe(1)
     expect(result.received).toEqual([])
   })
+
+  it('transports cancellation with the exact frozen task binding', async () => {
+    const params = { contractVersion: 1, expectedBinding: { runtimeId: 'fixture-runtime', environmentId: 'env',
+      terminalHandle: 'terminal', paneKey: 'pane', worktreeId: 'worktree', agent: 'codex', providerSession: null,
+      ptyId: 'pty', processIncarnation: 'birth', statusProcessIncarnation: 'pty:birth', generation: 1 } }
+    const result = await roundTrip('platform.taskProgress.stop', params)
+    expect(result.code).toBe(0)
+    expect(result.received).toHaveLength(1)
+    expect(result.received[0]).toMatchObject({ method: 'platform.taskProgress.stop', params })
+  })
 })

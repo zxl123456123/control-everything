@@ -259,6 +259,354 @@ class DiscoveredEndpointTests(unittest.TestCase):
 
 
 class ConnectorTests(unittest.TestCase):
+    def test_current_binding_does_not_wait_for_connector_or_store_locks(self):
+        self.authorize(); self.connector.confirm()
+        finished = threading.Event()
+        results = []
+        def read():
+            results.append(self.connector.current_binding())
+            finished.set()
+        with self.connector._lock, self.store.locked():
+            worker = threading.Thread(target=read)
+            worker.start()
+            timely = finished.wait(1)
+        worker.join(2)
+        self.assertTrue(timely, 'binding read waited for a lock held across mailbox writes')
+        self.assertEqual(results[0]['device_id'], 'device-1')
+
+    def test_current_binding_rejects_mid_read_credential_and_revocation_changes(self):
+        self.authorize(); self.connector.confirm()
+        original = self.store.read
+        for revoke in (False, True):
+            count = [0]
+            def changing(name, **kwargs):
+                value = original(name, **kwargs)
+                if name == 'credentials.bin':
+                    count[0] += 1
+                    if count[0] == 1:
+                        if revoke:
+                            self.store.write('revocation_requested.json', {'requested': True})
+                        else:
+                            self.store.write(name, dict(value, credential_revision=2), protected=True)
+                return value
+            self.store.read = changing
+            try:
+                self.assertIsNone(self.connector.current_binding())
+            finally:
+                self.store.read = original
+                self.store.clear('revocation_requested.json')
+
+    def test_identity_context_request_rejects_changed_credential(self):
+        self.authorize(); self.connector.confirm()
+        original = self.peer.request
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            credential = self.store.read('credentials.bin', protected=True)
+            self.store.write('credentials.bin', dict(credential, control_token='B' * 43), protected=True)
+            return result
+        self.peer.request = changed
+        with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+        self.tunnel.close.assert_not_called()
+
+    def test_identity_context_change_and_invalid_fields(self):
+        self.authorize(); self.connector.confirm()
+        context = dict(producer_id='p', channel_account_id='a', app_id='app', chat_id='chat',
+                       project_id='project', device_id='device-1', generation=1)
+        for changes in ({'device_id': 'other'}, {'generation': 2}, {'token': 'secret'}):
+            self.peer.config['automation_identity_contexts'] = [dict(context, **changes)]
+            with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+        self.peer.config['automation_identity_contexts'] = [context]
+        with self.assertRaises(ConnectorError): self.connector.identity_context('p', 'other')
+        original = self.peer.request
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            self.store.write('revocation_requested.json', {'requested': True})
+            return result
+        self.peer.request = changed
+        with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+        self.assertIsNone(self.connector.current_binding())
+        self.tunnel.close.assert_not_called()
+
+    def test_identity_contexts_require_current_binding(self):
+        self.authorize(); self.connector.confirm()
+        context = dict(producer_id='p', channel_account_id='a', app_id='app', chat_id='chat',
+                       project_id='project', device_id='device-1', generation=1)
+        self.peer.config['automation_identity_contexts'] = [context]
+        self.assertEqual(self.connector.identity_context('p', 'project'),
+                         dict(context, hub_origin=self.connector.config.hub_origin))
+        self.peer.config['automation_identity_contexts'] = [context, context]
+        with self.assertRaises(ConnectorError): self.connector.list_identity_contexts()
+
+    def _identity_send_parts(self):
+        context = dict(producer_id='p', channel_account_id='a', app_id='app', chat_id='chat',
+                       project_id='project', device_id='device-1', generation=1,
+                       hub_origin=self.connector.config.hub_origin)
+        challenge = {'challenge_id': 'ab' * 16, 'nonce': 'local-nonce', 'expires_at': '2026-11-15T12:00:00+00:00'}
+        expected = {key: context[key] for key in (
+            'producer_id', 'project_id', 'channel_account_id', 'app_id', 'chat_id', 'device_id', 'generation')}
+        status = {'attempt_id': 'cd' * 16, 'challenge_id': challenge['challenge_id'], 'state': 'queued',
+                  'expires_at': challenge['expires_at'], 'context': dict(expected), 'message_id': None}
+        return context, challenge, expected, status
+
+    def test_identity_send_propagates_expected_context_once(self):
+        self.authorize(); self.connector.confirm()
+        context, challenge, expected, status = self._identity_send_parts()
+        seen = []
+        def request(method, path, body=None, token=None, **kwargs):
+            seen.append((method, path, body, token))
+            return dict(status, context=dict(expected))
+        self.peer.request = request
+        result = self.connector.register_identity_send(context, challenge)
+        self.assertEqual(seen, [('POST', '/remote/desktop/identity-send/register', {
+            'producer_id': 'p', 'challenge_id': challenge['challenge_id'], 'nonce': 'local-nonce',
+            'expires_at': challenge['expires_at'], 'expected_context': expected}, TOKEN)])
+        self.assertNotIn('hub_origin', seen[0][2]['expected_context'])
+        self.assertEqual(set(result), {'attempt_id', 'challenge_id', 'state', 'expires_at', 'context', 'message_id'})
+        self.assertEqual(result['state'], 'queued')
+        self.assertNotIn('nonce', result)
+        seen.clear()
+        self.assertEqual(self.connector.identity_send_status(challenge['challenge_id'])['challenge_id'], challenge['challenge_id'])
+        self.assertEqual(seen, [('POST', '/remote/desktop/identity-send/status',
+                                 {'challenge_id': challenge['challenge_id']}, TOKEN)])
+        seen.clear()
+        def sent_request(method, path, body=None, token=None, **kwargs):
+            seen.append((method, path, body, token))
+            return dict(status, state='sent', message_id='card-1', context=dict(expected))
+        self.peer.request = sent_request
+        self.assertEqual(self.connector.identity_send_status(challenge['challenge_id'])['message_id'], 'card-1')
+        self.assertEqual(len(seen), 1)
+
+    def test_identity_send_rejects_changed_credential_and_bad_status(self):
+        self.authorize(); self.connector.confirm()
+        context, challenge, expected, status = self._identity_send_parts()
+        original = self.store.read
+        def changed(method, path, body=None, token=None, **kwargs):
+            credential = original('credentials.bin', protected=True)
+            self.store.write('credentials.bin', dict(credential, control_token='B' * 43), protected=True)
+            return dict(status, context=dict(expected))
+        self.peer.request = changed
+        with self.assertRaises(ConnectorError) as caught:
+            self.connector.register_identity_send(context, challenge)
+        self.assertEqual(caught.exception.code, 'remote_identity_context_changed')
+        self.assertEqual(caught.exception.status, 0)
+        self.store.write('credentials.bin', original('credentials.bin', protected=True), protected=True)
+        for label, response in (
+                ('extra', dict(status, token='secret')),
+                ('challenge', dict(status, challenge_id='ff' * 16)),
+                ('context', dict(status, context=dict(expected, chat_id='other'))),
+                ('bool-generation', dict(status, context=dict(expected, generation=True))),
+                ('queued-message', dict(status, message_id='card')),
+                ('sent-empty', dict(status, state='sent', message_id=''))):
+            with self.subTest(label=label):
+                self.peer.request = lambda *args, **kwargs: response
+                with self.assertRaises(ConnectorError) as caught:
+                    self.connector.register_identity_send(context, challenge)
+                self.assertEqual(caught.exception.code, 'remote_response_invalid')
+
+    def test_identity_send_precheck_and_explicit_errors_do_not_retry(self):
+        self.authorize(); self.connector.confirm()
+        context, challenge, expected, status = self._identity_send_parts()
+        calls = []
+        self.peer.request = lambda *args, **kwargs: calls.append(args)
+        for changes in ({'device_id': 'other'}, {'generation': 2}, {'hub_origin': 'https://other.example.test'}):
+            with self.subTest(changes=tuple(changes)):
+                with self.assertRaises(ConnectorError) as caught:
+                    self.connector.register_identity_send(dict(context, **changes), challenge)
+                self.assertEqual(caught.exception.status, 409)
+        self.assertEqual(calls, [])
+        for error in (ConnectorError('identity_send_context_changed', 409), ConnectorError('remote_network_unavailable'),
+                      ConnectorError('not_found', 404)):
+            with self.subTest(code=error.code):
+                seen = []
+                def request(*args, **kwargs):
+                    seen.append(args[1])
+                    raise error
+                self.peer.request = request
+                method = self.connector.identity_send_status if error.status == 404 else self.connector.register_identity_send
+                arguments = (challenge['challenge_id'],) if error.status == 404 else (context, challenge)
+                with self.assertRaises(ConnectorError) as caught:
+                    method(*arguments)
+                self.assertEqual((caught.exception.code, caught.exception.status), (error.code, error.status))
+                self.assertEqual(len(seen), 1)
+
+
+    def test_inflight_identity_or_stop_changes_preserve_durable_pending(self):
+        from control_everything.workspace.store import WorkspaceStore
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        self.authorize()
+        self.connector.confirm()
+        original = self.peer.request
+        credential = self.store.read('credentials.bin', protected=True)
+        for phase, change in (('claim', 'credential'), ('ack', 'credential'), ('ack', 'stop'), ('ack', 'revoke')):
+            with self.subTest(phase=phase, change=change):
+                inbox = RemoteAutomationInbox(WorkspaceStore(self.store.root / (phase + change + '.db'), profile=True))
+                self.connector.mailbox_sink = inbox
+                def request(method, path, body=None, token=None, **kwargs):
+                    if path.endswith('/automation/' + phase):
+                        if change == 'credential':
+                            self.store.write('credentials.bin', {**credential, 'credential_revision': 2}, protected=True)
+                        elif change == 'stop':
+                            self.connector._stop.set()
+                        else:
+                            self.store.write('revocation_requested.json', {'pending': True})
+                    if path.endswith('/automation/claim'):
+                        return {'message': dict(id='m', source='s', event_id='e', payload={}, lease_id='l', lease_expires_at=0.)}
+                    if path.endswith('/automation/ack'):
+                        return {'id': 'm', 'state': 'acknowledged'}
+                    return original(method, path, body, token, **kwargs)
+                self.peer.request = request
+                self.connector.connect(8766, 12345)
+                with inbox.store.connection() as db:
+                    rows = db.execute('SELECT ack_state FROM automation_remote_inbox').fetchall()
+                    self.assertEqual([row[0] for row in rows], [] if phase == 'claim' else ['pending'])
+                self.connector._stop.clear()
+                self.store.clear('revocation_requested.json')
+                self.store.write('credentials.bin', credential, protected=True)
+
+    def test_connector_stale_lease_then_claims_new_lease_without_duplicate_row(self):
+        from control_everything.workspace.store import WorkspaceStore
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        self.authorize()
+        self.connector.confirm()
+        inbox = RemoteAutomationInbox(WorkspaceStore(self.store.root / 'stale.db', profile=True))
+        self.connector.mailbox_sink = inbox
+        original = self.peer.request
+        claims, acks = [], []
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/claim'):
+                lease = 'lease' + str(len(claims))
+                claims.append(lease)
+                return {'message': dict(id='m', source='s', event_id='e', payload={}, lease_id=lease, lease_expires_at=0.)}
+            if path.endswith('/automation/ack'):
+                acks.append(body['lease_id'])
+                if len(acks) == 1:
+                    raise ConnectorError('mailbox_lease_changed', 409)
+                return {'id': 'm', 'state': 'acknowledged'}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.connector.connect(8766, 12345)
+        with inbox.store.connection() as db:
+            self.assertEqual(db.execute('SELECT ack_state FROM automation_remote_inbox').fetchone()[0], 'lease_stale')
+        self.connector.connect(8766, 12345)
+        with inbox.store.connection() as db:
+            rows = db.execute('SELECT ack_state,lease_id FROM automation_remote_inbox').fetchall()
+            self.assertEqual([tuple(row) for row in rows], [('acknowledged', 'lease1')])
+        self.assertEqual(acks, ['lease0', 'lease1'])
+
+    def test_claim_stop_or_revocation_never_persists_or_acks(self):
+        self.authorize()
+        self.connector.confirm()
+        original = self.peer.request
+        for kind in ('stop', 'revoke'):
+            with self.subTest(kind=kind):
+                sink = Mock()
+                sink.pending_ack.return_value = None
+                self.connector.mailbox_sink = sink
+                calls = []
+                def request(method, path, body=None, token=None, **kwargs):
+                    if '/automation/' in path:
+                        calls.append(path)
+                        if kind == 'stop':
+                            self.connector._stop.set()
+                        else:
+                            self.store.write('revocation_requested.json', {'pending': True})
+                        return {'message': {'id': 'm'}}
+                    return original(method, path, body, token, **kwargs)
+                self.peer.request = request
+                self.connector.connect(8766, 12345)
+                sink.receive.assert_not_called()
+                self.assertEqual(calls, ['/remote/desktop/automation/claim'])
+                self.connector._stop.clear()
+                self.store.clear('revocation_requested.json')
+
+    def test_receive_failure_never_acknowledges(self):
+        self.authorize()
+        self.connector.confirm()
+        sink = Mock()
+        sink.pending_ack.return_value = None
+        sink.receive.side_effect = RuntimeError('synthetic persistence failure')
+        self.connector.mailbox_sink = sink
+        original = self.peer.request
+        calls = []
+        def request(method, path, body=None, token=None, **kwargs):
+            if '/automation/' in path:
+                calls.append(path)
+                return {'message': {'id': 'm'}}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        status = self.connector.connect(8766, 12345)
+        self.assertEqual(status['state'], 'online')
+        self.assertEqual(status['mailbox_code'], 'remote_mailbox_receipt_failed')
+        self.assertEqual(calls, ['/remote/desktop/automation/claim'])
+        sink.acknowledge.assert_not_called()
+        self.connector.on_mailbox = Mock()
+        self.connector.connect(8766, 12345)
+        self.connector.on_mailbox.assert_not_called()
+
+    def test_received_mailbox_wakes_the_consumer_once(self):
+        self.authorize()
+        self.connector.confirm()
+        sink = Mock()
+        sink.pending_ack.return_value = None
+        sink.receive.return_value = {'ack': {'message_id': 'm', 'lease_id': 'l'}}
+        self.connector.mailbox_sink = sink
+        self.connector.on_mailbox = Mock()
+        original = self.peer.request
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/claim'):
+                return {'message': {'id': 'm'}}
+            if path.endswith('/automation/ack'):
+                return {'id': 'm', 'state': 'acknowledged'}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.connector.connect(8766, 12345)
+        self.connector.on_mailbox.assert_called_once_with()
+
+    def test_stale_lease_storage_failure_preserves_online_connection(self):
+        self.authorize()
+        self.connector.confirm()
+        sink = Mock()
+        sink.pending_ack.return_value = {'message_id': 'm', 'lease_id': 'l'}
+        sink.expire_lease.side_effect = RuntimeError('synthetic locked database')
+        self.connector.mailbox_sink = sink
+        original = self.peer.request
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/ack'):
+                raise ConnectorError('mailbox_lease_changed', 409)
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.assertEqual(self.connector.connect(8766, 12345)['state'], 'online')
+        self.assertEqual(self.connector.mailbox_code, 'remote_mailbox_receipt_failed')
+        sink.acknowledge.assert_not_called()
+        self.assertEqual(self.connector.connect(8766, 12345)['state'], 'online')
+        self.assertEqual(sink.expire_lease.call_count, 2)
+
+    def test_connect_persists_before_ack(self):
+        from control_everything.workspace.store import WorkspaceStore
+        from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+        self.authorize()
+        self.connector.confirm()
+        inbox = RemoteAutomationInbox(WorkspaceStore(self.store.root / 'inbox-test.db', profile=True))
+        self.connector.mailbox_sink = inbox
+        original = self.peer.request
+        def request(method, path, body=None, token=None, **kwargs):
+            if path.endswith('/automation/claim'):
+                return {'message': dict(id='m', source='s', event_id='e', payload={},
+                                        lease_id='lease', lease_expires_at=100.)}
+            if path.endswith('/automation/ack'):
+                with inbox.store.connection() as db:
+                    self.assertEqual(db.execute('SELECT state FROM automation_remote_inbox').fetchone()[0],
+                                     'pending_validation')
+                self.assertEqual(token, TOKEN)
+                return {'id': body['message_id'], 'state': 'acknowledged'}
+            return original(method, path, body, token, **kwargs)
+        self.peer.request = request
+        self.connector.connect(8766, 12345)
+        with inbox.store.connection() as db:
+            row = db.execute('SELECT ack_state FROM automation_remote_inbox').fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row[0], 'acknowledged')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -597,6 +945,19 @@ class ConnectorTests(unittest.TestCase):
         self.peer.complete_revision=2
         with self.assertRaisesRegex(ConnectorError,'revision_mismatch'): self.connector.confirm()
         self.assertIsNone(self.store.read('credentials.bin',protected=True))
+
+    def test_auth_failure_cleanup_cannot_publish_identity_binding(self):
+        self.authorize(); self.connector.confirm()
+        self.connector._on_revoked = Mock()
+        self.peer.config_error = ConnectorError('control_token_invalid', 401)
+        self.connector.connect(8766, 12345)
+        self.assertEqual(self.connector.status()['state'], 'revoked')
+        self.assertIsNotNone(self.store.read('credentials.bin', protected=True))
+        for name in ('revocation.json', 'revocation_requested.json', 'pending.json'):
+            self.assertFalse(self.store.read(name))
+        self.assertIsNone(self.connector.current_binding())
+        self.assertEqual(self.connector.list_identity_contexts(), [])
+        with self.assertRaises(ConnectorError): self.connector.identity_context('p', 'project')
 
     def test_revoked_status_cannot_recover(self):
         self.peer.match={'device_id':'device-1','generation':1,'credential_revision':1,'recoverable':False}

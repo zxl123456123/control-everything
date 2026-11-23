@@ -339,9 +339,62 @@ class DeviceKeys:
             raise ConnectorError("remote_key_operation_failed") from None
 
 
+_IDENTITY_CONTEXT_KEYS = ('producer_id', 'project_id', 'channel_account_id', 'app_id', 'chat_id', 'device_id', 'generation')
+_IDENTITY_SEND_STATES = {'queued', 'sending', 'unknown', 'sent', 'expired'}
+
+
+def _identity_text(value):
+    return type(value) is str and value and len(value) <= 256 and all(ord(char) >= 32 for char in value)
+
+
+def _identity_context_fields(value, code='remote_identity_context_invalid'):
+    if (type(value) is not dict or set(value) != set(_IDENTITY_CONTEXT_KEYS)
+            or type(value['generation']) is not int or value['generation'] < 1
+            or any(not _identity_text(value[key]) for key in _IDENTITY_CONTEXT_KEYS if key != 'generation')):
+        raise ConnectorError(code)
+    return {key: value[key] for key in _IDENTITY_CONTEXT_KEYS}
+
+
+def _frozen_identity_context(context):
+    if (type(context) is not dict or set(context) != {*_IDENTITY_CONTEXT_KEYS, 'hub_origin'}
+            or type(context['hub_origin']) is not str or not context['hub_origin']
+            or any(ord(char) < 32 for char in context['hub_origin'])):
+        raise ConnectorError('remote_identity_context_invalid')
+    return context['hub_origin'], _identity_context_fields({key: context[key] for key in _IDENTITY_CONTEXT_KEYS})
+
+
+def _identity_challenge(challenge):
+    if (type(challenge) is not dict or set(challenge) != {'challenge_id', 'nonce', 'expires_at'}
+            or type(challenge['challenge_id']) is not str or not re.fullmatch(r'[0-9a-f]{32}', challenge['challenge_id'])
+            or not _identity_text(challenge['nonce']) or not _identity_text(challenge['expires_at'])):
+        raise ConnectorError('remote_identity_send_invalid', 400)
+    return challenge
+
+
+def _parse_identity_send_status(value, challenge_id, expected=None):
+    fields = {'attempt_id', 'challenge_id', 'state', 'expires_at', 'context', 'message_id'}
+    if (type(value) is not dict or set(value) != fields
+            or type(value['attempt_id']) is not str or not re.fullmatch(r'[0-9a-f]{32}', value['attempt_id'])
+            or value['challenge_id'] != challenge_id or value['state'] not in _IDENTITY_SEND_STATES
+            or not _identity_text(value['expires_at'])):
+        raise ConnectorError('remote_response_invalid')
+    context = _identity_context_fields(value['context'], 'remote_response_invalid')
+    if expected is not None and any(type(context[key]) is not type(expected[key]) or context[key] != expected[key]
+                                    for key in expected):
+        raise ConnectorError('remote_response_invalid')
+    message_id = value['message_id']
+    if value['state'] == 'sent':
+        if not _identity_text(message_id):
+            raise ConnectorError('remote_response_invalid')
+    elif message_id is not None:
+        raise ConnectorError('remote_response_invalid')
+    return {'attempt_id': value['attempt_id'], 'challenge_id': value['challenge_id'], 'state': value['state'],
+            'expires_at': value['expires_at'], 'context': context, 'message_id': message_id}
+
+
 class RemoteConnector:
     def __init__(self, config, store, *, peer=None, keys=None, tunnel_factory=RemoteTunnel,
-                 now=time.monotonic, on_revoked=None):
+                 now=time.monotonic, on_revoked=None, mailbox_sink=None):
         self.config, self.store = config, store
         self.peer = peer or RemotePeer(config)
         self.keys = keys or DeviceKeys(config.keygen_executable)
@@ -365,11 +418,15 @@ class RemoteConnector:
         self._operation = None
         self._on_revoked = on_revoked
         self._health_identity = None
+        self.mailbox_sink = mailbox_sink
+        self.mailbox_code = None
 
     def status(self):
         with self._lock:
             result = {"state": self._state, "code": self._code, "configured": True,
                       "portal_url": self.config.hub_origin + "/remote"}
+            if self.mailbox_code:
+                result['mailbox_code'] = self.mailbox_code
             if self._grant and self._state == "authorizing":
                 result.update({k: self._grant[k] for k in ("user_code", "verification_uri", "expires_in")})
                 complete = verified_complete_uri(self._grant.get("verification_uri_complete"), self.config.issuer)
@@ -616,6 +673,107 @@ class RemoteConnector:
         RemoteAccess(config["public_origin"], config["proxy_token"])
         return config
 
+    def _identity_credential(self):
+        if (self._state == 'revoked' or self._stop.is_set() or any(self.store.read(name) for name in
+                ('pending.json', 'revocation.json', 'revocation_requested.json'))):
+            return None
+        return self.store.read('credentials.bin', protected=True)
+
+    def current_binding(self):
+        """Read current local authority without using health state or network IO."""
+        # Mailbox delivery holds connector/store locks while entering workspace.
+        # This read is also used inside workspace transactions; never invert that order.
+        try:
+            config = self.config
+            first = self._identity_credential()
+            second = self._identity_credential()
+            if (not first or first != second or self.config != config
+                    or self._state == 'revoked' or self._stop.is_set() or any(self.store.read(name) for name in
+                        ('pending.json', 'revocation.json', 'revocation_requested.json'))):
+                return None
+            return dict(hub_origin=config.hub_origin, **{key: first[key]
+                        for key in ('device_id', 'generation', 'credential_revision')})
+        except (OSError, ConnectorError):
+            return None
+
+    def list_identity_contexts(self):
+        with self._lock, self.store.locked():
+            credential = self._identity_credential()
+            config_snapshot = self.config
+        if not credential:
+            return []
+        config = self._check_config(credential, self.peer.request(
+            'GET', '/remote/desktop/config', token=credential['control_token']))
+        fields = {'producer_id', 'channel_account_id', 'app_id', 'chat_id',
+                  'project_id', 'device_id', 'generation'}
+        contexts = config.get('automation_identity_contexts', [])
+        if type(contexts) is not list:
+            raise ConnectorError('remote_identity_context_invalid')
+        seen, result = set(), []
+        for context in contexts:
+            if (type(context) is not dict or set(context) != fields
+                    or any(type(context[key]) is not str or not context[key]
+                           or len(context[key]) > 256 or any(ord(c) < 32 for c in context[key])
+                           for key in fields - {'generation'})
+                    or type(context['generation']) is not int
+                    or context['generation'] != credential['generation']
+                    or context['device_id'] != credential['device_id']
+                    or context['producer_id'] in seen):
+                raise ConnectorError('remote_identity_context_invalid')
+            seen.add(context['producer_id'])
+            result.append(dict(context, hub_origin=config_snapshot.hub_origin))
+        with self._lock, self.store.locked():
+            if self.config != config_snapshot or self._identity_credential() != credential:
+                raise ConnectorError('remote_identity_context_changed')
+        return result
+
+    def identity_context(self, producer_id, project_id):
+        for context in self.list_identity_contexts():
+            if context['producer_id'] == producer_id and context['project_id'] == project_id:
+                return context
+        raise ConnectorError('remote_identity_context_unavailable')
+
+    def register_identity_send(self, context, challenge):
+        """Register one frozen challenge. The nonce is not stored, so this must not be retried."""
+        hub_origin, expected = _frozen_identity_context(context)
+        _identity_challenge(challenge)
+        with self._lock, self.store.locked():
+            credential = self._identity_credential()
+            config_snapshot = self.config
+        if (not credential or config_snapshot.hub_origin != hub_origin
+                or credential['device_id'] != expected['device_id']
+                or type(credential['generation']) is not int or credential['generation'] != expected['generation']):
+            raise ConnectorError('remote_identity_context_changed', 409)
+        response = self.peer.request('POST', '/remote/desktop/identity-send/register', {
+            'producer_id': expected['producer_id'], 'challenge_id': challenge['challenge_id'],
+            'nonce': challenge['nonce'], 'expires_at': challenge['expires_at'], 'expected_context': expected,
+        }, credential['control_token'])
+        with self._lock, self.store.locked():
+            if self.config != config_snapshot or self._identity_credential() != credential:
+                raise ConnectorError('remote_identity_context_changed')
+        return _parse_identity_send_status(response, challenge['challenge_id'], expected)
+
+    def identity_send_status(self, challenge_id):
+        """Read one current-generation transport status. This does not grant a send or a role."""
+        if type(challenge_id) is not str or not re.fullmatch(r'[0-9a-f]{32}', challenge_id):
+            raise ConnectorError('remote_identity_send_invalid', 400)
+        with self._lock, self.store.locked():
+            credential = self._identity_credential()
+            config_snapshot = self.config
+        if not credential:
+            raise ConnectorError('remote_identity_context_unavailable', 409)
+        response = self.peer.request('POST', '/remote/desktop/identity-send/status',
+                                     {'challenge_id': challenge_id}, credential['control_token'])
+        with self._lock, self.store.locked():
+            if self.config != config_snapshot or self._identity_credential() != credential:
+                raise ConnectorError('remote_identity_context_changed')
+        parsed = _parse_identity_send_status(response, challenge_id)
+        if (parsed['context']['device_id'] != credential['device_id']
+                or type(credential['generation']) is not int
+                or parsed['context']['generation'] != credential['generation']):
+            raise ConnectorError('remote_response_invalid')
+        return parsed
+
     def prepare_access(self):
         """Load a confirmed private credential before starting the single runtime."""
         with self._lock, self.store.locked():
@@ -664,9 +822,11 @@ class RemoteConnector:
                 self._code = "remote_revoke_unconfirmed" if requested else "revoked"
             return self.status()
 
-    def connect(self, http_port, ws_port, *, runtime_ready=True):
+    def connect(self, http_port, ws_port, *, runtime_ready=True, stop_event=None):
         """Called by the product worker; no HTTP GET starts a tunnel or OAuth polling."""
         with self._lock:
+            if self._stop.is_set() or stop_event is not None and stop_event.is_set():
+                return self.status()
             # The authorization/confirmation path owns these stages until it yields.
             if self._state in {"authorizing", "awaiting_local_confirmation", "enrolling"}:
                 return self.status()
@@ -703,6 +863,7 @@ class RemoteConnector:
                     self._state = response.get("state") if response.get("state") in {"online", "offline"} else "connecting"
                     self._code = self._state
                     self._failures = 0
+                    self._poll_mailbox(credential, stop_event)
             except (ConnectorError, ProcessError, OSError, ValueError, KeyError) as error:
                 self._disconnect()
                 code = getattr(error, "code", "remote_connection_failed")
@@ -718,6 +879,69 @@ class RemoteConnector:
                     self._failures += 1
                     self._next_retry = self.now() + min(60, 2 ** min(self._failures, 6))
             return self.status()
+
+    def publish_waiting_card(self, card):
+        credential = self.store.read('credentials.bin', protected=True)
+        if not credential or not credential.get('control_token'):
+            return None
+        return self.peer.request('POST', '/remote/desktop/automation/card', card, credential['control_token'])
+
+    def _poll_mailbox(self, credential, stop_event):
+        if self.mailbox_sink is None:
+            return
+        def current():
+            return (not self._stop.is_set() and not (stop_event and stop_event.is_set())
+                    and not self.store.read('revocation_requested.json')
+                    and not self.store.read('revocation.json')
+                    and not self.store.read('pending.json')
+                    and self.store.read('credentials.bin', protected=True) == credential)
+        if not current():
+            return
+        binding = {'hub_origin': self.config.hub_origin,
+                   **{key: credential[key] for key in ('device_id', 'generation', 'credential_revision')}}
+        ack = None
+        try:
+            ack = self.mailbox_sink.pending_ack(binding)
+            if ack is None:
+                response = self.peer.request('POST', '/remote/desktop/automation/claim', {},
+                                             credential['control_token'])
+                if not current():
+                    return
+                if set(response) != {'message'}:
+                    raise ValueError('remote_mailbox_response_invalid')
+                if response['message'] is None:
+                    self.mailbox_code = None
+                    return
+                ack = self.mailbox_sink.receive(binding, response['message'])['ack']
+                wake = getattr(self, 'on_mailbox', None)
+                if callable(wake):
+                    try:
+                        wake()
+                    except Exception:
+                        self.mailbox_code = 'remote_mailbox_wake_failed'
+            if not current():
+                return
+            response = self.peer.request('POST', '/remote/desktop/automation/ack', ack,
+                                         credential['control_token'])
+            if not current():
+                return
+            if response != {'id': ack['message_id'], 'state': 'acknowledged'}:
+                raise ValueError('remote_mailbox_response_invalid')
+            self.mailbox_sink.acknowledge(binding, ack['message_id'], ack['lease_id'])
+            self.mailbox_code = None
+        except ConnectorError as error:
+            if error.status in (401, 403, 410):
+                raise
+            if error.status == 409 and ack is not None:
+                try:
+                    self.mailbox_sink.expire_lease(binding, ack['message_id'], ack['lease_id'])
+                except Exception:
+                    self.mailbox_code = 'remote_mailbox_receipt_failed'
+                    return
+            self.mailbox_code = 'remote_mailbox_transport_failed'
+        except Exception:
+            # Receipt failure must not tear down a healthy tunnel or expose message data.
+            self.mailbox_code = 'remote_mailbox_receipt_failed'
 
     def _tunnel_config(self, config):
         host, user, port = config["ssh"]["host"], config["ssh"]["user"], config["ssh"]["port"]

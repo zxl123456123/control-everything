@@ -327181,6 +327181,9 @@
     "src/shared/workspace-layout/workspace-layout-git-graph-tab.ts",
     "src/renderer/src/components/sidebar/use-workspace-kanban-search.test.tsx",
     "src/renderer/src/components/stats/ShareUsageCard.branding.test.tsx",
+    "src/renderer/src/web/PlatformTaskWorkflow.tsx",
+    "src/renderer/src/web/PlatformTaskWorkflow.test.tsx",
+    "src/renderer/src/web/ProjectAutomationControls.tsx",
     "src/renderer/src/web/PlatformWorkspaceHeader.tsx",
     "src/renderer/src/web/platform-workbench.css",
     "src/renderer/src/lib/platform-review-target.ts",
@@ -327300,7 +327303,8 @@
     "src/renderer/src/components/settings/PlatformSurfaceTransparencyControl.tsx",
     "src/shared/workbench-appearance.ts",
     "src/renderer/src/components/terminal-pane/TerminalTouchControls.tsx",
-    "src/renderer/src/components/terminal-pane/TerminalTouchControls.test.tsx"
+    "src/renderer/src/components/terminal-pane/TerminalTouchControls.test.tsx",
+    "src/main/daemon/daemon-pty-exact-stop.test.ts"
   ],
   "adapted_files": [
     {
@@ -327332,6 +327336,78 @@
       "upstream_sha256": "c413f38f796d8d31898d8460fcc7c91bd53afc216fd3871f11a2b16286340150",
       "current_sha256": "8903476055297f26dcc516b4a8ed76384446db7f07673e839b810a30393b9f13",
       "reason": "平台右栏从当前工作树的文件和 Git 入口复用审阅分组，并保留原有打开和工作树归属规则。"
+    },
+    {
+      "path": "src/main/runtime/agent-terminal-startup-prompt.test.ts",
+      "upstream_sha256": "1c24a53760c5dbcafa3aaa137d7d1b9b66a123ebf2a31442c6932ae975fe0ebe",
+      "current_sha256": "1d86c47b7521e3f4d9a7b48a89f593c87ad73641ade465ef98a48b2df8aac88e",
+      "reason": "验证规划只读启动仅接受完整权限预置、拒绝身份参数和命令覆盖，并保留显式模型。"
+    },
+    {
+      "path": "src/main/runtime/orca-runtime-create-agent-session.ts",
+      "upstream_sha256": "d63f1d508e1c3deb693b9f02621aa4936ddd041e952da5cba07bf0235701489d",
+      "current_sha256": "79c9b369a3e6248e36f82b80168e7b8cd1f5cc5c3731d2d1619c9055762811bb",
+      "reason": "透传受限规划标记并在两层操作指纹中绑定只读身份，缺失或false保持旧指纹。"
+    },
+    {
+      "path": "src/main/runtime/runtime-agent-terminal-startup.ts",
+      "upstream_sha256": "5ea4bf612effc513da186caa001efbf6ecc17ec2fc0c6e9b772e33095c2f2ab9",
+      "current_sha256": "3d3ab4551aa6913b3c1f4516ae602d7f43537c74e520d0d5683fe1072b6b44fa",
+      "reason": "实际启动使用同一settings快照核受限参数和命令覆盖，再构造固定只读权限。"
+    },
+    {
+      "path": "src/main/runtime/runtime-terminal-contracts.ts",
+      "upstream_sha256": "0e159a7716ca787e5248e61139d36a9d7c2c5cdccad15db1aefb3f3b1a3789bd",
+      "current_sha256": "562506d916892b65ecb0aa17e63a2434cf321de584384a74d43a17a691165267",
+      "reason": "声明到实际启动的只读约束标记，不开放任意权限参数。"
+    },
+    {
+      "path": "src/shared/agent-session-host-authority.ts",
+      "upstream_sha256": "de102363a26bbf438442d8bfb72ea1a5375e51efb6d18a604d3eed10aea7448f",
+      "current_sha256": "b87bb00d2f684e094d775e4948d326de7cc54f281e57c31cb3246e159c8612a1",
+      "reason": "创建请求携带可选只读标记，既有调用默认行为保持。"
+    },
+    {
+      "path": "src/shared/rpc-contract/agent-session-params.ts",
+      "upstream_sha256": "a44c5f984024c7b694b50f0fd2c11b76a5ca19ce915216fa001168e2223cf9a3",
+      "current_sha256": "5128722c8bb7e67393b61403f21859227c0d69bedc8ffdbe94e1d841dcdfdb43",
+      "reason": "只读创建仅允许Codex及严格布尔值，拒绝同时指定任意agentArgs。"
+    },
+    {
+      "path": "src/main/daemon/daemon-request-router.ts",
+      "upstream_sha256": "c745b220bc1474c93bcae948ae90e1ab6f5fb2c8ba30844076883577f871cccb",
+      "current_sha256": "515fab10ff5195c634e1f01aa60a6d47f513960df6369a09a9ac8dd7e18ebeea",
+      "reason": "独立killExact请求校验进程身份，不取消其他待启动任务；旧宿主未知请求明确拒绝。"
+    },
+    {
+      "path": "src/main/daemon/daemon-server-kill-attribution.test.ts",
+      "upstream_sha256": "e31b48a29b7ab8154f01333e8a735b9dbfc7681e206611ad470001647b690a4d",
+      "current_sha256": "492d13a4d1b2abcc96955d8ee2d503d9453c45159dd4534c93a93e1bbf0281d7",
+      "reason": "验证精确停止的协议校验、失败无输入清理及不取消替代任务。"
+    },
+    {
+      "path": "src/main/daemon/terminal-host.test.ts",
+      "upstream_sha256": "5022364e940af26f74faa352527169efb57cc3f54ac90e04f219348171d579c6",
+      "current_sha256": "298eb6595d1f0427f5abf892cc14d03cbacc22c2c6ffe664bda2cb5bf0e41cd0",
+      "reason": "验证单实例停止、同ID换代拒绝及不加入既有停止操作。"
+    },
+    {
+      "path": "src/main/daemon/terminal-host.ts",
+      "upstream_sha256": "9e8cc7e8a361560dc3a5a7b2468a5ac7d66f1cd8e156649476375a1e245a235d",
+      "current_sha256": "7a7ec76f9686f0078896c6dada31738568bc6da4efcc6a2335d5e559939f5bdd",
+      "reason": "在宿主同步核实例身份后停止被捕获Session，拒绝按ID合并已有停止。"
+    },
+    {
+      "path": "src/main/daemon/types.ts",
+      "upstream_sha256": "321219ac29a5a8f9a20f99c59ed475edecbce6e524d17e030c3a797ed38fbf20",
+      "current_sha256": "5607f689469aaeaf8b5191770415555a5dbbbc40d0e2bfe1124d06d13b9da7b2",
+      "reason": "声明必须携带预期实例身份的killExact请求，与旧kill区分。"
+    },
+    {
+      "path": "src/main/runtime/orchestration/terminal-pane-mail-routing.ts",
+      "upstream_sha256": "88ec33d119231bbbc3f415ea6893d81773b3017900d01ef8c85653b97d2cd753",
+      "current_sha256": "d8be77f9c9c2688dfe8c34ddd66f698474d39e6c0aab6c8bcf5bae1e53cb9651",
+      "reason": "平台首轮续办输入核对具体前台 Agent，避免其他受支持程序替代已绑定的 Codex 会话。"
     },
     {
       "path": "src/renderer/src/lib/folder-workspace-runtime-owner.ts",
@@ -327780,8 +327856,8 @@
     {
       "path": "src/main/runtime/orca-runtime.ts",
       "upstream_sha256": "9f1d537dbad7e8d6f522913be5cbb5c72cd4d521823fa84a0680db5cad21a1dd",
-      "current_sha256": "0673b401e2866fb062328df725fc7510ba39281b36c22e1d761310ec42cd262d",
-      "reason": "project-progress: bounded native operation, trustworthy observation, and durable receipt integration"
+      "current_sha256": "c25f40408ef5d1f8e333b2fdf212818aa603d815ba246961999ed6d0b93f0cf0",
+      "reason": "project-progress: bounded native operation, trustworthy observation, and durable receipt integration；本机owner按冻结任务绑定请求精确取消，保留实际退出核验结果与原调用权限边界"
     },
     {
       "path": "src/main/runtime/orchestration/db/mutation-receipts/mutation-receipt-store.ts",
@@ -329106,8 +329182,8 @@
     {
       "path": "src/renderer/src/web/preload-api/web-runtime-calls.ts",
       "upstream_sha256": "8d5ae359c9c95e649250cdc5fb10dd45c2d306f7ee80eb997b7a79e140cda272",
-      "current_sha256": "16021f070100f478f4f832da29672d8bfe7279a11a2fb310782efbdc72181c4f",
-      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface."
+      "current_sha256": "c416978a97f3206ad62713b19cd360828132a6b2dc7fbe9153163833477cf174",
+      "reason": "N1: restore native project controls and upstream presentation while preserving platform identity, project registration, draft protection and the single global account surface.；按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
     },
     {
       "path": "src/renderer/src/store/repos/repo-update.ts",
@@ -330528,8 +330604,8 @@
     {
       "path": "src/main/runtime/orca-runtime-agent-session-operation.test.ts",
       "upstream_sha256": "bd4c5440366a8c184c0894ed6ddf23c674dd2388585cb57bf5361a62ab2202a5",
-      "current_sha256": "52f4c9464fc4ac3fbd3e41007289b3c8cb06e3b6d192eba4f695bfbda2ce698f",
-      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护"
+      "current_sha256": "27d656e055739fee3b4f5b7b743653aaf416c92691ab462a5ff26a1134bd2e44",
+      "reason": "原生Linux当前CLI统一zkyq，迁移受管理旧入口并同步实际启动、打包与验证消费者；macOS打包CLI物理改名zkyq，同步安装/回收/卸载与本地派发，保留用户命令及文件竞态保护；验证只读标记的请求与执行指纹、重放及严格创建合同。"
     },
     {
       "path": "src/main/startup/serve-cli-registration.ts",
@@ -331974,8 +332050,8 @@
     {
       "path": "src/main/pty/codex-shell-no-daemon.test.ts",
       "upstream_sha256": "98bc5b65aee40fe81a1f5dfceb7441a747e93a393d1aa62fad107b499bba90ac",
-      "current_sha256": "7fda5f1a842b6c4c31d73fe8aecf1e49ab2541156014d7e567a16a6ebccdd49d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退"
+      "current_sha256": "9e09a374f6ad3cc2991a262a97b47722bcfa61f7ff8781abfd0a8add72b2a530",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；验证Windows Codex默认KEY过滤下平台已知Git非交互配置的单次恢复"
     },
     {
       "path": "src/main/pty/wsl-orca-env.ts",
@@ -332076,8 +332152,8 @@
     {
       "path": "src/shared/codex-shell-function.ts",
       "upstream_sha256": "7f380cfe78f978b702c72f5814dee5e3a7eacb2c6b22990e245365b0f0ea1e57",
-      "current_sha256": "2c4045c1a4025ca2d9929be35f7b380050240775121480204f09a444d6a3159d",
-      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义"
+      "current_sha256": "1b1b1ee104e7396998961551088fc96c5c7eafc3984fccd0fd9b61b4cd2764e5",
+      "reason": "运行宿主数据根配置统一ZKYQ_USER_DATA_PATH，启动方和凭据边界同步，保留实际目录并拒绝旧变量静默回退；通用Hook环境与共享目录迁至ZKYQ/.zkyq，端点v2；在已知旧输入边界迁移并保留既有会话、用户设置与权限语义；仅为Windows Codex单次恢复平台已知的两个Git非交互配置名称，保留用户环境过滤"
     },
     {
       "path": "src/shared/wsl-login-shell-command.test.ts",
@@ -338874,8 +338950,8 @@
     {
       "path": "src/renderer/src/web/web-runtime-client.ts",
       "upstream_sha256": "e6ba9184ee7782edf28cfe01718ac190665bea63fa467e13daa75ebb1e752430",
-      "current_sha256": "b6b1003bd27d97292551a62a233a495a45869d281a448fac50e7f8fa27acae0f",
-      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+      "current_sha256": "933a6f44df805dbce447e2e0c1836f650487bda5443e71226406403da7e43617",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变；按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
     },
     {
       "path": "src/renderer/src/web/web-runtime-connection-waiters.ts",
@@ -338886,8 +338962,8 @@
     {
       "path": "src/renderer/src/web/web-runtime-request-registry.ts",
       "upstream_sha256": "195f005efef1a3a4005db05809c9ba948afd0eff427f6d857ce605cff9de209e",
-      "current_sha256": "57c1bc9f85d163881052f9fa2a3480c19c6e84f775d8a360ae725f66b5a5682d",
-      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变"
+      "current_sha256": "a59c933f63cb72e18732b25a2cc03c004ab3f433a2fa22233c641e8c6a6ec49e",
+      "reason": "远程连接标签和诊断统一Control Everything；保留错误码/协议及历史错误输入识别，同步无code重试、网络提示和真实回归，原命令字节预算不变；会话历史扫描沿用服务端无响应截止合同，避免网页默认30秒误报超时"
     },
     {
       "path": "src/shared/remote-runtime-client-error-classification.test.ts",
@@ -339164,6 +339240,84 @@
       "upstream_sha256": "890d449a2bac710ba25b4a1cbcdc2a2a15fe0b2e9607c1973b9fb6f95f819f59",
       "current_sha256": "afe776c68c4a55eb4bab8705aed120d4f2a953889a1c7ca8e2234c9bb99e9e89",
       "reason": "桌面可读性优化：正文共同预算、搜索名称位置层次、紧凑标签和已有定位入口、透明度叠加说明。"
+    },
+    {
+      "path": "src/renderer/src/web/preload-api/web-ai-vault-api.ts",
+      "upstream_sha256": "f0734b32fb549358af3b5b5bdda3b1b18d9d456b263847f7553c3ef0e62c4460",
+      "current_sha256": "c0549d36a4f85f46829cbf346fe4de1b399bff073cb199ec6e5386f5d77120f8",
+      "reason": "同步说明网页历史扫描随完成或连接断开收尾，不再引用默认超时；按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
+    },
+    {
+      "path": "src/renderer/src/web/web-runtime-client-timeout-budget.test.ts",
+      "upstream_sha256": "5fbeed2b022c565aed4f12487b09000f61c26a40cfb857af4df7db21c8511045",
+      "current_sha256": "70cdedda7b18fded62badf9bb6847c237a5e79b26617ba8be5b534e13d86b6fe",
+      "reason": "回归验证历史扫描超过30秒后仍能完成，同时保留普通请求截止、显式预算、断连与取消"
+    },
+    {
+      "path": "src/renderer/src/web/web-preload-api-agent-providers.test.ts",
+      "upstream_sha256": "167d7d55f03b1871688a152ad20737ccaf7268db49f5aa12776fbef6afda79de",
+      "current_sha256": "ecb7c21b592e31fd1d47f974211c78592730bf6bdb4110e33db85fbf314cf512",
+      "reason": "按requestToken取消网页扫描等待并向RPC队列及传输透传AbortSignal，释放排队与在途名额；回归验证替代请求竞态和正常慢扫描"
+    },
+    {
+      "path": "src/main/providers/pty-provider-contract.ts",
+      "upstream_sha256": "ee8fb3ccdd1f3a736ea1e31024b027571dd3c47b886e8ff6d9ea9b440a2bd037",
+      "current_sha256": "e90bca17aebc5679373ccff6ccd7b944f0ea61cb14eec7f0371f5c6a537d2800",
+      "reason": "为任务取消提供独立的实例约束停止能力，复用宿主killExact并保留历史，不进入休眠或泛化kill路径"
+    },
+    {
+      "path": "src/main/daemon/daemon-pty-session-control.ts",
+      "upstream_sha256": "57115fbe43afa36b3f1c12450ad5f354864201d931f49aa165ce4c38234e3537",
+      "current_sha256": "b57326ec7159949a3d17a8f4113f09162a3ce51a17082f6616f6bbc9d67a14ec",
+      "reason": "为任务取消提供独立的实例约束停止能力，复用宿主killExact并保留历史，不进入休眠或泛化kill路径"
+    },
+    {
+      "path": "src/main/daemon/daemon-pty-router.ts",
+      "upstream_sha256": "44277df45b25bdbb7f2debe50b72e58fa77756a8d35e9a6911217780cbcb81f0",
+      "current_sha256": "cabf94e22d3533d6e99552521cf534fe475d417395b71d0a650774a350f3a9c6",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/daemon/daemon-pty-router.test.ts",
+      "upstream_sha256": "fd5dc4b104978bfc8fc6d8c9e856faf0f6b8d790c8d67e02aa0acf8ab6fc203d",
+      "current_sha256": "8f81882b5a6cfbf585a8d21c5f5b767f8c0f845202ee3991c745ae72063ff0b9",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/daemon/degraded-daemon-pty-provider.ts",
+      "upstream_sha256": "9bd411ff31538d6cf399f90e3c308dd84f36eaaea917bae2dd0ec9ae2fc8086e",
+      "current_sha256": "936281400d0d6d6109f03c6e0bbedf5287a8857e090ffc594e8a7bcad994d2aa",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/daemon/degraded-daemon-pty-provider.test.ts",
+      "upstream_sha256": "c84f75b5dff7b726460d278b4ca454ba2d63c26bd7d0a5f1bc0fd08e72ef412a",
+      "current_sha256": "d722247cfa9df0ea8be31d0bbe43c717b0913105c74ce06176d09d5dd94bf64e",
+      "reason": "精确取消沿已有执行器归属转发，缺少能力或宿主拒绝时不降级为普通关闭"
+    },
+    {
+      "path": "src/main/ipc/pty/runtime/kill.ts",
+      "upstream_sha256": "1ec23d640e14ab30a43befaf7ce576c9b28c15e26a407364c40d29cb4f35aeb5",
+      "current_sha256": "e12b2c4afeca7eb6ed425b3451976f37c74681ae0909393896059e47c681e70d",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
+    },
+    {
+      "path": "src/main/ipc/pty/runtime/controller.ts",
+      "upstream_sha256": "7d4fa84fcbcbcf3583bcd8dd36c60941a9829e71e906a75965bb84aba53ba5bf",
+      "current_sha256": "46e180761c451250530b0ec08eb9c8cf0661505f92b795029cdf16e9486b4272",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
+    },
+    {
+      "path": "src/main/ipc/pty/runtime/kill-same-id-respawn.test.ts",
+      "upstream_sha256": "121f2c5f0fb8667adc9be76af9830f7db8d15035511b2fc4647fb22cb8b2bd1a",
+      "current_sha256": "b2d47008683564a28483636a70673aeaabb2ca2faa24d5c977ecbc0d3569edd3",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
+    },
+    {
+      "path": "src/main/runtime/runtime-pty-controller-contract.ts",
+      "upstream_sha256": "fc1b40d6c4484d971eb3a6e71399dccb96c0004d2c8736e138dafe1ec3d3b9a9",
+      "current_sha256": "e83219666f4427aca0f48b1b84b4956aa77bc3d40b631587d4fd89c56498e27a",
+      "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
     }
   ],
   "reviewed_findings": [

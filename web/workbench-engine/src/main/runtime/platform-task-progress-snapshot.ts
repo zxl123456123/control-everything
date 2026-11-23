@@ -58,6 +58,7 @@ export function readPlatformTaskProgressSnapshot(runtime: OrcaRuntimeService, bi
   return { contractVersion: 1 as const, available: true as const, binding: actualBinding,
     evidenceTime: evidence.clock, deliveredAt: evidence.deliveredAt, readAt: Date.now(),
     status: { state: row.state, providerSession: actualBinding.providerSession,
+      ...(row.model === undefined ? {} : { model: row.model }),
       turnStartedAt: row.turnStartedAt, turnEndedAt: row.turnEndedAt, turnEndDisposition: row.turnEndDisposition,
       lastAssistantMessage: row.lastAssistantMessage?.slice(0, 16384),
       lastAssistantMessageIsToolOutput: row.lastAssistantMessageIsToolOutput,

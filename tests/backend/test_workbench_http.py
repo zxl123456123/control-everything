@@ -360,10 +360,11 @@ class WorkbenchHTTPTests(unittest.TestCase):
                          br'<body\b[^>]*class="ce-workspace-management"')
         self.assertEqual(self.request('/workspace-admin?src=elsewhere')[0], 400)
         self.server.workbench_runtime = None
-        self.assertEqual(self.request('/workspace')[0], 200)
-        self.assertNotIn(b'data-integration-admin="true"', self.last_handler.reply.call_args.args[1])
-        self.assertRegex(self.last_handler.reply.call_args.args[1],
-                         br'<body\b[^>]*class="ce-workspace-management"')
+        handler.send_response.reset_mock()
+        handler.send_header.reset_mock()
+        handler.do_GET()
+        handler.send_response.assert_called_once_with(302)
+        handler.send_header.assert_any_call('Location', '/studio')
 
 
 if __name__ == "__main__":

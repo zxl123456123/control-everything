@@ -7,7 +7,7 @@ import { buildRegistry, type RpcContext, type RpcMethod, type RpcRequest } from 
 import { RpcDispatcher } from '../runtime/rpc/dispatcher'
 import { PLATFORM_TASK_PROGRESS_METHODS } from './platform-task-progress-methods'
 import { OrchestrationDb } from '../runtime/orchestration/db'
-import type { OrcaRuntimeService } from '../runtime/orca-runtime'
+import { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { OrcaRuntimeWithAutomationOperations } from '../runtime/workspaces/persisted-surfaces/automation-operations'
 import { platformProgressEnvironmentId, readPlatformTaskProgressSnapshot } from '../runtime/platform-task-progress-snapshot'
 import { publishHostDescriptor } from '../runtime/host-descriptor'
@@ -17,6 +17,7 @@ import { hashCanonical, replayStableCallerParams } from '../runtime/rpc/orchestr
 import { isDurableMutation, isTerminalPromptMutation } from '../../shared/orchestration-rpc-contract'
 import { OrcaRuntimeWithGetTerminalInteractiveWait } from '../runtime/terminal/wait/terminal-interactive-wait'
 import { OrcaRuntimeWithAgentPromptRequestCorrelation } from '../runtime/orca-runtime-agent-prompt-request-correlation'
+import { OrcaRuntimeWithGetPtyRecordForPaneKey } from '../runtime/orchestration/terminal-pane-mail-routing'
 
 const registry = buildRegistry(PLATFORM_TASK_PROGRESS_METHODS)
 const method = (name: string) => registry.get(`platform.taskProgress.${name}`) as RpcMethod
@@ -25,6 +26,7 @@ let runtime: OrcaRuntimeService
 let binding: PlatformProgressBinding
 let row: any
 let observed: any
+let stopExact: ReturnType<typeof vi.fn<() => Promise<boolean>>>
 const directories: string[] = []
 const sendParams = () => ({ contractVersion: 1 as const, terminal: binding.terminalHandle, text: 'Please refine this result',
   expectedBinding: binding, origin: { taskId: 'task', nativeRunId: 'native', messageId: 'message', requestId: 'request' } })
@@ -67,6 +69,7 @@ beforeEach(() => {
     getPlatformTaskProgressSnapshot: (b: PlatformProgressBinding) => readPlatformTaskProgressSnapshot(runtime, b),
     isTerminalRunningSettledPromptAgent: vi.fn(async () => true),
     getTerminalAgentStatus: vi.fn(async () => ({ handle: 'terminal', isRunningAgent: true, status: 'idle' })),
+    getTerminalInteractiveWait: vi.fn(async () => undefined),
     getDriver: vi.fn(() => ({ kind: 'desktop' })), observeTerminalAgentPrompt: vi.fn(),
     sendTerminalAgentPrompt: vi.fn(async (_handle: string, _text: string, opts: any) => {
       await opts.beforeWrite('pty'); const value = receipt().send; opts.onInputAccepted(value); return value
@@ -77,6 +80,9 @@ beforeEach(() => {
     createAgentSession: vi.fn(async () => ({ terminal: { handle: 'terminal' }, disposition: 'created' })),
     ensureAgentSession: vi.fn(async () => ({ terminal: { handle: 'terminal' }, disposition: 'adopted' }))
   } as unknown as OrcaRuntimeService
+  stopExact = vi.fn(async () => true)
+  Object.assign(runtime, { ptysById: new Map([['pty', { incarnationId: 'incarnation', connectionId: null }]]),
+    ptyController: { stopExact }, stopPlatformTaskProgress: OrcaRuntimeService.prototype.stopPlatformTaskProgress })
 })
 afterEach(() => { db.close(); publishHostDescriptor('runtime', null); vi.restoreAllMocks();
   for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true }) })
@@ -150,6 +156,29 @@ describe('bounded owner operations', () => {
   })
 })
 
+describe('bound owner cancellation', () => {
+  it.each([true, false])('returns the actual stop proof: %s', async stopped => {
+    stopExact.mockResolvedValue(stopped)
+    expect(await call('stop', { contractVersion: 1, expectedBinding: binding })).toMatchObject({ stopped, binding })
+    expect(stopExact).toHaveBeenCalledWith('pty', 'incarnation', { deadlineMs: expect.any(Number) })
+  })
+  it.each(['desktop', 'paired-device'])('refuses cancellation from %s', async kind => {
+    await expect(call('stop', { contractVersion: 1, expectedBinding: binding },
+      { caller: { kind } as RpcContext['caller'] })).rejects.toThrow('platform_owner_required')
+    expect(stopExact).not.toHaveBeenCalled()
+  })
+  it('refuses a stale binding before touching the execution controller', async () => {
+    await expect(call('stop', { contractVersion: 1, expectedBinding: { ...binding, generation: 0 } }))
+      .rejects.toThrow('binding_changed')
+    expect(stopExact).not.toHaveBeenCalled()
+  })
+  it('refuses a runtime-only identity that the host cannot verify', async () => {
+    Object.assign(runtime, { ptysById: new Map([['pty', { incarnationId: null, connectionId: null }]]) })
+    await expect(call('stop', { contractVersion: 1, expectedBinding: binding })).rejects.toThrow('binding_unavailable')
+    expect(stopExact).not.toHaveBeenCalled()
+  })
+})
+
 describe('same-row ingestion fence', () => {
   it('projects complete provider metadata and refuses key or required path changes', () => {
     binding.agent = 'pi'; row.agentType = 'pi'
@@ -174,6 +203,51 @@ describe('same-row ingestion fence', () => {
   it('keeps evidence time distinct from read time and projects the exact row', () => {
     expect(readPlatformTaskProgressSnapshot(runtime, binding)).toMatchObject({ available: true, evidenceTime: { kind: 'observed', at: 90 }, deliveredAt: 100,
       status: { lastAssistantMessage: 'Result', turnEndDisposition: 'identified' } })
+  })
+  it('reports a startup prompt without treating it as trusted task progress', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    const wait = { source: 'prompt-text' as const, reason: 'agent-hooks-review-prompt' as const }
+    vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue(wait)
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding })).toMatchObject({
+      available: false, reason: 'status_unavailable', canSendFeedback: false, interactiveWait: wait
+    })
+    expect(runtime.getTerminalInteractiveWait).toHaveBeenCalledWith(binding.terminalHandle)
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+    expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
+  })
+  it('does not inspect a stale terminal binding', async () => {
+    vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue('replacement')
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, reason: 'binding_changed', canSendFeedback: false })
+    expect(runtime.getTerminalInteractiveWait).not.toHaveBeenCalled()
+  })
+  it('discards a diagnostic if the process changes during inspection', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockImplementation(async () => {
+      vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue('replacement')
+      return { source: 'prompt-text', reason: 'agent-hooks-review-prompt' }
+    })
+    const result = await call('observe', { contractVersion: 1, expectedBinding: binding })
+    expect(result).toMatchObject({ available: false, reason: 'binding_changed' })
+    expect(result).not.toHaveProperty('interactiveWait')
+  })
+  it('keeps progress unavailable when diagnostic inspection fails', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockRejectedValue(new Error('synthetic unavailable stream'))
+    const result = await call('observe', { contractVersion: 1, expectedBinding: binding })
+    expect(result).toMatchObject({ available: false, reason: 'status_unavailable', canSendFeedback: false })
+    expect(result).not.toHaveProperty('interactiveWait')
+  })
+  it('bounds a stalled diagnostic without losing the unknown progress result', async () => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockImplementation(() => new Promise(() => {}))
+    vi.useFakeTimers()
+    try {
+      const pending = call('observe', { contractVersion: 1, expectedBinding: binding })
+      await vi.advanceTimersByTimeAsync(101)
+      expect(await pending).toMatchObject({ available: false, reason: 'status_unavailable', canSendFeedback: false })
+      expect(runtime.getTerminalInteractiveWait).toHaveBeenCalledTimes(1)
+    } finally { vi.useRealTimers() }
   })
   it.each(['unobserved', 'incarnation', 'replay', 'restored', 'provider-only', 'program-only', 'remote', 'wrong-provider', 'wrong-worktree'])('rejects %s', reason => {
     if (reason === 'unobserved') observed = { kind: 'unobserved' }
@@ -268,6 +342,84 @@ describe('read-only receipt inspection', () => {
 })
 
 describe('durable settled send', () => {
+  const resumeWithoutStatus = async (disposition = 'created') => {
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [] })
+    vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue(null)
+    vi.mocked(runtime.ensureAgentSession).mockResolvedValue({ terminal: { handle: 'terminal' }, disposition } as any)
+    await call('resume', { contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+      repoId: 'repo', worktreeId: 'worktree', agent: 'codex', providerSession: binding.providerSession })
+  }
+  it('allows a host-created resume to receive its first input without inventing progress', async () => {
+    await resumeWithoutStatus()
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, reason: 'status_unavailable', canSendFeedback: true })
+    const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+    const request: RpcRequest = { id: 'f', authToken: 'test', method: 'platform.taskProgress.send', params: sendParams(),
+      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: 'request' }
+    expect(await dispatcher.dispatch(request)).toMatchObject({ ok: true, result: { send: { accepted: true } } })
+    expect(await dispatcher.dispatch(request)).toMatchObject({ ok: true, result: { mutation: { replayed: true } } })
+    expect(runtime.sendTerminalAgentPrompt).toHaveBeenCalledOnce()
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, canSendFeedback: false })
+  })
+  it.each(['adopted', 'provider-changed', 'incarnation-changed', 'permission', 'wait-unknown', 'mobile-lock', 'not-codex'])
+    ('does not grant a first input for %s', async reason => {
+      await resumeWithoutStatus(reason === 'adopted' ? 'adopted' : 'created')
+      if (reason === 'provider-changed') binding.providerSession = { key: 'session_id', id: 'different' }
+      if (reason === 'incarnation-changed') vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue('new')
+      if (reason === 'permission') vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue({ kind: 'permission' } as any)
+      if (reason === 'wait-unknown') vi.mocked(runtime.getTerminalInteractiveWait).mockResolvedValue(undefined)
+      if (reason === 'mobile-lock') vi.mocked(runtime.getDriver).mockReturnValue({ kind: 'mobile', clientId: 'phone' } as any)
+      if (reason === 'not-codex') vi.mocked(runtime.isTerminalRunningSettledPromptAgent).mockResolvedValue(false)
+      const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+      expect(await dispatcher.dispatch({ id: 'f', authToken: 'test', method: 'platform.taskProgress.send', params: sendParams(),
+        orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: 'request' }))
+        .toMatchObject({ ok: true, result: { send: { accepted: false } } })
+      expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
+    })
+  it('confirms the expected foreground agent rather than another supported agent', async () => {
+    const host = { getLivePtyForHandle: () => ({ pty: { ptyId: 'pty' } }),
+      ptyController: { getForegroundProcess: async () => 'claude' }, isTerminalRunningAgent: async () => true }
+    const check = OrcaRuntimeWithGetPtyRecordForPaneKey.prototype.isTerminalRunningSettledPromptAgent
+    expect(await check.call(host as never, 'terminal')).toBe(true)
+    expect(await check.call(host as never, 'terminal', 'codex')).toBe(false)
+  })
+  it('rejects conflicting status rows before offering or sending the first resumed input', async () => {
+    await resumeWithoutStatus()
+    Object.assign(runtime, { getAgentStatusSnapshotFn: () => [row,
+      { ...row, state: 'blocked', providerSession: { key: 'session_id', id: 'other' } }] })
+    expect(await call('observe', { contractVersion: 1, expectedBinding: binding }))
+      .toMatchObject({ available: false, canSendFeedback: false })
+    const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+    expect(await dispatcher.dispatch({ id: 'f', authToken: 'test', method: 'platform.taskProgress.send', params: sendParams(),
+      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: 'request' }))
+      .toMatchObject({ ok: true, result: { send: { accepted: false } } })
+    expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
+  })
+  it('reserves the first resumed input before writing even when two different requests race', async () => {
+    await resumeWithoutStatus()
+    let arrivals = 0
+    let release!: () => void
+    const ready = new Promise<void>(resolve => { release = resolve })
+    const writes: string[] = []
+    vi.mocked(runtime.sendTerminalAgentPrompt).mockImplementation(async (_h, _t, opts) => {
+      if (++arrivals === 2) release()
+      await ready
+      await opts.beforeWrite?.('pty')
+      writes.push(opts.requestId!)
+      const value = { ...receipt().send, prompt: { ...receipt().send.prompt, requestId: opts.requestId! } }
+      opts.onInputAccepted?.(value as any)
+      return value as any
+    })
+    const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+    const results = await Promise.all(['first', 'second'].map(id => dispatcher.dispatch({
+      id, authToken: 'test', method: 'platform.taskProgress.send',
+      params: { ...sendParams(), origin: { ...sendParams().origin, requestId: id } },
+      orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: id
+    })))
+    expect(writes).toHaveLength(1)
+    expect(results.filter(result => result.ok && (result.result as any)?.send?.accepted)).toHaveLength(1)
+  })
   it('classifies only fixed send, not receipt, as a prompt mutation', () => {
     expect(isTerminalPromptMutation('platform.taskProgress.send', sendParams())).toBe(true)
     expect(isDurableMutation('platform.taskProgress.receipt', receiptParams())).toBe(false)
@@ -337,4 +489,86 @@ describe('durable settled send', () => {
       orchestrationContractVersion: ORCHESTRATION_CONTRACT_VERSION, orchestrationRequestId: 'request' })).toMatchObject({ ok: false, error: { code: 'operation_unknown' } })
     expect(runtime.sendTerminalAgentPrompt).not.toHaveBeenCalled()
   })
+})
+
+describe('explicit platform Codex model', () => {
+  const params = () => ({ contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+    repoId: 'repo', worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'work',
+    operationId: '1793000000000-11111111111111111111111111111111' })
+  it.each(['gpt-6-astra', 'gpt-6.1-sol'])('passes only model preference %s', async model => {
+    await call('create', { ...params(), model })
+    expect(runtime.createAgentSession).toHaveBeenCalledWith(expect.objectContaining({ launchPreferences: { model } }), expect.anything())
+  })
+  it('leaves absent model preferences to the host', async () => {
+    await call('create', params())
+    expect(vi.mocked(runtime.createAgentSession).mock.calls[0][0]).not.toHaveProperty('launchPreferences')
+  })
+  it.each([{ model: 'other' }, { model: 'gpt-6-astra', agent: 'claude' }])('rejects invalid selection %j', selection => {
+    expect(() => call('create', { ...params(), ...selection })).toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+  it('retains the owner gate with an explicit model', async () => {
+    await expect(call('create', { ...params(), model: 'gpt-6-astra' }, { caller: { kind: 'paired-device', deviceId: 'device' } })).rejects.toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+})
+
+it.each(['gpt-6-astra', undefined])('projects only the observed model %s', model => {
+  if (model !== undefined) row.model = model
+  const snapshot = readPlatformTaskProgressSnapshot(runtime, binding)
+  expect(snapshot).toMatchObject({ available: true })
+  if (!snapshot.available) throw new Error('Trusted snapshot unavailable')
+  if (model === undefined) expect(snapshot.status).not.toHaveProperty('model')
+  else expect(snapshot.status).toHaveProperty('model', model)
+})
+
+describe('platform read-only role request', () => {
+  const params = () => ({ contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+    repoId: 'repo', worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'plan',
+    operationId: '1793000000000-11111111111111111111111111111111' })
+  it('passes the restricted role and model without caller permission arguments', async () => {
+    await call('create', { ...params(), readOnly: true, model: 'gpt-6-astra' })
+    const request = vi.mocked(runtime.createAgentSession).mock.calls[0][0]
+    expect(request).toMatchObject({ readOnly: true, launchPreferences: { model: 'gpt-6-astra' } })
+    expect(request).not.toHaveProperty('agentArgs')
+  })
+  it.each([undefined, false])('keeps ordinary launch semantics for readOnly %s', async readOnly => {
+    await call('create', { ...params(), ...(readOnly === undefined ? {} : { readOnly }) })
+    const request = vi.mocked(runtime.createAgentSession).mock.calls[0][0]
+    expect(request.readOnly).not.toBe(true)
+    expect(request).not.toHaveProperty('agentArgs')
+  })
+  it.each([{ readOnly: 'true' }, { readOnly: true, agent: 'claude' }])('rejects invalid restricted request %j', selection => {
+    expect(() => call('create', { ...params(), ...selection })).toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+  it('retains owner authorization for a restricted role', async () => {
+    await expect(call('create', { ...params(), readOnly: true },
+      { caller: { kind: 'paired-device', deviceId: 'device' } })).rejects.toThrow()
+    expect(runtime.createAgentSession).not.toHaveBeenCalled()
+  })
+})
+
+it.each(['read_only_launch_args_unsupported', 'read_only_command_override_unsupported'])('returns a bounded refusal for restricted creation: %s', async reason => {
+  vi.mocked(runtime.createAgentSession).mockRejectedValue(new Error(reason))
+  const dispatcher = new RpcDispatcher({ runtime, methods: PLATFORM_TASK_PROGRESS_METHODS })
+  const response = await dispatcher.dispatch({ id: 'readonly', authToken: 'test', method: 'platform.taskProgress.create',
+    params: { contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId, repoId: 'repo',
+      worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'plan', readOnly: true,
+      operationId: '1793000000000-11111111111111111111111111111111' } })
+  expect(response).toMatchObject({ ok: true, result: { contractVersion: 1, refused: true, reason } })
+  if (response.ok) {
+    expect(response.result).not.toHaveProperty('binding')
+    expect(response.result).not.toHaveProperty('terminal')
+  }
+})
+
+it('does not relabel unrelated failures or ordinary launches as read-only refusal', async () => {
+  const params = { contractVersion: 1, runtimeId: 'runtime', environmentId: binding.environmentId,
+    repoId: 'repo', worktreeId: 'worktree', agent: 'codex', cwd: 'C:/example/repo', prompt: 'plan',
+    operationId: '1793000000000-11111111111111111111111111111111' }
+  vi.mocked(runtime.createAgentSession).mockRejectedValue(new Error('transport_unknown'))
+  await expect(call('create', { ...params, readOnly: true })).rejects.toThrow('transport_unknown')
+  vi.mocked(runtime.createAgentSession).mockRejectedValue(new Error('read_only_launch_args_unsupported'))
+  await expect(call('create', params)).rejects.toThrow('read_only_launch_args_unsupported')
 })

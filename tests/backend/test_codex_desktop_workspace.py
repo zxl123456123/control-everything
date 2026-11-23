@@ -13,6 +13,7 @@ from control_everything.profiles import profile_import
 from control_everything.profiles.profile import Profile, ProfileError
 from control_everything.sessions.codex_index import unavailable
 from control_everything.workspace.project_progress import observe
+from control_everything.workspace import task_schema
 from control_everything.workspace.store import WorkspaceError, WorkspaceStore
 from control_everything.workspace.validation import validate_project
 from tests.backend import test_profile_http as http_fixtures
@@ -294,7 +295,7 @@ class CodexDesktopWorkspaceTests(unittest.TestCase):
         old = self.create()
         backup = profile_import.create_backup(self.profile)
         manifest = profile_import.validate_backup(backup)
-        self.assertEqual((manifest['version'], manifest['schema_version']), (10, 10))
+        self.assertEqual((manifest['version'], manifest['schema_version']), (task_schema.SCHEMA_VERSION, task_schema.SCHEMA_VERSION))
         restored_dir = self.root / 'restored'
         profile_import.restore_backup(str(backup), str(restored_dir))
         restored = Profile.open(str(restored_dir))
@@ -303,7 +304,7 @@ class CodexDesktopWorkspaceTests(unittest.TestCase):
         # Re-sign a malformed synthetic backup to exercise semantic, rather than checksum, validation.
         database = backup / 'management.sqlite3'
         with closing(sqlite3.connect(database)) as connection:
-            connection.create_function('task_center_writer_version', 0, lambda: 10)
+            connection.create_function('task_center_writer_version', 0, lambda: task_schema.SCHEMA_VERSION)
             connection.execute("UPDATE project_sources SET relative_path='unexpected'")
             connection.commit()
         manifest['files']['management.sqlite3'] = {'size': database.stat().st_size,

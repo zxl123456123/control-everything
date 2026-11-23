@@ -1,4 +1,7 @@
 # Preserve the fixed compiler's delivered bytes on Windows checkouts.
+tools/packaging/openclaw-feishu/automation-ingress.patch text eol=lf
+tools/packaging/openclaw-feishu/LICENSE text eol=lf
+tools/packaging/openclaw-feishu/source.json text eol=lf
 # Vendor notices retain their reviewed bytes and upstream whitespace.
 tools/packaging/wheel-notices/*.txt -text -whitespace
 web/workspace/observation.js text eol=lf

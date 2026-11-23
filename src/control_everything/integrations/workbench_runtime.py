@@ -118,8 +118,11 @@ def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_
         env.update(owned)
         env["PATH"] = os.pathsep.join(filter(None, (ambient.get("PATH"), fallback_path)))
         env["CE_WORKBENCH_HOST_ENVIRONMENT"] = "1"
+        # Parent desktop registration channels cannot authenticate an independent external CLI.
         controlled = {"ORCA_USER_DATA", "ORCA_USER_DATA_PATH", "CE_WORKBENCH_CREDENTIAL_ROOT", "CE_WORKBENCH_PUBLIC_ORIGIN", "CE_WORKBENCH_DEVICE_PROOF",
-                      "CE_REMOTE_DEVICE_ID", "CE_REMOTE_GENERATION", "CE_REMOTE_INSTALLATION_ID"}
+                      "CE_REMOTE_DEVICE_ID", "CE_REMOTE_GENERATION", "CE_REMOTE_INSTALLATION_ID",
+                      "CODEX_APP_RUNTIME_CLI_PATH", "CODEX_APP_TOOLS_PIPE_PATH",
+                      "CODEX_WINDOWS_REGISTERED_CORE", "CODEX_WINDOWS_SANDBOX_PACKAGE_FAMILY"}
         for key in tuple(env):
             if key.upper() in controlled:
                 env.pop(key)

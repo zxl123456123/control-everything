@@ -1,0 +1,703 @@
+"""Durable automation claims; external work never runs inside these transactions."""
+
+from dataclasses import dataclass
+import json
+import time
+from uuid import uuid4
+
+from control_everything.input_validation import ProfileError
+from control_everything.workspace import dispatch
+from control_everything.workspace.automation_identities import decision_authorized
+from control_everything.workspace.native_progress import check_versions, digest, fail, packed, row_view, task_access, touch
+from control_everything.workspace.store import now_utc
+from control_everything.workspace.automation_planning import planning_outcome
+
+LEASE_SECONDS = 60
+
+
+def reviewer_may_integrate(connection, task_id, reviewer):
+    """Local owner reviews stay valid. A Feishu review must be the task's designated acceptor."""
+    if reviewer == 'local_owner':
+        return True
+    if not isinstance(reviewer, str) or not reviewer:
+        return False
+    return connection.execute(
+        'SELECT 1 FROM automation_task_acceptors WHERE task_id=? AND open_id=?',
+        (task_id, reviewer)).fetchone() is not None
+STEP_TRANSITIONS = {
+    'reserved': ('dispatching',),
+    'dispatching': ('running', 'completed', 'failed', 'unknown'),
+    'running': ('completed', 'failed', 'unknown'),
+    'unknown': ('running', 'completed', 'failed'),
+}
+
+
+@dataclass(frozen=True)
+class OwnerLease:
+    owner_id: str
+    generation: int
+
+
+class AutomationQueue:
+    def __init__(self, store, *, owner_id=None, clock=time.time):
+        self.store = store
+        self.owner_id = owner_id or str(uuid4())
+        self.clock = clock
+
+    def acquire(self):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            current = connection.execute('SELECT * FROM automation_owner WHERE id=1').fetchone()
+            now = self.clock()
+            if current and current['lease_until'] > now:
+                if current['owner_id'] != self.owner_id:
+                    return None
+                generation = current['generation']
+            else:
+                generation = current['generation'] + 1 if current else 1
+            connection.execute('INSERT INTO automation_owner VALUES(1,?,?,?) ON CONFLICT(id) DO UPDATE SET '
+                'owner_id=excluded.owner_id,generation=excluded.generation,lease_until=excluded.lease_until',
+                (self.owner_id, generation, now + LEASE_SECONDS))
+            return OwnerLease(self.owner_id, generation)
+
+    def _guard(self, connection, lease):
+        current = connection.execute('SELECT * FROM automation_owner WHERE id=1').fetchone()
+        if (not current or lease.owner_id != self.owner_id or current['owner_id'] != lease.owner_id
+                or current['generation'] != lease.generation or current['lease_until'] <= self.clock()):
+            fail('automation_owner_lost')
+
+    def renew(self, lease):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            connection.execute('UPDATE automation_owner SET lease_until=? WHERE id=1',
+                               (self.clock() + LEASE_SECONDS,))
+            return lease
+
+    def release(self, lease):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            connection.execute('UPDATE automation_owner SET owner_id=NULL,generation=generation+1,lease_until=0 WHERE id=1')
+
+    @staticmethod
+    def _view(connection, flow_id):
+        return {
+            'flow': row_view(connection.execute('SELECT * FROM automation_flows WHERE id=?', (flow_id,)).fetchone()),
+            'step': row_view(connection.execute('SELECT s.*,f.revision AS flow_revision FROM automation_steps s '
+                'JOIN automation_flows f ON f.id=s.flow_id WHERE s.flow_id=? '
+                'ORDER BY s.ordinal DESC LIMIT 1', (flow_id,)).fetchone()),
+        }
+
+    @staticmethod
+    def _step(connection, step_id):
+        return connection.execute('SELECT s.*,f.revision AS flow_revision FROM automation_steps s '
+            'JOIN automation_flows f ON f.id=s.flow_id WHERE s.id=?', (step_id,)).fetchone()
+
+    def claim(self, lease, event_id):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            event = connection.execute('SELECT * FROM automation_events WHERE id=?', (event_id,)).fetchone()
+            if event is None:
+                fail('automation_event_not_found')
+            if event['flow_id']:
+                # Ownership changes retain the exact external operation and its uncertain state.
+                connection.execute("UPDATE automation_steps SET owner_generation=? WHERE flow_id=? "
+                    "AND status IN ('reserved','dispatching','running','unknown','cancelling')",
+                    (lease.generation, event['flow_id']))
+                return self._view(connection, event['flow_id'])
+            if connection.execute("SELECT 1 FROM automation_flows WHERE task_id=? "
+                    "AND status NOT IN ('completed','failed','cancelled')", (event['task_id'],)).fetchone():
+                return None
+            payload = json.loads(event['payload_json'])
+            item = task_access(connection, event['task_id'], writable=True)
+            check_versions(item, {'expected_revision': event['requirement_revision']})
+            if item['state'] in ('review', 'done'):
+                fail('session_conflict')
+            brief = dispatch._brief(connection, item['id'])
+            if brief['revision'] != event['brief_revision']:
+                fail('brief_changed')
+            directory = dispatch._directory(connection, item['project_id'], brief['execution_directory_id'])
+            if item['project_id'] != event['project_id'] or directory != payload['directory']:
+                fail('project_directory_changed')
+            identity, step_id, stamp = str(uuid4()), str(uuid4()), now_utc()
+            context = {'policy_version': 1, 'requirement_revision': event['requirement_revision'],
+                       'brief_revision': event['brief_revision'], 'input': payload}
+            supported = payload['request']['agent'] == 'codex'
+            if supported and connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
+                    'WHERE f.project_id=? AND s.writes_project=1 '
+                    "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')",
+                    (event['project_id'],)).fetchone():
+                return None
+            connection.execute('INSERT INTO automation_flows(id,task_id,project_id,origin_event_id,status,phase,'
+                'context_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',
+                (identity, item['id'], item['project_id'], event_id, 'running', 'prepare', packed(context), stamp, stamp))
+            if not supported:
+                connection.execute("UPDATE automation_flows SET status='waiting_external',attention_json=? WHERE id=?",
+                    (packed({'reason': 'agent_not_supported', 'agent': payload['request']['agent']}), identity))
+                connection.execute('UPDATE automation_events SET flow_id=?,consumed_at=? WHERE id=?', (identity, stamp, event_id))
+                return self._view(connection, identity)
+            operation = f'{int(self.clock() * 1000)}-{uuid4().hex}'
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,status,'
+                'operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+                (step_id, identity, 1, 'prepare', 0, lease.generation, 'reserved', operation, packed(context), stamp, stamp))
+            connection.execute('UPDATE automation_events SET flow_id=?,consumed_at=? WHERE id=?',
+                               (identity, stamp, event_id))
+            return self._view(connection, identity)
+
+    def record(self, lease, step, status, *, binding=None, result=None):
+        """Persist a reply using the lease and step state captured before the external call."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            current = self._step(connection, step['id'])
+            if (not current or current['owner_generation'] != lease.generation
+                    or step['owner_generation'] != lease.generation or current['status'] != step['status']
+                    or current['flow_revision'] != step['flow_revision']):
+                fail('automation_step_changed')
+            if status not in STEP_TRANSITIONS.get(current['status'], ()):
+                fail('automation_step_transition')
+            if current['status'] == 'reserved' and status == 'dispatching':
+                flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (current['flow_id'],)).fetchone()
+                problem = None
+                if current['kind'] == 'integrate':
+                    self._accepted(connection, row_view(flow), row_view(current))
+                else:
+                    problem = self._flow_input_problem(connection, row_view(flow))
+                if problem:
+                    fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            stamp = now_utc()
+            connection.execute('UPDATE automation_steps SET status=?,binding_json=?,result_json=?,updated_at=? WHERE id=?',
+                (status, current['binding_json'] if binding is None else packed(binding),
+                 current['result_json'] if result is None else packed(result), stamp, step['id']))
+            connection.execute('UPDATE automation_flows SET revision=revision+1,updated_at=? WHERE id=?',
+                               (stamp, current['flow_id']))
+            return row_view(self._step(connection, step['id']))
+
+    def planning_choices(self, step):
+        if 'plan_choices' in step['request']:
+            return step['request']['plan_choices']
+        # Older planning requests recorded only the latest answer on each round.
+        with self.store.connection() as connection:
+            rows = connection.execute("SELECT request_json FROM automation_steps WHERE flow_id=? "
+                "AND ordinal<=? AND kind='plan' ORDER BY ordinal", (step['flow_id'], step['ordinal']))
+            choices = {}
+            for row in rows:
+                choice = json.loads(row[0]).get('plan_choice')
+                if choice:
+                    choices.setdefault(choice['decision_id'], choice)
+        return list(choices.values())
+
+    def reserve_next(self, lease, previous, kind, request, *, writes_project=True, choice_authority=None):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (previous['flow_id'],)).fetchone()
+            frozen = packed({'context': json.loads(flow['context_json']), **request})
+            expected_status = 'running'
+            if choice_authority is not None:
+                trusted, device = choice_authority
+                choice = request['plan_choice']
+                attention = json.loads(flow['attention_json'])
+                decision = attention.get('decision') or {}
+                continuation = kind == 'implement' and writes_project and previous['kind'] == 'implement'
+                replan = kind == 'plan' and not writes_project and previous['kind'] == 'plan_review'
+                if (not (continuation or replan) or flow['status'] != 'waiting_user'
+                        or flow['task_id'] != choice['task_id']
+                        or previous['id'] != choice['decision_id'] or decision.get('decision_id') != choice['decision_id']
+                        or ('question' in choice and decision.get('question') != choice['question'])
+                        or attention.get('versions', {}).get('requirement_revision') != choice['requirement_revision']
+                        or not any(option == {'id': choice['choice_id'], 'label': choice['label'],
+                                              'impact': choice['impact']} for option in decision.get('options', []))
+                        or not decision_authorized(self.store, choice['actor_id'], task_id=flow['task_id'],
+                                                   trusted=trusted, device=device)):
+                    fail('automation_step_changed')
+                expected_status = 'waiting_user'
+            existing = connection.execute('SELECT id,kind,request_json,writes_project FROM automation_steps '
+                'WHERE flow_id=? AND ordinal=?', (flow['id'], previous['ordinal'] + 1)).fetchone()
+            if existing:
+                if (existing['kind'] != kind or existing['request_json'] != frozen
+                        or existing['writes_project'] != int(writes_project)):
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            current = self._step(connection, previous['id'])
+            if (current['status'] != 'completed' or flow['status'] != expected_status
+                    or current['flow_revision'] != previous['flow_revision']):
+                fail('automation_step_changed')
+            problem = self._flow_input_problem(connection, row_view(flow))
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            if writes_project and connection.execute('SELECT 1 FROM automation_steps s '
+                    'JOIN automation_flows f ON f.id=s.flow_id WHERE f.project_id=? AND s.writes_project=1 '
+                    "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')", (flow['project_id'],)).fetchone():
+                return None
+            identity, stamp = str(uuid4()), now_utc()
+            operation = f'{int(self.clock() * 1000)}-{uuid4().hex}'
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow['id'], previous['ordinal'] + 1, kind, 0, lease.generation, int(writes_project),
+                 'reserved', operation, frozen, stamp, stamp))
+            if choice_authority is not None:
+                control = {'expected_revision': attention['expected_revision']} if continuation and 'expected_revision' in attention else {}
+                connection.execute("UPDATE automation_flows SET status='running',phase=?,attention_json=?,"
+                                   'revision=revision+1,updated_at=? WHERE id=?', (kind, packed(control), stamp, flow['id']))
+            else:
+                connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
+                                   (kind, stamp, flow['id']))
+            return row_view(self._step(connection, identity))
+
+    def reserve_repair(self, lease, previous, request):
+        """Reserve one shared repair after a failed verify. The original implement is not a repair."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (previous['flow_id'],)).fetchone()
+            current = self._step(connection, previous['id'])
+            review = current and current['kind'] == 'code_review' and current['status'] == 'completed'
+            failed_verify = current and current['kind'] == 'verify' and current['status'] == 'failed'
+            if (not current or not (review or failed_verify) or flow['status'] != 'running'
+                    or current['flow_revision'] != previous['flow_revision']):
+                fail('automation_step_changed')
+            existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
+                                          (flow['id'], current['ordinal'] + 1)).fetchone()
+            if existing:
+                repair = json.loads(existing['request_json']).get('repair_of') or {}
+                source_id = repair.get('code_review_step_id') if review else repair.get('verify_step_id')
+                if existing['kind'] != 'implement' or source_id != current['id']:
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            used = sum(1 for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE flow_id=? AND kind='implement'", (flow['id'],))
+                       if json.loads(row['request_json']).get('repair_of'))
+            if used >= 2:
+                fail('repair_budget_exhausted')
+            context = json.loads(flow['context_json'])
+            problem = self._flow_input_problem(connection, row_view(flow))
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            if connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
+                                  'WHERE f.project_id=? AND s.writes_project=1 AND s.status IN '
+                                  "('reserved','dispatching','running','unknown','cancelling')",
+                                  (flow['project_id'],)).fetchone():
+                return None
+            body = json.loads(current['request_json'])
+            source = {'code_review_step_id': current['id'], 'verify_step_id': body.get('verify_step_id')} if review else {'verify_step_id': current['id']}
+            frozen = packed({'context': context, **request, 'repair_of': {**source, 'round': used + 1}})
+            identity, stamp = str(uuid4()), now_utc()
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow['id'], current['ordinal'] + 1, 'implement', 0, lease.generation, 1, 'reserved',
+                 f'{int(self.clock() * 1000)}-{uuid4().hex}', frozen, stamp, stamp))
+            connection.execute('UPDATE automation_flows SET phase=?,revision=revision+1,updated_at=? WHERE id=?',
+                               ('implement', stamp, flow['id']))
+            return row_view(self._step(connection, identity))
+
+    def reserve_change_repair(self, lease, flow_id, expected_revision, request):
+        """A requested change uses the shared repair budget. It does not accept the delivery."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow, current = view['flow'], view['step']
+            attention = flow['attention'] or {}
+            if (flow['revision'] != expected_revision or flow['status'] != 'waiting_external'
+                    or flow['phase'] != 'acceptance' or attention.get('reason') != 'acceptance_changes_requested'
+                    or not current):
+                fail('automation_step_changed')
+            existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
+                                          (flow_id, current['ordinal'] + 1)).fetchone()
+            if existing:
+                repair = json.loads(existing['request_json']).get('repair_of') or {}
+                if existing['kind'] != 'implement' or repair.get('review_id') != attention.get('review_id'):
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            used = sum(1 for row in connection.execute(
+                "SELECT request_json FROM automation_steps WHERE flow_id=? AND kind='implement'", (flow_id,))
+                       if json.loads(row['request_json']).get('repair_of'))
+            if used >= 2:
+                fail('repair_budget_exhausted')
+            problem = self._flow_input_problem(connection, flow)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            source = current
+            if current['kind'] == 'code_review':
+                source = row_view(self._step(connection, current['request']['verify_step_id']))
+            references = {key: source['request'][key] for key in
+                          ('plan_step_id', 'review_step_id', 'plan_hash', 'review_hash', 'versions')}
+            frozen = packed({'context': flow['context'], **request, 'repair_of': {
+                'review_id': attention.get('review_id'), 'round': used + 1},
+                **references,
+                'requires_code_review': source['request'].get('requires_code_review') is True})
+            identity, stamp = str(uuid4()), now_utc()
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow_id, current['ordinal'] + 1, 'implement', 0, lease.generation, 1, 'reserved',
+                 f'{int(self.clock() * 1000)}-{uuid4().hex}', frozen, stamp, stamp))
+            connection.execute("UPDATE automation_flows SET status='running',phase='implement',revision=revision+1,updated_at=? WHERE id=?",
+                               (stamp, flow_id))
+            return row_view(self._step(connection, identity))
+
+    def release_reviewed_plan(self, lease, flow_id, request):
+        """A human release starts implementation. It does not accept the delivery."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            flow = connection.execute('SELECT * FROM automation_flows WHERE id=?', (flow_id,)).fetchone()
+            view = self._view(connection, flow_id)
+            current = view['step']
+            attention = view['flow']['attention'] or {}
+            if (flow['status'] != 'waiting_user' or not current or current['kind'] != 'plan_review'
+                    or current['status'] != 'completed' or attention.get('requires_code_review') is not True
+                    or attention.get('questions') or attention.get('decision')):
+                fail('automation_step_changed')
+            existing = connection.execute('SELECT * FROM automation_steps WHERE flow_id=? AND ordinal=?',
+                                          (flow_id, current['ordinal'] + 1)).fetchone()
+            if existing:
+                body = json.loads(existing['request_json'])
+                if existing['kind'] != 'implement' or body.get('requires_code_review') is not True:
+                    fail('automation_step_conflict')
+                return row_view(self._step(connection, existing['id']))
+            context = json.loads(flow['context_json'])
+            problem = self._input_problem(connection, flow['task_id'], context)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            frozen = packed({'context': context, **request, 'requires_code_review': True})
+            identity, stamp = str(uuid4()), now_utc()
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity, flow_id, current['ordinal'] + 1, 'implement', 0, lease.generation, 1, 'reserved',
+                 f'{int(self.clock() * 1000)}-{uuid4().hex}', frozen, stamp, stamp))
+            connection.execute("UPDATE automation_flows SET status='running',phase='implement',attention_json='{}',"
+                               'revision=revision+1,updated_at=? WHERE id=?', (stamp, flow_id))
+            return row_view(self._step(connection, identity))
+
+    def publish_delivery(self, lease, step, checked_result):
+        """Publish one current checked verification, without granting human acceptance."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            flow, current = view['flow'], view['step']
+            review_gate = None
+            if current and current['kind'] == 'code_review':
+                if (current['id'] != step['id'] or current['status'] != 'completed'
+                        or current['request'].get('verify_step_id') != checked_result.get('verify_step_id')):
+                    fail('automation_step_changed')
+                review_gate = current
+                current = row_view(self._step(connection, current['request']['verify_step_id']))
+            if (not flow or not current or current['kind'] != 'verify' or current['status'] != 'completed'
+                    or (review_gate is None and (current['id'] != step['id']
+                        or current['request'] != step['request'] or current['result'] != step['result']))):
+                fail('automation_step_changed')
+            receipt = checked_result['receipt']
+            if (receipt != current['result'].get('receipt') or receipt['status'] != 'passed'
+                    or type(receipt['exit_code']) is not int or receipt['exit_code'] != 0
+                    or receipt['source_changed'] is not False or receipt['source_before'] != receipt['source_after']):
+                fail('automation_delivery_unverified')
+            existing = connection.execute("SELECT * FROM task_deliveries WHERE task_id=? AND source='automation_verify' "
+                'AND source_key=?', (flow['task_id'], current['id'])).fetchone()
+            if existing:
+                if (flow['status'] != 'awaiting_acceptance' or flow['attention'].get('delivery_id') != existing['id']
+                        or row_view(existing)['material']['receipt'] != receipt):
+                    fail('automation_step_changed')
+                return {**view, 'delivery': row_view(existing)}
+            if flow['status'] != 'running' or flow['revision'] != step['flow_revision']:
+                fail('automation_step_changed')
+            context, request = flow['context'], current['request']
+            problem = self._flow_input_problem(connection, flow)
+            if problem:
+                fail('automation_requirement_changed' if problem == 'requirement_changed' else problem)
+            records = {kind: row_view(self._step(connection, request.get(kind + '_step_id'))) for kind in
+                       ('implement', 'plan', 'review')}
+            implement, plan, review = (records[key] for key in ('implement', 'plan', 'review'))
+            versions = {key: context[key] for key in ('requirement_revision','brief_revision','policy_version')}
+            if (any(not record or record['flow_id'] != flow['id'] or record['status'] != 'completed'
+                    or record['request'].get('context') != context for record in records.values())
+                    or implement['kind'] != 'implement' or plan['kind'] != 'plan' or review['kind'] != 'plan_review'
+                    or request.get('context') != context or request.get('versions') != versions
+                    or request.get('implement_hash') != digest(implement['result']['text'])
+                    or request.get('plan_hash') != digest(plan['result']['text'])
+                    or request.get('review_hash') != digest(review['result']['text'])
+                    or any(implement['request'].get(key) != request.get(key) for key in
+                           ('plan_step_id','review_step_id','plan_hash','review_hash','versions'))
+                    or request['verification'] != context['input']['request'].get('verification')
+                    or any(request['scope'] != {key: record['request']['params'].get(key) for key in
+                           ('runtimeId','environmentId','repoId','worktreeId','cwd')} for record in records.values())
+                    or (planning_outcome(plan, review)['action'] != 'implement' and not (
+                        review_gate and planning_outcome(plan, review).get('requires_code_review')
+                        and review_gate['request'].get('implement_hash') == digest(implement['result']['text'])))):
+                fail('automation_delivery_unverified')
+            for record, model in ((plan,'gpt-6-astra'),(review,'gpt-6-astra'),(implement,'gpt-6.1-sol')):
+                if (record['request']['params'].get('model') != model
+                        or record['result'].get('facts',{}).get('status',{}).get('model') != model):
+                    fail('automation_delivery_unverified')
+            if connection.execute('SELECT 1 FROM automation_steps s JOIN automation_flows f ON f.id=s.flow_id '
+                    'WHERE f.project_id=? AND s.writes_project=1 '
+                    "AND s.status IN ('reserved','dispatching','running','unknown','cancelling')", (flow['project_id'],)).fetchone():
+                fail('automation_project_busy')
+            identity, stamp = str(uuid4()), now_utc()
+            material = {**request, 'flow_id': flow['id'], 'verify_step_id': current['id'],
+                        'receipt': receipt, 'verify_hash': digest(current['result']),
+                        'output_dir': checked_result['output_dir'], 'identity_scope': 'declared_inputs'}
+            connection.execute('INSERT INTO task_deliveries(id,task_id,native_run_id,source,source_key,summary,'
+                'material_json,verification,created_at) VALUES(?,?,NULL,?,?,?,?,?,?)',
+                (identity,flow['task_id'],'automation_verify',current['id'],
+                 'Declared input verification exited 0 with unchanged source and complete logs.',packed(material),'passed',stamp))
+            item = task_access(connection, flow['task_id'], writable=True)
+            touch(connection, item, 'review', delivery_id=identity, accepted=False)
+            attention = {'delivery_id':identity, 'expected_revision':item['revision']+1,
+                         'progress_revision':item['progress_revision']+1}
+            connection.execute("UPDATE automation_flows SET status='awaiting_acceptance',phase='acceptance',"
+                'attention_json=?,revision=revision+1,updated_at=? WHERE id=?', (packed(attention),stamp,flow['id']))
+            return {**self._view(connection,flow['id']), 'delivery': row_view(connection.execute(
+                'SELECT * FROM task_deliveries WHERE id=?',(identity,)).fetchone())}
+
+    def _accepted(self, connection, flow, step=None):
+        from control_everything.workspace.automation_delivery_reviews import _evidence
+        snapshot = flow['attention']['integration_target']
+        item = task_access(connection, flow['task_id'], writable=True)
+        check_versions(item, {'expected_revision': snapshot['accepted_control_revision'],
+                              'progress_revision': snapshot['accepted_progress_revision']})
+        delivery = row_view(connection.execute('SELECT * FROM task_deliveries WHERE id=? AND task_id=?',
+            (snapshot['delivery_id'], item['id'])).fetchone())
+        review = row_view(connection.execute('SELECT * FROM task_reviews WHERE id=? AND task_id=?',
+            (snapshot['review_id'], item['id'])).fetchone())
+        verify = row_view(self._step(connection, snapshot['verify_step_id']))
+        designated = reviewer_may_integrate(connection, item['id'], review['reviewer'] if review else None)
+        if (snapshot['actor'] != 'local_owner' or not delivery or not review or not verify
+                or item['current_delivery_id'] != delivery['id'] or item['accepted_delivery_id'] != delivery['id']
+                or not designated or review['verdict'] != 'approved'
+                or review['delivery_id'] != delivery['id'] or delivery['source'] != 'automation_verify'
+                or delivery['source_key'] != verify['id'] or verify['flow_id'] != flow['id']
+                or delivery['material'].get('flow_id') != flow['id']
+                or delivery['material'].get('verify_step_id') != verify['id']
+                or verify['kind'] != 'verify' or verify['status'] != 'completed'
+                or digest(verify['result']) != snapshot['verify_hash']
+                or verify['request']['scope']['cwd'] != snapshot['source_root']
+                or verify['request']['verification'] != snapshot['verification']
+                or verify['result']['receipt']['source_before'] != snapshot['source_hash']
+                or flow['attention']['accepted_review_id'] != review['id']
+                or flow['attention']['accepted_delivery_id'] != delivery['id']):
+            fail('automation_step_changed')
+        if step and (step['request']['integration_target'] != snapshot
+                or step['request']['context'] != flow['context']
+                or step['request']['verify_result'] != verify['result']
+                or step['request']['registered_flow_revision'] != snapshot['accepted_flow_revision'] + 1):
+            fail('automation_step_changed')
+        _evidence(connection, item, flow, verify, delivery['material'], exclude_step_id=step['id'] if step else None)
+        return item
+
+    def reserve_integration(self, lease, flow_id, expected_flow_revision):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow, previous = view['flow'], view['step']
+            if previous['kind'] == 'integrate':
+                self._accepted(connection, flow, previous)
+                return previous
+            snapshot = flow['attention'].get('integration_target')
+            if (not snapshot or flow['revision'] != expected_flow_revision
+                    or flow['revision'] != snapshot['accepted_flow_revision'] + 1
+                    or flow['status'] != 'waiting_external' or flow['phase'] != 'integration'
+                    or flow['attention'].get('reason') != 'integration_not_connected'):
+                fail('automation_step_changed')
+            self._accepted(connection, flow)
+            identity, stamp = str(uuid4()), now_utc()
+            verify = row_view(self._step(connection, snapshot['verify_step_id']))
+            request = {'integration_target': snapshot, 'registered_flow_revision': flow['revision'],
+                       'verify_result': verify['result'], 'context': flow['context']}
+            connection.execute('INSERT INTO automation_steps(id,flow_id,ordinal,kind,attempt,owner_generation,'
+                'writes_project,status,operation_id,request_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                (identity,flow_id,previous['ordinal']+1,'integrate',0,lease.generation,1,'reserved',
+                 f'{int(self.clock()*1000)}-{uuid4().hex}',packed(request),stamp,stamp))
+            connection.execute("UPDATE automation_flows SET status='running',phase='integration',revision=revision+1,updated_at=? WHERE id=?",(stamp,flow_id))
+            return row_view(self._step(connection,identity))
+
+    def reject_integration(self, lease, flow_id, expected_revision, reason, *, step=None):
+        """Stop only an undispatched integration; never clear uncertain work."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow, current = view['flow'], view['step']
+            if (flow['revision'] != expected_revision or
+                    (step is not None and (current != step or current['kind'] != 'integrate'
+                     or current['status'] != 'reserved' or current['owner_generation'] != lease.generation))
+                    or (step is None and (flow['status'] != 'waiting_external' or current['kind'] != 'verify'))):
+                fail('automation_step_changed')
+            stamp = now_utc()
+            if step is not None:
+                connection.execute("UPDATE automation_steps SET status='failed',result_json=?,updated_at=? WHERE id=?",
+                    (packed({'reason':reason,'dispatched':False}),stamp,step['id']))
+            connection.execute("UPDATE automation_flows SET status='waiting_external',attention_json=?,revision=revision+1,updated_at=? WHERE id=?",
+                (packed({**flow['attention'],'reason':'integration_rejected','rejection':reason}),stamp,flow_id))
+            return self._view(connection,flow_id)
+
+    def finish_integration(self, lease, step, result):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            flow, current = view['flow'], view['step']
+            if (current != step or current['kind'] != 'integrate' or current['status'] != 'dispatching'
+                    or current['owner_generation'] != lease.generation or flow['status'] != 'running'):
+                fail('automation_step_changed')
+            item = self._accepted(connection, flow, current)
+            sha = result.get('candidate_sha')
+            if (result.get('operation_id') != step['operation_id'] or result.get('request_hash') != digest(step['request'])
+                    or result.get('integration_target') != step['request']['integration_target']
+                    or not isinstance(sha,str) or len(sha) != len(step['request']['integration_target']['target']['expected_base']) or any(c not in '0123456789abcdef' for c in sha)
+                    or result.get('target_sha') != sha or result.get('remote_sha') != sha
+                    or result.get('candidate_test_passed') is not True or result.get('target_test_passed') is not True
+                    or result.get('source_unchanged') is not True or result.get('cleanup_verified') is not True):
+                fail('automation_integration_unverified')
+            stamp = now_utc()
+            connection.execute("UPDATE automation_steps SET status='completed',result_json=?,updated_at=? WHERE id=?",(packed(result),stamp,step['id']))
+            connection.execute("UPDATE automation_flows SET status='completed',phase='integration',revision=revision+1,updated_at=? WHERE id=?",(stamp,flow['id']))
+            touch(connection,item,'done',delivery_id=item['accepted_delivery_id'],accepted=True)
+            return self._view(connection,flow['id'])
+
+    def pending_events(self, *, integration_only=False):
+        with self.store.connection() as connection:
+            return [row[0] for row in connection.execute('SELECT e.id FROM automation_events e '
+                'LEFT JOIN automation_flows f ON f.id=e.flow_id WHERE (e.flow_id IS NULL OR f.status=\'running\' '
+                "OR (f.status='waiting_external' AND f.phase='integration' AND json_extract(f.attention_json,'$.reason')='integration_not_connected') "
+                "OR (f.status='waiting_external' AND f.phase='acceptance' AND json_extract(f.attention_json,'$.reason') IN ('acceptance_changes_requested','acceptance_rejected'))) AND (?=0 OR f.phase='integration') ORDER BY e.received_at,e.id", (int(integration_only),))]
+
+    def get_step(self, step_id):
+        with self.store.connection() as connection:
+            return row_view(self._step(connection, step_id))
+
+    def uses_assignment_directory(self, flow_id):
+        with self.store.connection() as connection:
+            event = connection.execute(
+                'SELECT e.source_instance,e.authorization FROM automation_flows f '
+                'JOIN automation_events e ON e.id=f.origin_event_id WHERE f.id=?', (flow_id,)).fetchone()
+        return event is not None and event['authorization'] == 'explicit_assignment' and (
+            event['source_instance'] == 'feishu' or event['source_instance'].startswith('feishu-new:'))
+
+    def check_current(self, lease, step):
+        """Validate the current frozen input before an external dispatch."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            if (view['flow']['status'] != 'running' or view['step']['id'] != step['id']
+                    or view['flow']['revision'] != step['flow_revision']
+                    or view['step']['status'] != step['status']
+                    or (step['kind'] == 'integrate' and view['step']['owner_generation'] != lease.generation)):
+                fail('automation_step_changed')
+            if step['kind'] == 'integrate':
+                self._accepted(connection, view['flow'], view['step'])
+                return None
+            return self._flow_input_problem(connection, view['flow'])
+
+    @staticmethod
+    def _flow_input_problem(connection, flow):
+        # Review transitions advance the task revision while keeping the frozen plan.
+        attention = flow['attention']
+        expected = attention.get('expected_revision')
+        return AutomationQueue._input_problem(connection, flow['task_id'], flow['context'], expected_revision=expected)
+
+    @staticmethod
+    def _input_problem(connection, task_id, context, *, expected_revision=None):
+        try:
+            item = task_access(connection, task_id, writable=True)
+        except ProfileError as error:
+            if str(error) == 'project_unavailable':
+                return 'project_unavailable'
+            raise
+        brief = dispatch._brief(connection, item['id'])
+        revision = context['requirement_revision'] if expected_revision is None else expected_revision
+        if (item['revision'] != revision or brief['revision'] != context['brief_revision']):
+            return 'requirement_changed'
+        try:
+            directory = dispatch._directory(connection, item['project_id'], brief['execution_directory_id'])
+        except ProfileError:
+            return 'project_directory_changed'
+        if directory != context['input']['directory']:
+            return 'project_directory_changed'
+        return None
+
+    def awaiting_evidence(self):
+        """Return each acceptance wait with the verify step that published it."""
+        with self.store.connection() as connection:
+            rows = connection.execute("SELECT id FROM automation_flows WHERE status='awaiting_acceptance'").fetchall()
+            found = []
+            for row in rows:
+                view = self._view(connection, row[0])
+                delivery_id = (view['flow'].get('attention') or {}).get('delivery_id')
+                delivery = row_view(connection.execute(
+                    'SELECT * FROM task_deliveries WHERE id=? AND task_id=?',
+                    (delivery_id, view['flow']['task_id'])).fetchone())
+                if not delivery:
+                    continue
+                verify = row_view(self._step(connection, delivery['source_key']))
+                if verify:
+                    found.append({'flow': view['flow'], 'verify': verify, 'receipt': delivery['material']['receipt']})
+            return found
+
+    def invalidate_acceptance(self, lease, flow_id, delivery_id):
+        """Leave acceptance because the tested sources changed. It does not accept the delivery."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, flow_id)
+            flow = view['flow']
+            if (not flow or flow.get('status') != 'awaiting_acceptance'
+                    or (flow.get('attention') or {}).get('delivery_id') != delivery_id):
+                return None
+            attention = {'reason': 'verification_evidence_invalid', 'delivery_id': delivery_id,
+                         'step_id': None if view['step'] is None else view['step']['id']}
+            updated = connection.execute(
+                "UPDATE automation_flows SET status='waiting_external',phase='acceptance',attention_json=?,"
+                "revision=revision+1,updated_at=? WHERE id=? AND status='awaiting_acceptance'",
+                (packed(attention), now_utc(), flow_id))
+            if updated.rowcount != 1:
+                return None
+            return self._view(connection, flow_id)['flow']
+
+    def invalidate_changed_releases(self, lease):
+        """A changed requirement, directory, or unavailable project ends a release wait."""
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            rows = connection.execute("SELECT id FROM automation_flows WHERE status='waiting_user'").fetchall()
+            changed = []
+            stamp = now_utc()
+            for row in rows:
+                view = self._view(connection, row[0])
+                flow, step = view['flow'], view['step']
+                attention = flow.get('attention') or {}
+                if attention.get('release_ready') is not True and not attention.get('decision'):
+                    continue
+                problem = self._flow_input_problem(connection, flow)
+                if problem not in ('requirement_changed', 'project_directory_changed', 'project_unavailable'):
+                    continue
+                attention = {'reason': problem, 'step_id': None if step is None else step['id']}
+                updated = connection.execute(
+                    "UPDATE automation_flows SET status='waiting_external',phase=?,attention_json=?,revision=revision+1,"
+                    "updated_at=? WHERE id=? AND status='waiting_user'",
+                    (flow['phase'], packed(attention), stamp, flow['id']))
+                if updated.rowcount == 1:
+                    changed.append(self._view(connection, flow['id'])['flow'])
+            return changed
+
+    def wait(self, lease, step, status, phase, attention):
+        with self.store.connection() as connection:
+            connection.execute('BEGIN IMMEDIATE')
+            self._guard(connection, lease)
+            view = self._view(connection, step['flow_id'])
+            if (view['flow']['status'] != 'running' or view['step']['id'] != step['id']
+                    or view['flow']['revision'] != step['flow_revision']
+                    or view['step']['status'] != step['status']):
+                fail('automation_step_changed')
+            if status == 'waiting_user' and step['kind'] == 'implement':
+                expected = view['flow']['attention'].get('expected_revision')
+                if expected is not None:
+                    attention = {**attention, 'expected_revision': expected}
+            connection.execute('UPDATE automation_flows SET status=?,phase=?,attention_json=?,revision=revision+1,'
+                'updated_at=? WHERE id=?', (status, phase, packed(attention), now_utc(), step['flow_id']))
+            return self._view(connection, step['flow_id'])

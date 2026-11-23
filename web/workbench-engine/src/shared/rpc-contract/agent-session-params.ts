@@ -165,6 +165,7 @@ export const EnsureAgentSessionParams: z.ZodType<RuntimeEnsureAgentSessionReques
 
 export const CreateAgentSessionParams: z.ZodType<RuntimeCreateAgentSessionRequest> = z
   .object({
+    readOnly: z.boolean().optional(),
     terminalKittyKeyboardProtocol: z.boolean().optional(),
     clientOperationId: z
       .string()
@@ -193,6 +194,9 @@ export const CreateAgentSessionParams: z.ZodType<RuntimeCreateAgentSessionReques
   })
   .strict()
   .superRefine((value, context) => {
+    if (value.readOnly === true && (value.agent !== 'codex' || value.agentArgs !== undefined)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['readOnly'], message: 'read_only_launch_args_unsupported' })
+    }
     if (value.promptDelivery === 'draft' && !value.prompt?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

@@ -37,11 +37,11 @@ class FakeHost:
                       'status': {'state': 'working', 'providerSession': self.binding['providerSession'], 'turnStartedAt': 90}}
         self.receipts = {}
 
-    def prepare_scope(self, directory, worktree):
+    def prepare_scope(self, directory, worktree, *, cancel_event=None):
         return {'runtimeId': 'runtime', 'environmentId': 'environment', 'repoId': 'repo',
                 'worktreeId': worktree, 'cwd': directory}
 
-    def create(self, params):
+    def create(self, params, *, cancel_event=None):
         self.create_calls += 1
         return {'contractVersion': 1, 'binding': copy.deepcopy(self.binding), 'disposition': 'created'}
 
@@ -278,8 +278,8 @@ class NativeProgressTests(NativeFixture):
 
     def test_fresh_schema_and_old_writer_rejected(self):
         with self.store.connection() as c:
-            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0], 10)
-            task_schema.validate_schema(c, 10)
+            self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0], task_schema.SCHEMA_VERSION)
+            task_schema.validate_schema(c, task_schema.SCHEMA_VERSION)
             task_schema.register_writer(c, 9)
             with self.assertRaisesRegex(Exception, 'writer_version_mismatch'):
                 c.execute("UPDATE task_items SET title='stale'")
@@ -345,9 +345,9 @@ class NativeProgressTests(NativeFixture):
                     c.execute("INSERT INTO projects VALUES('project','Keep history',0,'then','then',0)")
                     c.commit()
                 result = migrate_tasks(str(root))
-                self.assertEqual(result['schema_version'], 10)
+                self.assertEqual(result['schema_version'], 18)
                 with closing(sqlite3.connect(db)) as c:
-                    task_schema.validate_schema(c, 10)
+                    task_schema.validate_schema(c, task_schema.SCHEMA_VERSION)
                     self.assertEqual(c.execute("SELECT name FROM projects WHERE id='project'").fetchone()[0], 'Keep history')
 
     def test_observer_database_lock_budget_and_close_are_bounded(self):

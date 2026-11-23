@@ -104,11 +104,11 @@ def migrate_tasks(data_dir):
             try:
                 reader.execute('BEGIN')
                 version = reader.execute('PRAGMA user_version').fetchone()[0]
-                if version == 10:
-                    tasks.validate_schema(reader, 10)
+                if version == tasks.SCHEMA_VERSION:
+                    tasks.validate_schema(reader, tasks.SCHEMA_VERSION)
                     integrity(reader)
-                    return {'status': 'already_current', 'schema_version': 10}
-                if version not in (1, 2, 3, 4, 5, 6, 7, 8, 9):
+                    return {'status': 'already_current', 'schema_version': tasks.SCHEMA_VERSION}
+                if version not in range(1, tasks.SCHEMA_VERSION):
                     raise WorkspaceError('schema_error')
                 if version == 1:
                     source_facts = check_source(reader)
@@ -196,6 +196,9 @@ def migrate_tasks(data_dir):
                                config_sha256=config_hash, migrated_at=now_utc())
             phase = 'exclusive'
             connection = raw_connection(profile.store.path)
+            connection.execute('PRAGMA foreign_keys=OFF')
+            if connection.execute('PRAGMA foreign_keys').fetchone()[0] != 0:
+                raise WorkspaceError('schema_error')
             connection.execute('BEGIN EXCLUSIVE')
             if config_digest(profile) != config_hash:
                 raise WorkspaceError('migration_source_changed')
@@ -317,27 +320,52 @@ def migrate_tasks(data_dir):
                     if after[table]['count'] != source_facts[table]['count']:
                         raise WorkspaceError('migration_verification_failed')
             else:
-                tasks.validate_schema(connection, 9)
-                if tasks.table_facts(connection, 9) != source_facts:
+                tasks.validate_schema(connection, version)
+                if tasks.table_facts(connection, version) != source_facts:
                     raise WorkspaceError('migration_source_changed')
             phase = 'copy'
-            tasks.add_schema10(connection)
-            tasks.finish_schema10(connection)
+            if version < 10:
+                tasks.add_schema10(connection)
+                tasks.finish_schema10(connection)
+            if version < 11:
+                tasks.add_schema11(connection)
+                tasks.finish_schema11(connection)
+            if version < 12:
+                tasks.add_schema12(connection)
+                tasks.finish_schema12(connection)
+            if version < 13:
+                tasks.add_schema13(connection)
+                tasks.finish_schema13(connection)
+            if version < 14:
+                tasks.add_schema14(connection)
+                tasks.finish_schema14(connection)
+            if version < 15:
+                tasks.add_schema15(connection)
+                tasks.finish_schema15(connection)
+            if version < 16:
+                tasks.add_schema16(connection)
+                tasks.finish_schema16(connection)
+            if version < 17:
+                tasks.install_schema17(connection)
+            tasks.install_schema18(connection)
             phase = 'validate'
-            tasks.validate_schema(connection, 10)
+            tasks.validate_schema(connection, tasks.SCHEMA_VERSION)
             integrity(connection)
             phase = 'commit'
             connection.execute('COMMIT')
             committed = True
+            connection.execute('PRAGMA foreign_keys=ON')
+            if connection.execute('PRAGMA foreign_keys').fetchone()[0] != 1:
+                raise WorkspaceError('schema_error')
             connection.close()
             connection = None
             connection = raw_connection(profile.store.path, readonly=True)
-            tasks.validate_schema(connection, 10)
+            tasks.validate_schema(connection, tasks.SCHEMA_VERSION)
             if receipt is not None:
                 actual = json.loads(connection.execute('SELECT migration_json FROM task_center_meta').fetchone()[0])
                 if actual != receipt:
                     raise WorkspaceError('migration_outcome_unknown')
-            return {'status': 'ok', 'schema_version': 10, 'backup': str(backup), 'receipt': receipt}
+            return {'status': 'ok', 'schema_version': tasks.SCHEMA_VERSION, 'backup': str(backup), 'receipt': receipt}
         except Exception as error:
             if phase == 'commit' and connection is not None and not connection.in_transaction:
                 committed = True
@@ -364,7 +392,7 @@ def preserve_tasks(data_dir):
                 integrity(reader)
             finally:
                 reader.close()
-            if version not in (2, 3, 4, 5, 6, 7, 8, 9, 10):
+            if version not in range(2, tasks.SCHEMA_VERSION + 1):
                 raise WorkspaceError('schema_error')
             config_hash = config_digest(profile)
             backup = create_backup(profile)
@@ -400,8 +428,8 @@ def migration_status(data_dir):
     try:
         version = connection.execute('PRAGMA user_version').fetchone()[0]
         tasks.validate_schema(connection, version)
-        return {'status': 'migration_required' if version in (1, 2, 3, 4, 5, 6, 7, 8) else 'current', 'schema_version': version,
-                'next_command': 'migrate-tasks' if version in (1, 2, 3, 4, 5, 6, 7, 8) else None}
+        return {'status': 'migration_required' if version < tasks.SCHEMA_VERSION else 'current', 'schema_version': version,
+                'next_command': 'migrate-tasks' if version < tasks.SCHEMA_VERSION else None}
     except (sqlite3.Error, WorkspaceError) as error:
         raise _failure(error, 'status', None) from error
     finally:

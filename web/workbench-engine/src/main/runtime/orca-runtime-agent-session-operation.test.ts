@@ -591,3 +591,44 @@ describe('agent-session create operation ledger', () => {
     expect(createTerminal).toHaveBeenCalledOnce()
   })
 })
+
+describe('read-only create identity', () => {
+  it('replays true and rejects a changed read-only identity', async () => {
+    const runtime = createRuntime()
+    const create = vi.spyOn(runtime, 'createTerminal').mockResolvedValue(terminal())
+    const id = operationId()
+    await runtime.createAgentSession(request(id, { readOnly: true }))
+    await runtime.createAgentSession(request(id, { readOnly: true }))
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(create.mock.calls[0][1]).toMatchObject({ readOnly: true })
+    await expect(runtime.createAgentSession(request(id, { readOnly: false }))).rejects.toThrow('agent_session_operation_conflict')
+  })
+  it('keeps false equivalent to omission', async () => {
+    const runtime = createRuntime()
+    const create = vi.spyOn(runtime, 'createTerminal').mockResolvedValue(terminal())
+    const id = operationId()
+    await runtime.createAgentSession(request(id))
+    await runtime.createAgentSession(request(id, { readOnly: false }))
+    expect(create).toHaveBeenCalledTimes(1)
+  })
+  it('rejects non-Codex and caller-supplied permission args', () => {
+    for (const overrides of [{ readOnly: true, agent: 'claude' }, { readOnly: true, agentArgs: '-s danger-full-access' }, { readOnly: 'true' }]) {
+      expect(CreateAgentSessionParams.safeParse({ ...request(operationId()), ...overrides }).success).toBe(false)
+    }
+  })
+})
+
+it('binds read-only in the resolved execution identity while keeping false identical', async () => {
+  const id = operationId()
+  const identities: (string | undefined)[] = []
+  for (const readOnly of [undefined, false, true]) {
+    const runtime = createRuntime()
+    Object.assign(runtime, { runtimeId: 'readonly-identity-fixture' })
+    const create = vi.spyOn(runtime, 'createTerminal').mockResolvedValue(terminal())
+    await runtime.createAgentSession(request(id, { readOnly }))
+    identities.push(create.mock.calls[0][1]?.agentSessionCreateOperationId)
+  }
+  expect(identities[0]).toBe(identities[1])
+  expect(identities[2]).not.toBe(identities[0])
+  expect(CreateAgentSessionParams.parse(request(operationId(), { readOnly: true })).readOnly).toBe(true)
+})

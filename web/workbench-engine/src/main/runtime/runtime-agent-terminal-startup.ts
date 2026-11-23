@@ -1,3 +1,5 @@
+import { AUTO_TUI_AGENT_ARGS, YOLO_TUI_AGENT_ARGS } from '../../shared/tui-agent-permissions'
+import { resolveTuiAgentLaunchArgs } from '../../shared/tui-agent-launch-defaults'
 import type { SessionOptionValue } from '../../shared/native-chat-session-options'
 import type { TuiAgent } from '../../shared/tui-agent'
 import type { AgentLaunchPreferences } from '../../shared/agent-session-host-authority'
@@ -179,13 +181,23 @@ async function buildRuntimeAgentTerminalStartupOptions(
   if (opts.startupPrompt && !forceLine && !agentPromptRidesLaunchCommand(agent)) {
     throw new Error(`Agent ${agent} does not take a startup prompt on its launch command.`)
   }
+  let agentArgs = opts.agentArgs
+  if (opts.readOnly === true) {
+    if (agent !== 'codex' || agentArgs !== undefined) throw new Error('read_only_launch_args_unsupported')
+    if (settings.agentCmdOverrides?.codex?.trim()) throw new Error('read_only_command_override_unsupported')
+    const defaults = resolveTuiAgentLaunchArgs('codex', settings.agentDefaultArgs).trim()
+    if (!['', AUTO_TUI_AGENT_ARGS.codex, YOLO_TUI_AGENT_ARGS.codex].includes(defaults)) {
+      throw new Error('read_only_launch_args_unsupported')
+    }
+    agentArgs = '-s read-only -a never'
+  }
   const scope = {
     inputs: resolveAgentStartupPlanInputs({
       agent,
       settings,
       platform: runtime.platform,
       isRemote,
-      ...(opts.agentArgs !== undefined ? { agentArgs: opts.agentArgs } : {}),
+      ...(agentArgs !== undefined ? { agentArgs } : {}),
       shell: agentLaunchQuotingShell(runtime),
       sessionOptions: host.toSessionOptions(opts.launchPreferences)
     }),

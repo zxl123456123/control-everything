@@ -229,6 +229,12 @@ export type IPtyProvider = {
       expectedOwnerClientInstanceId?: string
     }
   ): Promise<void>
+  /** Cancel only the named process incarnation, without deleting its history or requiring sleep. */
+  stopExact?(
+    id: string,
+    expectedIncarnationId: PtyIncarnationId,
+    opts?: { deadlineMs?: number }
+  ): Promise<void>
   sendSignal(id: string, signal: string): Promise<void>
   getCwd(id: string): Promise<string>
   getInitialCwd(id: string): Promise<string>

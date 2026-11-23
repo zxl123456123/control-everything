@@ -300,6 +300,28 @@ it('preserves client-only unverifiable inspection from an owning daemon', async 
   })
 })
 
+it('routes exact cancellation to its existing owner without generic shutdown', async () => {
+  const current = createDaemonAdapter('current', ['owned'])
+  const fallback = createProvider('fallback')
+  current.stopExact = vi.fn(async () => {})
+  const provider = new DegradedDaemonPtyProvider({ current, legacy: [], fallback })
+  await provider.stopExact('owned', 'incarnation', { deadlineMs: 123 })
+  expect(current.stopExact).toHaveBeenCalledWith('owned', 'incarnation', { deadlineMs: 123 })
+  vi.mocked(current.stopExact).mockRejectedValueOnce(new Error('terminal_incarnation_changed'))
+  await expect(provider.stopExact('owned', 'old')).rejects.toThrow('terminal_incarnation_changed')
+  expect(current.shutdown).not.toHaveBeenCalled()
+  expect(fallback.shutdown).not.toHaveBeenCalled()
+})
+
+it('refuses exact cancellation when the owning provider lacks that capability', async () => {
+  const current = createDaemonAdapter('current')
+  const fallback = createProvider('fallback', ['local'])
+  const provider = new DegradedDaemonPtyProvider({ current, legacy: [], fallback })
+  await expect(provider.stopExact('local', 'incarnation')).rejects.toThrow('exact_stop_unsupported')
+  expect(fallback.shutdown).not.toHaveBeenCalled()
+  expect(current.spawn).not.toHaveBeenCalled()
+})
+
 describe('DegradedDaemonPtyProvider', () => {
   it('refuses attach for ids no daemon adapter owns instead of the fallback no-op', async () => {
     const daemonSessions: string[] = []

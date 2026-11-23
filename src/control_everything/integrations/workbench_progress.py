@@ -14,30 +14,47 @@ class WorkbenchProgressAdapter:
     def available(self):
         return self.runtime.ready
 
-    def prepare_scope(self, directory, worktree_id):
+    def prepare_scope(self, directory, worktree_id=None, *, by_directory=False, cancel_event=None):
+        if cancel_event is not None and cancel_event.is_set():
+            raise WorkbenchUnavailable('runtime_request_cancelled')
         path = safe_path(directory)
         roots = tuple(safe_path(root) for root in self.runtime.config.allowed_workspace_roots)
         if not path.is_dir() or not any(path == root or path.is_relative_to(root) for root in roots):
             raise WorkbenchUnavailable('project_directory_not_allowed')
-        repos = self.runtime._rpc('repo.list', {})['repos']
+        repos = self.runtime._rpc('repo.list', {}, cancel_event=cancel_event)['repos']
+        if cancel_event is not None and cancel_event.is_set():
+            raise WorkbenchUnavailable('runtime_request_cancelled')
         matches = [row for row in repos if row.get('path') and Path(row['path']).resolve() == path]
         if len(matches) != 1:
             raise WorkbenchUnavailable('project_directory_mismatch')
         repo = matches[0]
-        worktrees = self.runtime._rpc('worktree.list', {'repo': 'id:' + repo['id']})['worktrees']
-        selected = [row for row in worktrees if row['id'] == worktree_id]
+        worktrees = self.runtime._rpc('worktree.list', {'repo': 'id:' + repo['id']}, cancel_event=cancel_event)['worktrees']
+        if by_directory:
+            selected = [row for row in worktrees if Path(row['path']).resolve() == path]
+        else:
+            selected = [row for row in worktrees if row['id'] == worktree_id]
         if len(selected) != 1:
+            raise WorkbenchUnavailable('project_directory_mismatch')
+        worktree = selected[0]
+        cwd = safe_path(worktree['path'])
+        if by_directory and cwd != path:
             raise WorkbenchUnavailable('project_directory_mismatch')
         installation = read_json(self.runtime.config.data_root / 'state/host-installation.json', 4096)['installationId']
         environment = str(uuid.uuid5(uuid.NAMESPACE_URL, 'control-everything:workbench:' + str(uuid.UUID(installation))))
         return {'runtimeId': self.runtime.status()['runtimeId'], 'environmentId': environment,
-                'repoId': repo['id'], 'worktreeId': worktree_id, 'cwd': str(safe_path(selected[0]['path']))}
+                'repoId': repo['id'], 'worktreeId': worktree['id'], 'cwd': str(path if by_directory else cwd)}
 
-    def create(self, params):
-        return self.runtime._rpc('platform.taskProgress.create', params, timeout=25)
+    def create(self, params, *, cancel_event=None):
+        if cancel_event is not None and cancel_event.is_set():
+            raise WorkbenchUnavailable('runtime_request_cancelled')
+        return self.runtime._rpc('platform.taskProgress.create', params, timeout=25, cancel_event=cancel_event)
 
     def resume(self, params):
         return self.runtime._rpc('platform.taskProgress.resume', params, timeout=25)
+
+    def stop(self, binding):
+        return self.runtime._rpc('platform.taskProgress.stop', {'contractVersion': 1, 'expectedBinding': binding},
+                                 timeout=25)
 
     def observe(self, binding, *, timeout=.75, cancel_event=None):
         return self.runtime._rpc('platform.taskProgress.observe', {'contractVersion': 1, 'expectedBinding': binding},

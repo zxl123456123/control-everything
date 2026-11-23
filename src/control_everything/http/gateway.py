@@ -32,7 +32,7 @@ from control_everything.execution.service import dispatch_execution_context
 from control_everything.workspace import project_dirs
 from control_everything.workspace.news_source import NewsSource
 from control_everything.http import news_reader
-from control_everything.http import project_progress_routes
+from control_everything.http import project_progress_routes, automation_identity_routes
 from control_everything.paths import default_profile_dir
 from control_everything.workspace.store import WorkspaceError
 from control_everything.profiles.profile import Profile, ProfileError, strict_json
@@ -179,7 +179,6 @@ WEB_ASSETS = {
     "/product": ("product/index.html", "text/html; charset=utf-8"),
     "/product.css": ("product/product.css", "text/css; charset=utf-8"),
     "/product.js": ("product/product.js", "text/javascript; charset=utf-8"),
-    "/workspace": ("workspace/workspace.html", "text/html; charset=utf-8"),
     "/workspace.js": ("workspace/workspace.js", "text/javascript; charset=utf-8"),
     "/onboarding.js": ("workspace/onboarding.js", "text/javascript; charset=utf-8"),
     "/agents.js": ("workspace/agents.js", "text/javascript; charset=utf-8"),
@@ -214,21 +213,26 @@ class PanelHandler(BaseHTTPRequestHandler):
             if self.headers.get_all("Host", []) != [self.server.expected_host] or any(
                     self.headers.get_all(name, []) for name in
                     ("X-CE-Page-Context", "X-CE-Storage-Scope", "X-CE-Context", "X-CE-Proxy-Token")):
+                self._discard_rejected_post_body()
                 self.reply(403, {"reason": "host_rejected"})
                 return False
             return True
         if not access or not access.accept_proxy_request(self.headers):
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_proxy_rejected"})
             return False
         path = urlsplit(self.path)
         if (path.path.startswith("/api/agent/") or path.path == "/api/workspace/agents/heartbeat"
                 or self.headers.get_all("X-Session-Client", []) == ["stdio"]):
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_agent_route_rejected"})
             return False
         if path.path.startswith("/api/desktop/") or path.path in {"/desktop", "/product", "/", "/health", "/workbench/web-index.html"}:
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_local_route_rejected"})
             return False
         if not remote_context.static_path(self.server, path.path) and remote_context.metadata(self) is None:
+            self._discard_rejected_post_body()
             self.reply(403, {"reason": "remote_context_required"})
             return False
         return True
@@ -343,13 +347,15 @@ class PanelHandler(BaseHTTPRequestHandler):
             return
         if workbench.handle_get(self, path):
             return
+        if automation_identity_routes.handle(self, path):
+            return
         if project_progress_routes.handle(self, path):
             return
         if path.path == "/health" and not path.query:
             return self.reply(200, {"app": APP, "protocol_version": 1})
         if path.path == "/progress" and not path.query and self.profile() is not None:
             self.send_response(302)
-            self.send_header("Location", "/workspace#projects")
+            self.send_header("Location", "/studio#projects")
             self.send_header("Content-Length", "0")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
@@ -457,6 +463,8 @@ class PanelHandler(BaseHTTPRequestHandler):
         if workbench.handle_post(self, path):
             return
         try:
+            if automation_identity_routes.handle(self, path, write=True):
+                return
             if project_progress_routes.handle(self, path, write=True):
                 return
         except BodyTooLarge:
@@ -1269,20 +1277,87 @@ class PanelServer(ThreadingHTTPServer):
         super().__init__(*args, **kwargs)
         self.agent_presence = {}
         self.agent_presence_lock = threading.Lock()
+        self.automation_consumer_service = None
 
     def attach_workbench_runtime(self, runtime):
+        consumer = self.__dict__.get('automation_consumer_service')
+        if consumer is not None:
+            consumer.close()
         previous = self.__dict__.get('native_progress_observer')
         if previous is not None:
             previous.close()
         self.workbench_runtime = runtime
         self.native_progress_observer = None
+        self.automation_consumer_service = None
         if self.workspace is not None and self.profile is not None:
             from control_everything.integrations.workbench_progress import WorkbenchProgressAdapter
             from control_everything.workspace.native_progress_observer import NativeProgressObserver
-            self.workspace.native_progress.adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
+            from control_everything.workspace.automation_flow import AutomationQueue
+            from control_everything.workspace.automation_consumer import AutomationConsumer, AutomationConsumerService
+            from control_everything.execution.verification import run_verification, read_verification_receipt
+            from control_everything.execution.develop_integration import preflight_develop_target, run_develop_integration
+            from control_everything.workspace.automation_delivery_reviews import prepare_acceptance_offer
+            adapter = WorkbenchProgressAdapter(runtime) if runtime is not None else None
+            self.workspace.native_progress.adapter = adapter
+            self.workspace.check_verification = None
+            self.workspace.integration_preflight = None
             if runtime is not None:
+                profile = self.profile
+                def verify(step, flow):
+                    output = profile.data_dir / 'automation-verification' / flow['id'] / step['id']
+                    scope, spec = step['request']['scope'], step['request']['verification']
+                    identity = {'argv': spec['argv'], 'cwd': scope['cwd'], 'task_id': flow['task_id'],
+                                'flow_id': flow['id'], 'step_id': step['id'], 'output_dir': output}
+                    run_verification(**identity, source_files=spec['source_files'], timeout=spec['timeout'])
+                    return {'receipt': read_verification_receipt(**identity), 'output_dir': str(output)}
+                def check_verification(step, flow):
+                    output = profile.data_dir / 'automation-verification' / flow['id'] / step['id']
+                    scope, spec = step['request']['scope'], step['request']['verification']
+                    receipt = read_verification_receipt(output_dir=output, argv=spec['argv'], cwd=scope['cwd'],
+                        task_id=flow['task_id'], flow_id=flow['id'], step_id=step['id'], source_files=spec['source_files'])
+                    return {'receipt': receipt, 'output_dir': str(output)}
+                def integrate(step, flow, *, cancel_event, checkpoint, recover=False):
+                    output = profile.data_dir / 'automation-integration' / flow['id'] / step['id']
+                    source_output = profile.data_dir / 'automation-verification' / flow['id'] / step['request']['integration_target']['verify_step_id']
+                    return run_develop_integration(step, flow, git_executable=runtime.config.git_executable,
+                        output_dir=output, source_output_dir=source_output, cancel_event=cancel_event,
+                        checkpoint=checkpoint, recover=recover, own_process_tree=True)
+                def recover_integration(step, flow, *, cancel_event, checkpoint):
+                    return integrate(step, flow, cancel_event=cancel_event, checkpoint=checkpoint, recover=True)
+                def preflight(source, target):
+                    return preflight_develop_target(source, target, git_executable=runtime.config.git_executable)
+
+                def prepare_integration(flow):
+                    return prepare_acceptance_offer(self.workspace, flow)
+
+                self.workspace.check_verification = check_verification
+                self.workspace.integration_preflight = preflight
                 self.native_progress_observer = NativeProgressObserver(self.workspace.native_progress)
-                self.native_progress_observer.start()
+                custom_integration = getattr(self, 'automation_integration', None)
+                consumer = AutomationConsumer(AutomationQueue(self.workspace.store), adapter, verification=verify, check_verification=check_verification,
+                                              integration=custom_integration or integrate,
+                                              recover_integration=None if custom_integration else recover_integration,
+                                              prepare_integration=prepare_integration)
+                consumer.review_service = self.workspace
+                self.automation_consumer_service = AutomationConsumerService(consumer)
+                try:
+                    self.native_progress_observer.start()
+                    self.automation_consumer_service.start()
+                except Exception:
+                    try:
+                        self.automation_consumer_service.close()
+                    except Exception:
+                        # Retain an unconfirmed worker for explicit close/replacement retry.
+                        pass
+                    else:
+                        self.automation_consumer_service = None
+                    try:
+                        self.native_progress_observer.close()
+                    except Exception:
+                        pass
+                    else:
+                        self.native_progress_observer = None
+                    raise
 
     def agent_seen(self, identity):
         with self.agent_presence_lock:
@@ -1306,9 +1381,19 @@ class PanelServer(ThreadingHTTPServer):
                     observer.start()
 
     def server_close(self):
+        close_error = None
+        consumer = self.__dict__.get('automation_consumer_service')
+        if consumer is not None:
+            try:
+                consumer.close()
+            except Exception as error:
+                close_error = error
         progress_observer = self.__dict__.get('native_progress_observer')
-        if progress_observer is not None:
-            progress_observer.close()
+        if progress_observer is not None and close_error is None:
+            try:
+                progress_observer.close()
+            except Exception as error:
+                close_error = error
         reader_error = None
         lock = self.__dict__.get('_news_reader_lock')
         if lock is not None:
@@ -1321,7 +1406,7 @@ class PanelServer(ThreadingHTTPServer):
         if reader is not None:
             try:
                 reader.close()
-            except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+            except Exception as error:
                 reader_error = error
         try:
             source = self.__dict__.get('news_source')
@@ -1341,7 +1426,11 @@ class PanelServer(ThreadingHTTPServer):
                 if installation is not None:
                     installation.close()
             finally:
-                super().server_close()
+                try:
+                    super().server_close()
+                finally:
+                    if close_error is not None:
+                        raise close_error
         if reader_error is not None:
             raise reader_error
 

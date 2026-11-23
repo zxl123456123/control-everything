@@ -147,6 +147,7 @@ export type RuntimePtyController = {
     ptyId: string,
     opts?: { keepHistory?: boolean; deadlineMs?: number }
   ): Promise<boolean>
+  stopExact?(ptyId: string, expectedIncarnationId: PtyIncarnationId, opts?: { deadlineMs?: number }): Promise<boolean>
   getCwd?(ptyId: string): Promise<string | null>
   getForegroundProcess(ptyId: string): Promise<string | null>
   inspectProcess?(

@@ -91,7 +91,7 @@ class TaskCenterHTTPTests(unittest.TestCase):
         handler.wfile = io.BytesIO()
         handler.do_GET()
         handler.send_response.assert_called_once_with(302)
-        self.assertIn(('Location', '/workspace#projects'), [c.args for c in handler.send_header.call_args_list])
+        self.assertIn(('Location', '/studio#projects'), [c.args for c in handler.send_header.call_args_list])
         with TemporaryDirectory() as temporary:
             web = Path(temporary)
             (web/'workspace').mkdir()

@@ -204,8 +204,100 @@ describe('web AI Vault preload API', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.doUnmock('./web-runtime-client')
+  })
+
+  it('releases ordinary RPC capacity after eight abandoned session panels', async () => {
+    const { api, registry } = await installPendingScans()
+    const scans = Array.from({ length: 8 }, (_, index) =>
+      api.aiVault.listSessions({ requestToken: `panel-${index}` }).catch((error: Error) => error)
+    )
+    await flushScanCalls()
+    let ordinaryFinished = false
+    const ordinary = api.runtime.call({ method: 'worktree.list' }).then(() => {
+      ordinaryFinished = true
+    })
+    await vi.advanceTimersByTimeAsync(40_000)
+    expect(ordinaryFinished).toBe(false)
+    expect(registry().pending.size).toBe(8)
+
+    for (let index = 0; index < 8; index++) {
+      await api.aiVault.cancelListSessions({ requestToken: `panel-${index}` })
+    }
+    await flushScanCalls()
+    try {
+      expect(ordinaryFinished).toBe(true)
+      expect(registry().pending.size).toBe(0)
+      expect(await Promise.all(scans)).toEqual(
+        Array.from({ length: 8 }, () => new Error('Agent Session History scan was cancelled'))
+      )
+    } finally {
+      registry().rejectAll('test cleanup')
+      await Promise.all(scans)
+      await ordinary
+    }
+  })
+
+  it('cancels a queued scan before sending it to the runtime', async () => {
+    const { api, registry } = await installPendingScans()
+    const blockers = Array.from({ length: 8 }, (_, index) =>
+      api.aiVault.listSessions({ requestToken: `active-${index}` }).catch((error: Error) => error)
+    )
+    await flushScanCalls()
+    let queuedOutcome: unknown
+    const queued = api.aiVault.listSessions({ requestToken: 'queued' }).catch((error: unknown) => {
+      queuedOutcome = error
+    })
+    await api.aiVault.cancelListSessions({ requestToken: 'queued' })
+    await flushScanCalls()
+    try {
+      expect(queuedOutcome).toEqual(new Error('Agent Session History scan was cancelled'))
+      expect(registry().pending.size).toBe(8)
+    } finally {
+      registry().rejectAll('test cleanup')
+      await Promise.all(blockers)
+      await flushScanCalls()
+      registry().rejectAll('test cleanup')
+      await queued
+    }
+  })
+
+  it('keeps a replacement request cancellable after the older request settles', async () => {
+    const { api, registry } = await installPendingScans()
+    const older = api.aiVault.listSessions({ requestToken: 'panel' }).catch((error: Error) => error)
+    await flushScanCalls()
+    void api.aiVault.cancelListSessions({ requestToken: 'panel' })
+    const newer = api.aiVault
+      .listSessions({ requestToken: 'panel', force: true, scopePaths: ['/another-repo'] })
+      .catch((error: Error) => error)
+    await flushScanCalls()
+    await api.aiVault.cancelListSessions({ requestToken: 'panel' })
+    await flushScanCalls()
+    try {
+      expect(registry().pending.size).toBe(0)
+      expect(await older).toEqual(new Error('Agent Session History scan was cancelled'))
+      expect(await newer).toEqual(new Error('Agent Session History scan was cancelled'))
+    } finally {
+      registry().rejectAll('test cleanup')
+      await Promise.all([older, newer])
+    }
+  })
+
+  it('still accepts a slow scan result when its panel remains open', async () => {
+    const { api, registry } = await installPendingScans()
+    const scan = api.aiVault.listSessions({ requestToken: 'open-panel' })
+    await vi.advanceTimersByTimeAsync(40_000)
+    expect(registry().pending.size).toBe(1)
+    const [id, pending] = [...registry().pending.entries()][0]
+    registry().pending.delete(id)
+    window.clearTimeout(pending.timeout)
+    const result = { sessions: [], issues: [], scannedAt: 'slow scan completed' }
+    pending.resolve({ id, ok: true, result, _meta: { runtimeId: 'test-runtime' } })
+    await expect(scan).resolves.toEqual(result)
+    await api.aiVault.cancelListSessions({ requestToken: 'open-panel' })
+    expect(registry().pending.size).toBe(0)
   })
 
   it('routes session scans through the paired runtime host', async () => {
@@ -295,3 +387,56 @@ describe('web AI Vault preload API', () => {
     expect(runtimeCalls).toEqual([])
   })
 })
+
+async function flushScanCalls(): Promise<void> {
+  for (let index = 0; index < 20; index++) await Promise.resolve()
+}
+
+async function installPendingScans() {
+  vi.useFakeTimers()
+  const { WebRuntimeRequestRegistry } = await import('./web-runtime-request-registry')
+  let registry!: InstanceType<typeof WebRuntimeRequestRegistry>
+  let sequence = 0
+  vi.doMock('./web-runtime-client', () => ({
+    WebRuntimeClient: class {
+      constructor() {
+        registry = new WebRuntimeRequestRegistry({
+          deviceToken: 'token',
+          nextId: () => `scan-call-${++sequence}`,
+          waitForConnected: () => Promise.resolve(),
+          sendEncrypted: (message) => {
+            const request = message as { id: string; method: string }
+            if (request.method !== 'aiVault.listSessions') {
+              queueMicrotask(() => {
+                const pending = registry.pending.get(request.id)!
+                registry.pending.delete(request.id)
+                window.clearTimeout(pending.timeout)
+                pending.resolve({
+                  id: request.id,
+                  ok: true,
+                  result: null,
+                  _meta: { runtimeId: 'test-runtime' }
+                })
+              })
+            }
+            return true
+          }
+        })
+      }
+
+      call(...args: Parameters<InstanceType<typeof WebRuntimeRequestRegistry>['call']>) {
+        return registry.call(...args)
+      }
+
+      close(): void {
+        registry.rejectAll('client closed')
+      }
+    }
+  }))
+  const globals = installBrowserGlobals('Linux')
+  Object.assign(globals.window, { setTimeout, clearTimeout })
+  writeStoredRuntimeEnvironment(globals.storage)
+  const { installWebPreloadApi } = await import('./web-preload-api')
+  installWebPreloadApi()
+  return { api: globals.window.api, registry: () => registry }
+}

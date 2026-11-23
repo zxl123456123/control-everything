@@ -12,7 +12,7 @@ import type { DaemonTerminalAdmission } from './daemon-terminal-admission'
 import { DaemonHealthRequests } from './daemon-health-requests'
 import type { TerminalHistorySeedTransferRegistry } from './terminal-history-seed-transfer-registry'
 import type { TerminalHost } from './terminal-host'
-import { SessionNotFoundError, type DaemonRequest } from './types'
+import { SessionNotFoundError, type DaemonRequest, type KillExactRequest } from './types'
 
 type DaemonRequestRouterOptions = {
   host: TerminalHost
@@ -100,6 +100,8 @@ export class DaemonRequestRouter {
         )
       case 'kill':
         return this.kill(clientId, request.payload.sessionId, request.payload.immediate)
+      case 'killExact':
+        return this.killExact(clientId, request.payload)
       case 'signal':
         this.options.host.signal(request.payload.sessionId, request.payload.signal)
         return {}
@@ -200,6 +202,29 @@ export class DaemonRequestRouter {
       throw error
     }
     return {}
+  }
+
+  private async killExact(clientId: string, payload: KillExactRequest['payload']): Promise<Record<string, never>> {
+    if (!payload || typeof payload.sessionId !== 'string' || !payload.sessionId || payload.sessionId.length > 1024 ||
+        typeof payload.expectedIncarnationId !== 'string' || !payload.expectedIncarnationId || payload.expectedIncarnationId.length > 1024 ||
+        (payload.immediate !== undefined && typeof payload.immediate !== 'boolean') ||
+        Object.keys(payload).some(key => !['sessionId', 'expectedIncarnationId', 'immediate'].includes(key))) {
+      throw new Error('invalid_exact_stop')
+    }
+    const { sessionId, expectedIncarnationId, immediate } = payload
+    const attribution = { sessionId, expectedIncarnationId, immediate: immediate === true, clientId }
+    try {
+      const killed = this.options.host.killExact(sessionId, expectedIncarnationId, { immediate })
+      this.options.attachments.clearInput(sessionId)
+      await killed
+      this.options.log.log('session-killed', attribution)
+      return {}
+    } catch (error) {
+      this.options.log.log('session-kill-failed', { ...attribution,
+        errorName: error instanceof Error ? error.name : typeof error,
+        error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
   }
 
   private async kill(

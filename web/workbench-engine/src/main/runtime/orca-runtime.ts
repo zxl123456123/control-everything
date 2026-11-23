@@ -53,7 +53,7 @@ import { requireSwitchedOn } from './sidebar-inputs/require-switched-on'
 import { HEADLESS_RUNTIME_WINDOW_ID } from '../../shared/runtime-session-contracts'
 import { getHostDisplayLabelOverrides } from '../../shared/host-setting-overrides'
 import type { PlatformProgressBinding } from '../../shared/platform-task-progress-contract'
-import { readPlatformTaskProgressSnapshot } from './platform-task-progress-snapshot'
+import { platformBindingState, readPlatformTaskProgressSnapshot } from './platform-task-progress-snapshot'
 
 // Switch point: a window-fed build keeps no sidebar facts layer.
 const OrcaRuntimeSidebarBase: typeof OrcaRuntimeWithAgentTransitions = ORCA_SIDEBAR_INPUTS_IS_MAIN
@@ -64,6 +64,14 @@ const OrcaRuntimeSidebarBase: typeof OrcaRuntimeWithAgentTransitions = ORCA_SIDE
 class OrcaRuntimeService extends OrcaRuntimeSidebarBase {
   getPlatformTaskProgressSnapshot(binding: PlatformProgressBinding) {
     return readPlatformTaskProgressSnapshot(this, binding)
+  }
+  async stopPlatformTaskProgress(binding: PlatformProgressBinding): Promise<boolean> {
+    if (platformBindingState(this, binding) !== 'current') throw new Error('binding_changed')
+    const pty = this.ptysById.get(binding.ptyId)
+    if (!pty?.incarnationId || pty.incarnationId !== binding.processIncarnation || pty.connectionId !== null)
+      throw new Error('binding_unavailable')
+    if (!this.ptyController?.stopExact) throw new Error('exact_stop_unsupported')
+    return this.ptyController.stopExact(binding.ptyId, pty.incarnationId, { deadlineMs: Date.now() + 20_000 })
   }
   /** This runtime as its sidebar facts layer; null unless built with ORCA_SIDEBAR_INPUTS=main. */
   get sidebarFacts() {

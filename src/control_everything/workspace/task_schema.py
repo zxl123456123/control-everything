@@ -31,7 +31,7 @@ CREATE TABLE manual_records (id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, pro
 SCHEMA1_TABLES = ("projects", "project_directories", "project_sources", "project_manual", "project_manual_history",
                      "todos", "tasks", "manual_records", "profile_imports")
 
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 18
 STATES = ("todo", "doing", "blocked", "review", "done")
 MAX_REVISION = (1 << 53) - 1
 MAX_BODY_BYTES = 262144
@@ -45,6 +45,15 @@ SCHEMA7_TABLES = SCHEMA6_TABLES
 SCHEMA8_TABLES = (*SCHEMA7_TABLES, "task_messages")
 SCHEMA9_TABLES = (*SCHEMA8_TABLES, "execution_runs", "execution_events", "execution_approvals")
 SCHEMA10_TABLES = (*SCHEMA9_TABLES, "task_native_runs", "task_deliveries", "task_native_message_delivery")
+SCHEMA11_TABLES = (*SCHEMA10_TABLES, "automation_events")
+SCHEMA12_TABLES = (*SCHEMA11_TABLES, "automation_owner", "automation_flows", "automation_steps")
+SCHEMA13_TABLES = SCHEMA12_TABLES
+SCHEMA14_TABLES = (*SCHEMA13_TABLES, "automation_remote_inbox")
+SCHEMA15_TABLES = (*SCHEMA14_TABLES, "automation_identity_challenges",
+                   "automation_identity_candidates", "automation_identity_bindings")
+SCHEMA16_TABLES = (*SCHEMA15_TABLES, "automation_task_acceptors")
+SCHEMA17_TABLES = (*SCHEMA16_TABLES, "automation_project_verification")
+SCHEMA18_TABLES = (*SCHEMA17_TABLES, "automation_assignment_grants")
 ITEM_COLUMNS = ("id", "origin", "origin_id", "title", "project_id", "provider_id", "state", "session_key",
                 "source", "created_at", "updated_at", "todo_position", "sort_index", "resume_state", "revision",
                 "priority", "focus", "assigned_agent_id")
@@ -113,7 +122,8 @@ VIEWS = (
 )
 _SCHEMA_TABLES = {1: SCHEMA1_TABLES, 2: SCHEMA2_TABLES, 3: SCHEMA3_TABLES, 4: SCHEMA4_TABLES,
                   5: SCHEMA5_TABLES, 6: SCHEMA6_TABLES, 7: SCHEMA7_TABLES, 8: SCHEMA8_TABLES, 9: SCHEMA9_TABLES,
-                  10: SCHEMA10_TABLES}
+                  10: SCHEMA10_TABLES, 11: SCHEMA11_TABLES, 12: SCHEMA12_TABLES, 13: SCHEMA13_TABLES, 14: SCHEMA14_TABLES,
+                  15: SCHEMA15_TABLES, 16: SCHEMA16_TABLES, 17: SCHEMA17_TABLES, 18: SCHEMA18_TABLES}
 
 
 def tables_for(version):
@@ -360,6 +370,148 @@ def finish_schema10(connection, receipt=None):
     connection.execute("PRAGMA user_version=10")
 
 
+def add_schema11(connection):
+    connection.execute("""CREATE TABLE automation_events(
+ id TEXT PRIMARY KEY NOT NULL, source_instance TEXT NOT NULL, source_event_id TEXT NOT NULL,
+ task_id TEXT NOT NULL REFERENCES task_items(id), project_id TEXT NOT NULL REFERENCES projects(id),
+ actor_id TEXT NOT NULL, authorization TEXT NOT NULL CHECK(authorization IN ('explicit_assignment','auto_enabled')),
+ requirement_revision INTEGER NOT NULL CHECK(requirement_revision BETWEEN 1 AND 9007199254740991),
+ brief_revision INTEGER NOT NULL CHECK(brief_revision BETWEEN 0 AND 9007199254740991),
+ request_hash TEXT NOT NULL, payload_json TEXT NOT NULL, received_at TEXT NOT NULL, consumed_at TEXT,
+ UNIQUE(source_instance,source_event_id))""")
+
+
+def install_schema11(connection, *, fresh=False):
+    if fresh:
+        install_schema10(connection, fresh=True)
+    add_schema11(connection)
+    if fresh:
+        finish_schema11(connection)
+
+
+def finish_schema11(connection):
+    register_writer(connection, 11)
+    for table in SCHEMA11_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(11):
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=11")
+
+
+def add_schema12(connection):
+    statements = (
+        """CREATE TABLE automation_owner(
+ id INTEGER PRIMARY KEY CHECK(id=1), owner_id TEXT, generation INTEGER NOT NULL, lease_until REAL NOT NULL)""",
+        """CREATE TABLE automation_flows(
+ id TEXT PRIMARY KEY NOT NULL, task_id TEXT NOT NULL REFERENCES task_items(id),
+ project_id TEXT NOT NULL REFERENCES projects(id), origin_event_id TEXT NOT NULL UNIQUE REFERENCES automation_events(id),
+ status TEXT NOT NULL CHECK(status IN ('queued','running','waiting_user','waiting_external','awaiting_acceptance',
+ 'integrating','completed','failed','cancelling','cancelled','unknown','paused')),
+ phase TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, context_json TEXT NOT NULL,
+ attention_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""",
+        "CREATE UNIQUE INDEX idx_automation_active_task ON automation_flows(task_id) "
+        "WHERE status NOT IN ('completed','failed','cancelled')",
+        """CREATE TABLE automation_steps(
+ id TEXT PRIMARY KEY NOT NULL, flow_id TEXT NOT NULL REFERENCES automation_flows(id), ordinal INTEGER NOT NULL,
+ kind TEXT NOT NULL, attempt INTEGER NOT NULL, owner_generation INTEGER NOT NULL,
+ writes_project INTEGER NOT NULL DEFAULT 1 CHECK(writes_project IN (0,1)),
+ status TEXT NOT NULL CHECK(status IN ('reserved','dispatching','running','completed','failed','unknown','cancelling','cancelled')),
+ operation_id TEXT NOT NULL UNIQUE, request_json TEXT NOT NULL, binding_json TEXT NOT NULL DEFAULT '{}',
+ result_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ UNIQUE(flow_id,ordinal))""",
+        "ALTER TABLE automation_events ADD COLUMN flow_id TEXT REFERENCES automation_flows(id)",
+    )
+    for statement in statements:
+        connection.execute(statement)
+
+
+def install_schema12(connection, *, fresh=False):
+    if fresh:
+        install_schema11(connection, fresh=True)
+    add_schema12(connection)
+    if fresh:
+        finish_schema12(connection)
+
+
+def finish_schema12(connection):
+    register_writer(connection, 12)
+    for table in SCHEMA12_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(12):
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=12")
+
+
+def add_schema13(connection):
+    connection.execute("""CREATE TABLE new_task_deliveries(
+ id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES task_items(id), native_run_id TEXT REFERENCES task_native_runs(id),
+ source TEXT NOT NULL CHECK(source IN ('native_turn','legacy_review','automation_verify')), source_key TEXT NOT NULL,
+ summary TEXT NOT NULL, material_json TEXT NOT NULL, verification TEXT NOT NULL DEFAULT 'unverified',
+ created_at TEXT NOT NULL, UNIQUE(task_id,source,source_key))""")
+    columns = 'id,task_id,native_run_id,source,source_key,summary,material_json,verification,created_at'
+    connection.execute(f'INSERT INTO new_task_deliveries({columns}) SELECT {columns} FROM task_deliveries')
+    before = connection.execute(f'SELECT {columns} FROM task_deliveries ORDER BY id').fetchall()
+    after = connection.execute(f'SELECT {columns} FROM new_task_deliveries ORDER BY id').fetchall()
+    if before != after:
+        fail('migration_verification_failed')
+    connection.execute('DROP TABLE task_deliveries')
+    connection.execute('ALTER TABLE new_task_deliveries RENAME TO task_deliveries')
+
+
+def install_schema13(connection, *, fresh=False):
+    if fresh:
+        install_schema12(connection, fresh=True)
+    add_schema13(connection)
+    if fresh:
+        finish_schema13(connection)
+
+
+def finish_schema13(connection):
+    register_writer(connection, 13)
+    for table in SCHEMA13_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(13):
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=13")
+
+
+def add_schema14(connection):
+    connection.execute("""CREATE TABLE automation_remote_inbox(
+ hub_origin TEXT NOT NULL, device_id TEXT NOT NULL,
+ generation INTEGER NOT NULL CHECK(typeof(generation)='integer' AND generation>0),
+ message_id TEXT NOT NULL, source TEXT NOT NULL, event_id TEXT NOT NULL,
+ payload_json TEXT NOT NULL, payload_hash TEXT NOT NULL, received_at TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state='pending_validation'),
+ ack_credential_revision INTEGER NOT NULL CHECK(typeof(ack_credential_revision)='integer' AND ack_credential_revision>0),
+ lease_id TEXT NOT NULL, lease_expires_at REAL NOT NULL,
+ ack_state TEXT NOT NULL CHECK(ack_state IN ('pending','acknowledged','lease_stale')),
+ acknowledged_at TEXT, PRIMARY KEY(hub_origin,device_id,generation,message_id),
+ UNIQUE(hub_origin,source,event_id))""")
+    connection.execute('CREATE INDEX automation_remote_inbox_ack ON automation_remote_inbox('
+        'hub_origin,device_id,generation,ack_credential_revision,ack_state,received_at,message_id)')
+
+
+def install_schema14(connection, *, fresh=False):
+    if fresh:
+        install_schema13(connection, fresh=True)
+    add_schema14(connection)
+    if fresh:
+        finish_schema14(connection)
+
+
+def finish_schema14(connection):
+    register_writer(connection, 14)
+    for table in SCHEMA14_TABLES:
+        for action in ("insert", "update", "delete"):
+            connection.execute(f"DROP TRIGGER IF EXISTS guard_{table}_{action}")
+    for statement in guard_statements(14):
+        connection.execute(statement)
+    connection.execute("PRAGMA user_version=14")
+
+
 def finish_schema2(connection, receipt):
     register_writer(connection, 2)
     for statement in (*VIEWS, *guard_statements(2)):
@@ -502,6 +654,99 @@ def finish_schema9(connection, receipt=None):
     connection.execute("PRAGMA user_version=9")
 
 
+def add_schema15(connection):
+    connection.execute("""CREATE TABLE automation_identity_challenges(
+ id TEXT PRIMARY KEY NOT NULL, project_id TEXT NOT NULL REFERENCES projects(id),
+ hub_origin TEXT NOT NULL, producer_id TEXT NOT NULL, account_id TEXT NOT NULL,
+ app_id TEXT NOT NULL, chat_id TEXT NOT NULL, device_id TEXT NOT NULL,
+ generation INTEGER NOT NULL CHECK(typeof(generation)='integer' AND generation>0),
+ nonce_hash TEXT NOT NULL, message_id TEXT, expires_at TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state IN ('awaiting_message','pending','confirmed','revoked','expired')),
+ created_at TEXT NOT NULL)""")
+    connection.execute("""CREATE TABLE automation_identity_candidates(
+ id TEXT PRIMARY KEY NOT NULL, challenge_id TEXT NOT NULL REFERENCES automation_identity_challenges(id),
+ app_id TEXT NOT NULL, open_id TEXT NOT NULL, source_event_id TEXT NOT NULL,
+ inbox_message_id TEXT NOT NULL, created_at TEXT NOT NULL,
+ UNIQUE(challenge_id,app_id,open_id))""")
+    connection.execute("""CREATE TABLE automation_identity_bindings(
+ id TEXT PRIMARY KEY NOT NULL, challenge_id TEXT NOT NULL REFERENCES automation_identity_challenges(id),
+ candidate_id TEXT NOT NULL REFERENCES automation_identity_candidates(id),
+ project_id TEXT NOT NULL REFERENCES projects(id),
+ state TEXT NOT NULL CHECK(state IN ('active','revoked')),
+ confirmed_at TEXT NOT NULL, revoked_at TEXT)""")
+
+
+def install_schema15(connection, *, fresh=False):
+    if fresh:
+        install_schema14(connection, fresh=True)
+    add_schema15(connection)
+    if fresh:
+        finish_schema15(connection)
+
+
+def finish_schema15(connection):
+    register_writer(connection, 15)
+    for table in SCHEMA15_TABLES:
+        for action in ('insert', 'update', 'delete'):
+            connection.execute(f'DROP TRIGGER IF EXISTS guard_{table}_{action}')
+    for statement in guard_statements(15):
+        connection.execute(statement)
+    connection.execute('PRAGMA user_version=15')
+
+
+def add_schema16(connection):
+    connection.execute("""CREATE TABLE automation_task_acceptors(
+ task_id TEXT PRIMARY KEY NOT NULL REFERENCES task_items(id),
+ app_id TEXT NOT NULL, open_id TEXT NOT NULL, set_at TEXT NOT NULL)""")
+
+
+def install_schema16(connection, *, fresh=False):
+    if fresh:
+        install_schema15(connection, fresh=True)
+    add_schema16(connection)
+    if fresh:
+        finish_schema16(connection)
+
+
+def finish_schema16(connection):
+    register_writer(connection, 16)
+    for table in SCHEMA16_TABLES:
+        for action in ('insert', 'update', 'delete'):
+            connection.execute(f'DROP TRIGGER IF EXISTS guard_{table}_{action}')
+    for statement in guard_statements(16):
+        connection.execute(statement)
+    connection.execute('PRAGMA user_version=16')
+
+
+def install_schema17(connection):
+    connection.execute("""CREATE TABLE automation_project_verification(
+ project_id TEXT NOT NULL, binding_id TEXT NOT NULL, directory_path TEXT NOT NULL, spec_json TEXT NOT NULL,
+ PRIMARY KEY(project_id,binding_id),
+ FOREIGN KEY(project_id,binding_id) REFERENCES project_directories(project_id,binding_id) ON DELETE CASCADE)""")
+    register_writer(connection, 17)
+    for table in SCHEMA17_TABLES:
+        for action in ('insert', 'update', 'delete'):
+            connection.execute(f'DROP TRIGGER IF EXISTS guard_{table}_{action}')
+    for statement in guard_statements(17):
+        connection.execute(statement)
+    connection.execute('PRAGMA user_version=17')
+
+
+def install_schema18(connection):
+    connection.execute("""CREATE TABLE automation_assignment_grants(
+ binding_id TEXT PRIMARY KEY NOT NULL REFERENCES automation_identity_bindings(id),
+ reviewer_binding_id TEXT NOT NULL REFERENCES automation_identity_bindings(id),
+ project_id TEXT NOT NULL REFERENCES projects(id),
+ directory_id TEXT NOT NULL, directory_path TEXT NOT NULL, set_at TEXT NOT NULL)""")
+    register_writer(connection, 18)
+    for table in SCHEMA18_TABLES:
+        for action in ('insert', 'update', 'delete'):
+            connection.execute(f'DROP TRIGGER IF EXISTS guard_{table}_{action}')
+    for statement in guard_statements(18):
+        connection.execute(statement)
+    connection.execute('PRAGMA user_version=18')
+
+
 def schema_signature(connection):
     return [(kind, name, table, ' '.join(sql.split()) if sql is not None else None)
             for kind, name, table, sql in connection.execute(
@@ -532,8 +777,24 @@ def _expected_schema_signature(version):
             install_schema8(expected, fresh=True)
         elif version == 9:
             install_schema9(expected, fresh=True)
-        else:
+        elif version == 10:
             install_schema10(expected, fresh=True)
+        elif version == 11:
+            install_schema11(expected, fresh=True)
+        elif version == 12:
+            install_schema12(expected, fresh=True)
+        elif version == 13:
+            install_schema13(expected, fresh=True)
+        elif version == 14:
+            install_schema14(expected, fresh=True)
+        elif version == 15:
+            install_schema15(expected, fresh=True)
+        else:
+            install_schema16(expected, fresh=True)
+            if version >= 17:
+                install_schema17(expected)
+            if version == 18:
+                install_schema18(expected)
         return tuple(schema_signature(expected))
     finally:
         expected.close()

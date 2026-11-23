@@ -14,11 +14,16 @@ from control_everything.http.workbench import WorkbenchAssets
 from control_everything.installation import manifest
 from control_everything.integrations.remote_connector import ConnectorConfig, ConnectorStore, RemoteConnector, ConnectorError, InitialServerConfig
 from control_everything.integrations.remote_account import RemoteAccount
+from control_everything.workspace.automation_remote_inbox import RemoteAutomationInbox
+from control_everything.workspace.automation_identity_inbox import AutomationIdentityInbox
+from control_everything.workspace.automation_identity_receipts import AutomationIdentityReceipts
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchRuntime, WorkbenchUnavailable, safe_path
 
 
 class Desktop:
-    def __init__(self, server, runtime, connector=None, account=None, server_setup=None, *, window_host=None):
+    identity_receipts = None
+
+    def __init__(self, server, runtime, connector=None, account=None, server_setup=None, *, window_host=None, identity_inbox=None, identity_receipts=None):
         self.server, self.runtime, self.connector = server, runtime, connector
         self.server_setup = server_setup
         self.window_host = window_host
@@ -27,8 +32,15 @@ class Desktop:
         self._stop = threading.Event()
         self._worker = None
         self.restart_required = False
+        self.identity_inbox = identity_inbox
+        self.identity_receipts = identity_receipts
         server.attach_workbench_runtime(runtime)
         server.remote_connector = connector
+        service = server.automation_consumer_service
+        if service is not None and connector is not None:
+            service.consumer.current_binding = connector.current_binding
+            service.consumer.on_wait = connector.publish_waiting_card
+            connector.on_mailbox = service.wake
         server.desktop_account = account
         server.desktop = self
         server.refresh_workspace_roots = self.refresh_workspace_roots
@@ -92,7 +104,7 @@ class Desktop:
             self._tick()
 
     def _tick(self):
-        if not self.connector or self.restart_required:
+        if self.configuration_changed or self._stop.is_set() or not self.connector or self.restart_required:
             return
         try:
             if not self.configure_runtime():
@@ -100,7 +112,12 @@ class Desktop:
             if not self.runtime.ready:
                 self.runtime.start(self.server.local_origin)
             port = urlsplit(self.runtime.websocket_origin).port
-            self.connector.connect(self.server.server_address[1], port, runtime_ready=self.runtime.ready)
+            self.connector.connect(self.server.server_address[1], port, runtime_ready=self.runtime.ready,
+                                   stop_event=self._stop)
+            if self.identity_receipts is not None and not self._stop.is_set():
+                self.identity_receipts_result = self.identity_receipts.drain(self._stop)
+            if self.identity_inbox is not None and not self._stop.is_set():
+                self.identity_inbox_result = self.identity_inbox.drain(self._stop)
         except (ConnectorError, WorkbenchUnavailable, OSError, ValueError):
             # Connector owns the detailed retry/status state; never start a competing runtime.
             return
@@ -109,7 +126,10 @@ class Desktop:
         while not self._stop.wait(2):
             self.tick()
 
-    def serve(self):
+    def serve(self, *, headless=False):
+        if headless:
+            self.server.serve_forever()
+            return
         if self.window_host is None:
             webbrowser.open(self.server.local_origin + '/desktop')
             self.server.serve_forever()
@@ -129,12 +149,16 @@ class Desktop:
             self.server.desktop_account.close()
         if self._worker:
             self._worker.join(timeout=10)
-        if self.connector:
-            self.connector.close()
         try:
-            self.runtime.close()
+            if self.connector:
+                self.connector.close()
         finally:
-            self.server.server_close()
+            try:
+                self.runtime.close()
+            finally:
+                self.server.server_close()
+        if self._worker is not None and self._worker.is_alive():
+            raise ConnectorError('remote_worker_cleanup_unverified')
 
 
 def _news_runtime(root, engine_relative, files):
@@ -186,11 +210,19 @@ def build_desktop(product_root, data_dir=None, port=8766, *, credential_root=Non
             elif selected.get('storage', '').startswith('generation-'):
                 remote_root = remote_root / selected['storage']
             connector = RemoteConnector(ConnectorConfig(selected['issuer'], selected['hub_origin'], path('ssh'), path('keygen')),
-                                        ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices)
+                                        ConnectorStore(remote_root), on_revoked=runtime.revoke_remote_devices,
+                                        mailbox_sink=RemoteAutomationInbox(server.workspace.store))
         account = RemoteAccount(connector.peer, connector.store) if connector else None
         editable = not embedded['issuer'] and not embedded['hub_origin'] and selected.get('storage') != 'legacy'
         window_host = manifest.no_links(root / manifest.DESKTOP_WINDOW_EXE) if manifest.DESKTOP_WINDOW_EXE in names else None
-        return Desktop(server, runtime, connector, account, setup if editable else None, window_host=window_host)
+        identity_inbox = (AutomationIdentityInbox(server.workspace.store,
+            server.workspace.identity_service(connector.current_binding), connector.current_binding)
+            if connector is not None and server.workspace is not None else None)
+        identity_receipts = (AutomationIdentityReceipts(server.workspace.store,
+            server.workspace.identity_service(connector.current_binding), connector)
+            if connector is not None and server.workspace is not None else None)
+        return Desktop(server, runtime, connector, account, setup if editable else None,
+                       window_host=window_host, identity_inbox=identity_inbox, identity_receipts=identity_receipts)
     except Exception:
         server.server_close()
         raise
@@ -204,6 +236,7 @@ def main(argv=None):
     parser.add_argument('--sandbox-lock-root', type=Path)
     parser.add_argument('--installed-data-dir', help=argparse.SUPPRESS)
     parser.add_argument('--port', type=int, default=8766)
+    parser.add_argument('--headless', action='store_true')
     args = parser.parse_args(argv)
     if args.installed_data_dir is not None and args.installed_data_dir != '_':
         from control_everything.installation.desktop_settings import decode_data_directory
@@ -221,7 +254,7 @@ def main(argv=None):
     try:
         desktop.start()
         print(f'本机电脑绑定：{desktop.server.local_origin}/desktop', flush=True)
-        desktop.serve()
+        desktop.serve(headless=args.headless)
     except KeyboardInterrupt:
         pass
     finally:

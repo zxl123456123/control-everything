@@ -119,6 +119,15 @@ if ($orcaCodexCommand -and
         $orcaCodexIdentity = @()
         if ($env:ORCA_CODEX_ISOLATE -ne '0' -and -not (@($args) -cmatch '${CODEX_SHARED_SERVER_ARG_PATTERN}')) {
             foreach ($k in ${CODEX_COMMAND_IDENTITY_ENV_KEYS.map((key) => `'${key}'`).join(',')}) { $v = [Environment]::GetEnvironmentVariable($k); if ($v -and -not $v.Contains("'")) { $orcaCodexIdentity += '-c', "${identitySetArg('$k', '$v')}" } }
+            # Why: Codex's default KEY filter splits the known non-interactive Git protocol.
+            # Restore only these public config names, never arbitrary config or secret values.
+            $orcaGitIndices = @([Environment]::GetEnvironmentVariables().Keys | Where-Object { $_ -match '^GIT_CONFIG_(KEY|VALUE)_[0-9]+$' })
+            if ($env:GIT_CONFIG_COUNT -ceq '2' -and $orcaGitIndices.Count -eq 4 -and
+                $env:GIT_CONFIG_KEY_0 -ceq 'credential.interactive' -and $env:GIT_CONFIG_VALUE_0 -ceq 'false' -and
+                $env:GIT_CONFIG_KEY_1 -ceq 'credential.guiPrompt' -and $env:GIT_CONFIG_VALUE_1 -ceq 'false') {
+                $orcaCodexIdentity += '-c', "shell_environment_policy.set.GIT_CONFIG_KEY_0='credential.interactive'",
+                    '-c', "shell_environment_policy.set.GIT_CONFIG_KEY_1='credential.guiPrompt'"
+            }
         }
         $orcaCodexArgs = @(__OrcaEscapeNativeArgs $orcaCodexExecutable.Source (@($orcaCodexIdentity) + @($args)))
         # Why: a native command inside a function never sees the function's pipeline input on its own.

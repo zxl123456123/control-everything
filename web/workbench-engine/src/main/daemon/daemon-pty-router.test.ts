@@ -91,6 +91,21 @@ it('forwards the owning legacy daemon sequence from attach', async () => {
   await expect(router.attach('legacy-session')).resolves.toEqual({ providerSequence })
 })
 
+it('routes exact cancellation to the owning daemon and preserves its refusal', async () => {
+  const current = createAdapter('current')
+  const legacy = createAdapter('legacy', ['owned'])
+  current.stopExact = vi.fn(async () => {})
+  legacy.stopExact = vi.fn(async () => {})
+  const router = new DaemonPtyRouter({ current, legacy: [legacy] })
+  await router.discoverLegacySessions()
+  await router.stopExact('owned', 'incarnation', { deadlineMs: 123 })
+  expect(legacy.stopExact).toHaveBeenCalledWith('owned', 'incarnation', { deadlineMs: 123 })
+  vi.mocked(legacy.stopExact).mockRejectedValueOnce(new Error('terminal_incarnation_changed'))
+  await expect(router.stopExact('owned', 'old')).rejects.toThrow('terminal_incarnation_changed')
+  expect(current.stopExact).not.toHaveBeenCalled()
+  expect(legacy.shutdown).not.toHaveBeenCalled()
+})
+
 describe('DaemonPtyRouter', () => {
   describe('idle retirement', () => {
     it('retires every empty daemon generation and fences subsequent spawns', async () => {

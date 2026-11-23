@@ -605,6 +605,29 @@ class WorkbenchRuntimeTests(unittest.TestCase):
         self.assertEqual(api.process_creation_time('held-handle'), 123456789)
         self.assertEqual(seen, ['held-handle'])
 
+    def test_desktop_drops_only_parent_app_registration_context_case_insensitively(self):
+        context_keys = ('CODEX_APP_RUNTIME_CLI_PATH', 'CODEX_APP_TOOLS_PIPE_PATH',
+                        'CODEX_WINDOWS_REGISTERED_CORE', 'CODEX_WINDOWS_SANDBOX_PACKAGE_FAMILY')
+        ambient = {'SystemRoot': str(self.root / 'system'), 'USERPROFILE': str(self.root / 'user'),
+            'PATH': str(self.root / 'tools'), 'CODEX_HOME': str(self.root / 'selected-account'),
+            'CODEX_PERMISSION_PROFILE': 'keep-managed-profile', 'CODEX_NETWORK_POLICY': 'keep-restricted-network',
+            'OPENAI_API_KEY': 'fixture-account-token', 'HTTPS_PROXY': 'http://proxy.example.test:8080',
+            'HTTP_PROXY': 'http://proxy.example.test:8080', 'CODEX_UNRELATED_SETTING': 'preserve-user-choice'}
+        for index, key in enumerate(context_keys):
+            ambient[key if index % 2 else key.lower()] = 'synthetic-parent-app-context'
+        before = dict(ambient)
+        env = workbench_environment(self.data, self.engine / 'node.exe', self.config.git_executable,
+                                    'http://127.0.0.1:12345', ambient, inherit_host_environment=True)
+        self.assertEqual(ambient, before)
+        self.assertTrue(set(context_keys).isdisjoint(key.upper() for key in env))
+        for key, value in before.items():
+            if key.upper() in context_keys:
+                continue
+            if key == 'PATH':
+                self.assertEqual(env[key].split(os.pathsep)[0], value)
+            else:
+                self.assertEqual(env[key], value, key)
+
 
 if __name__ == '__main__':
     unittest.main()

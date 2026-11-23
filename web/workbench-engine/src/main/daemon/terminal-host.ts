@@ -187,6 +187,16 @@ export class TerminalHost {
     return Promise.resolve(killed)
   }
 
+  killExact(sessionId: string, expectedIncarnationId: string, opts: { immediate?: boolean } = {}): Promise<void> {
+    // Validate and capture one Session without yielding; never join an ID-only teardown.
+    if (this.sessionTeardown.get(sessionId)) throw new Error('terminal_stop_in_progress')
+    const session = getAliveTerminalHostSession(this.sessions, sessionId)
+    if (session.incarnationId !== expectedIncarnationId) throw new Error('terminal_incarnation_changed')
+    const killed = this.sessionTeardown.killSession(sessionId, session, opts.immediate === true)
+    this.killedTombstones.record(sessionId)
+    return Promise.resolve(killed)
+  }
+
   // Why: dispose a dead session's emulator so exited terminals don't pin their scrollback window for the daemon's life.
   private reapSession(sessionId: string): void {
     const session = this.sessions.get(sessionId)

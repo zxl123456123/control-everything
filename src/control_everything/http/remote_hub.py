@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import re
 import sys
+import time
 from urllib.parse import parse_qs, urlsplit
 
 from control_everything.integrations.remote_hub.identity import HubError
@@ -45,6 +46,26 @@ def dispatch(service, method, uri, headers, body):
             "/remote/api/admin/members", "/remote/api/admin/members/activate",
             "/remote/desktop/admin/members", "/remote/desktop/admin/members/activate"):
         raise HubError("invalid_request_uri", 400)
+    if path.startswith("/remote/producer/"):
+        if "?" in uri:
+            raise HubError("invalid_request_uri", 400)
+        if path in ('/remote/producer/automation/outbound/claim', '/remote/producer/automation/outbound/sent',
+                    '/remote/producer/automation/outbound/lookup'):
+            if method != 'POST':
+                raise HubError('method_not_allowed', 405)
+            operation = {'claim': service.claim_outbound_card, 'sent': service.mark_outbound_card,
+                         'lookup': service.lookup_outbound_card}[path.rsplit('/', 1)[-1]]
+            return 200, operation(_bearer(headers), body), {}
+        if path in ('/remote/producer/identity-send/claim', '/remote/producer/identity-send/result'):
+            if method != 'POST':
+                raise HubError('method_not_allowed', 405)
+            operation = service.automation_identity_send.claim if path.endswith('/claim') else service.automation_identity_send.result
+            return 200, operation(_bearer(headers), body), {}
+        if path != "/remote/producer/automation/receive":
+            raise HubError("not_found", 404)
+        if method != "POST":
+            raise HubError("method_not_allowed", 405)
+        return 200, service.receive_automation_message(_bearer(headers), body), {}
     cookie = SimpleCookie()
     try:
         cookie.load(headers.get("Cookie", ""))
@@ -53,6 +74,29 @@ def dispatch(service, method, uri, headers, body):
     session_cookie = cookie[COOKIE_NAME].value if COOKIE_NAME in cookie else ""
     if path.startswith("/remote/desktop/"):
         token = _bearer(headers)
+        if path in ('/remote/desktop/identity-send/register', '/remote/desktop/identity-send/status'):
+            if '?' in uri:
+                raise HubError('invalid_request_uri', 400)
+            if method != 'POST':
+                raise HubError('method_not_allowed', 405)
+            operation = service.automation_identity_send.register if path.endswith('/register') else service.automation_identity_send.status
+            return 200, operation(token, body), {}
+        if path == "/remote/desktop/automation/card":
+            if "?" in uri:
+                raise HubError("invalid_request_uri", 400)
+            if method != "POST":
+                raise HubError("method_not_allowed", 405)
+            return 200, service.enqueue_waiting_card(token, body), {}
+        if path in ("/remote/desktop/automation/claim", "/remote/desktop/automation/ack"):
+            if "?" in uri:
+                raise HubError("invalid_request_uri", 400)
+            if method != "POST":
+                raise HubError("method_not_allowed", 405)
+            if path.endswith("/claim"):
+                _fields(body, ())
+                return 200, service.claim_automation_message(token), {}
+            values = _fields(body, ("message_id", "lease_id"))
+            return 200, service.acknowledge_automation_message(token, **values), {}
         if path in ("/remote/desktop/config", "/remote/desktop/heartbeat", "/remote/desktop/revoke"):
             if path.endswith("/config") and method == "GET":
                 return 200, service.config(token), {}
@@ -180,7 +224,32 @@ def build_server(address, service):
         def log_message(self, format, *args):
             pass  # Do not log credentials, challenge IDs or request headers.
 
+        def _discard_rejected_body(self):
+            lengths = self.headers.get_all("Content-Length", [])
+            if (self.headers.get_all("Transfer-Encoding", []) or len(lengths) != 1
+                    or not re.fullmatch(r"[0-9]{1,10}", lengths[0])
+                    or not 1 <= int(lengths[0]) <= 4096):
+                return
+            remaining = int(lengths[0])
+            timeout = self.connection.gettimeout()
+            deadline = time.monotonic() + 0.25
+            try:
+                while remaining:
+                    budget = deadline - time.monotonic()
+                    if budget <= 0:
+                        break
+                    self.connection.settimeout(budget)
+                    chunk = self.rfile.read1(remaining)
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+            except OSError:
+                pass
+            finally:
+                self.connection.settimeout(timeout)
+
         def handle_request(self):
+            body_pending = True
             try:
                 for name in ("Authorization", "Cookie", "Origin", "X-Auth-Request-Access-Token",
                              "X-Auth-Request-User", "X-CE-Route-Proof", "X-CE-Context", "X-CE-CSRF"):
@@ -193,9 +262,12 @@ def build_server(address, service):
                     raise HubError("request_too_large", 413)
                 if self.command == "POST" and self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                     raise HubError("json_required", 415)
+                body_pending = False
                 body = json.loads(self.rfile.read(length)) if length else {}
                 status, result, extra = dispatch(service, self.command, self.path, self.headers, body)
             except HubError as error:
+                if body_pending:
+                    self._discard_rejected_body()
                 status, result, extra = error.status, {"error": error.code, **error.details}, {}
             except (ValueError, UnicodeError):
                 status, result, extra = 400, {"error": "invalid_json"}, {}
@@ -210,9 +282,18 @@ def build_server(address, service):
             for key, value in extra.items():
                 self.send_header(key, value)
             self.end_headers()
-            self.wfile.write(data)
+            if self.command != "HEAD":
+                self.wfile.write(data)
 
         do_GET = do_POST = handle_request
+
+        def handle_producer_method(self):
+            if urlsplit(self.path).path.startswith("/remote/producer/"):
+                self.handle_request()
+            else:
+                self.send_error(501, "Unsupported method (%r)" % self.command)
+
+        do_PUT = do_PATCH = do_DELETE = do_OPTIONS = do_HEAD = handle_producer_method
 
     server = HubHTTPServer(address, Handler)
     server.daemon_threads = True

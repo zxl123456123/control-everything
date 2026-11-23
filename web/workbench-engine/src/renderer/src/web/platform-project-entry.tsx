@@ -568,6 +568,8 @@ export default function PlatformProjectEntry(): React.JSX.Element {
       {/* Keep portal hosts stable while the native workbench is retained behind Studio. */}
       <PlatformWorkspaceHeader active={Boolean(projectId || workbench || globalSettings)}
         projectName={projectId ? (chosen?.name || archived?.name || '项目') : undefined}
+        projectId={contextActive ? chosen?.id : undefined}
+        execution={showWorkspace && connection?.state === 'ready' && !remoteContext() ? data ?? undefined : undefined}
         settings={projectSettings || globalSettings} workspaceInert={!showWorkspace && !showWorkbench} />
       {navigationNotice && (
         <p role="status" className="platform-navigation-notice">

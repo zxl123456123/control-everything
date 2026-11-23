@@ -14,16 +14,32 @@ import uuid
 from .identity import HubError
 
 RECOVERABLE = ("pending", "provisioned", "online", "offline")
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 7
 # Heartbeat freshness window shared with the browser authorization path.
 ONLINE_WINDOW = 45
 # Copy of a pre-account-id database, written next to it before the first v3 migration.
 BACKUP_SUFFIX = ".pre-account-id"
+MAILBOX_BACKUP_SUFFIX = ".pre-automation-inbox"
+IDENTITY_SEND_BACKUP_SUFFIX = ".pre-identity-send"
+CARD_BACKUP_SUFFIX = ".pre-outbound-card"
+LEASE_BACKUP_SUFFIX = ".pre-outbound-lease"
+# v6 introduced the queue without a claim lease. Fresh databases use the current table instead.
+_OUTBOUND_V6 = """CREATE TABLE automation_outbound_cards(
+        id TEXT PRIMARY KEY NOT NULL, device_id TEXT NOT NULL, producer_id TEXT NOT NULL,
+        flow_id TEXT NOT NULL, requirement_revision INTEGER NOT NULL, card_json TEXT NOT NULL,
+        message_id TEXT, created_at REAL NOT NULL,
+        UNIQUE(device_id, flow_id, requirement_revision))"""
 ACCOUNT_ID = re.compile(r"[0-9a-f]{32}")
 
 # Latest schema. Ownership is keyed on the internal account_id; (issuer, sub) only lives in identities,
 # so replacing the identity provider is a data operation (link-identity), not a table migration.
 _TABLES = {
+    "automation_identity_send": """CREATE TABLE automation_identity_send(
+        attempt_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, generation INTEGER NOT NULL,
+        challenge_id TEXT NOT NULL, producer_id TEXT NOT NULL, context_json TEXT NOT NULL,
+        token_sha256 TEXT NOT NULL, nonce TEXT NOT NULL, expires_at TEXT NOT NULL,
+        expires_epoch REAL NOT NULL, state TEXT NOT NULL, message_id TEXT, created_at REAL NOT NULL,
+        UNIQUE(device_id,generation,challenge_id))""",
     "identities": """CREATE TABLE identities(issuer TEXT NOT NULL, sub TEXT NOT NULL, account_id TEXT NOT NULL,
         created_at REAL, PRIMARY KEY(issuer,sub))""",
     "members": """CREATE TABLE members(account_id TEXT PRIMARY KEY, status TEXT NOT NULL, last_logout_at REAL)""",
@@ -45,10 +61,21 @@ _TABLES = {
         expires REAL NOT NULL, invalidated INTEGER NOT NULL DEFAULT 0)""",
     "contexts": """CREATE TABLE contexts(context_id TEXT PRIMARY KEY, session_hash TEXT NOT NULL,
         device_id TEXT NOT NULL, generation INTEGER NOT NULL, scope TEXT NOT NULL)""",
+    "automation_outbound_cards": """CREATE TABLE automation_outbound_cards(
+        id TEXT PRIMARY KEY NOT NULL, device_id TEXT NOT NULL, producer_id TEXT NOT NULL,
+        flow_id TEXT NOT NULL, requirement_revision INTEGER NOT NULL, card_json TEXT NOT NULL,
+        message_id TEXT, lease_id TEXT, leased_at REAL, created_at REAL NOT NULL,
+        UNIQUE(device_id, flow_id, requirement_revision))""",
+    "automation_inbox": """CREATE TABLE automation_inbox(id TEXT PRIMARY KEY NOT NULL,
+        source TEXT NOT NULL, event_id TEXT NOT NULL, device_id TEXT NOT NULL REFERENCES devices(device_id),
+        generation INTEGER NOT NULL, payload_json TEXT NOT NULL, created_at REAL NOT NULL,
+        lease_id TEXT, lease_until REAL, lease_revision INTEGER, acknowledged_at REAL,
+        UNIQUE(source,event_id))""",
 }
 _INDEXES = (
     "CREATE INDEX identities_account ON identities(account_id)",
     "CREATE UNIQUE INDEX owner_active ON devices(account_id) WHERE state!='revoked'",
+    "CREATE INDEX automation_inbox_pending ON automation_inbox(device_id,generation,acknowledged_at,created_at,id)",
 )
 
 
@@ -91,11 +118,11 @@ class RemoteHubStore:
             os.chmod(path, 0o600)
 
     def _backup_before_migration(self):
-        """Copy a v1/v2 database to ``<path>.pre-account-id`` before the first migration touches it.
+        """Back up v1/v2 before account IDs, or v3 before adding the automation inbox.
 
         Uses the SQLite online-backup API (consistent even with concurrent readers), writes a temporary
         file first and renames it, so a crash never leaves a half-written backup under the final name.
-        The copy is refreshed on every start while the database is still pre-v3, so it always matches
+        The copy is refreshed on every start while the database still needs migration, so it matches
         the state a failed migration rolled back to; once migrated it is never touched again.
         """
         if not Path(self.path).is_file() or Path(self.path).stat().st_size == 0:
@@ -106,9 +133,12 @@ class RemoteHubStore:
                 row = source.execute("SELECT version FROM schema_version").fetchone()
             except sqlite3.OperationalError:
                 return
-            if row is None or row[0] not in (1, 2):
+            if row is None or row[0] not in (1, 2, 3, 4, 5, 6):
                 return
-            target_path = self.path + BACKUP_SUFFIX
+            target_path = self.path + (LEASE_BACKUP_SUFFIX if row[0] == 6 else
+                                       CARD_BACKUP_SUFFIX if row[0] == 5 else
+                                       IDENTITY_SEND_BACKUP_SUFFIX if row[0] == 4 else
+                                       MAILBOX_BACKUP_SUFFIX if row[0] == 3 else BACKUP_SUFFIX)
             temporary = target_path + ".tmp"
             Path(temporary).unlink(missing_ok=True)
             target = sqlite3.connect(temporary)
@@ -126,7 +156,7 @@ class RemoteHubStore:
     def _migrate(db):
         """Forward-only migrations in the caller's single transaction; a newer version is refused."""
         version = db.execute("SELECT version FROM schema_version").fetchall()[0][0]
-        if version not in (1, 2, SCHEMA_VERSION):
+        if version not in (1, 2, 3, 4, 5, 6, SCHEMA_VERSION):
             raise ValueError("unsupported_hub_schema")
         if version == 1:
             # v2: nullable mobile-facing metadata. Existing rows stay valid with NULLs.
@@ -138,7 +168,25 @@ class RemoteHubStore:
             version = 2
         if version == 2:
             RemoteHubStore._migrate_account_ids(db)
-            db.execute("UPDATE schema_version SET version=?", (SCHEMA_VERSION,))
+            db.execute("UPDATE schema_version SET version=3")
+            version = 3
+        if version == 3:
+            db.execute(_TABLES['automation_inbox'])
+            db.execute(_INDEXES[2])
+            db.execute("UPDATE schema_version SET version=4")
+            version = 4
+        if version == 4:
+            db.execute(_TABLES['automation_identity_send'])
+            db.execute("UPDATE schema_version SET version=5")
+            version = 5
+        if version == 5:
+            db.execute(_OUTBOUND_V6)
+            db.execute("UPDATE schema_version SET version=6")
+            version = 6
+        if version == 6:
+            db.execute("ALTER TABLE automation_outbound_cards ADD COLUMN lease_id TEXT")
+            db.execute("ALTER TABLE automation_outbound_cards ADD COLUMN leased_at REAL")
+            db.execute("UPDATE schema_version SET version=7")
 
     @staticmethod
     def _migrate_account_ids(db):

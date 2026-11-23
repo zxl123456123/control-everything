@@ -6,7 +6,7 @@ import { finishPtyShutdown } from '../provider/liveness'
 import { ptyIncarnationById, ptyOwnership } from '../provider/ownership-state'
 import { getLocalPtyProvider, setLocalPtyProvider } from '../provider/registry'
 import type { PtyRuntimeControllerDeps } from './controller-deps'
-import { killPtyFromRuntimeController, stopAndWaitPtyFromRuntimeController } from './kill'
+import { killPtyFromRuntimeController, stopAndWaitPtyFromRuntimeController, stopExactPtyFromRuntimeController } from './kill'
 
 const PTY_ID = 'respawned-pty'
 
@@ -55,6 +55,35 @@ afterEach(() => {
   setLocalPtyProvider(original)
   ptyOwnership.delete(PTY_ID)
   ptyIncarnationById.delete(PTY_ID)
+})
+
+describe('exact task cancellation from the runtime controller', () => {
+  it('rejects a replacement that appeared while provider startup was pending', async () => {
+    const provider = providerWhose(() => {}, [])
+    provider.stopExact = vi.fn(async () => {})
+    setLocalPtyProvider(provider)
+    ptyIncarnationById.set(PTY_ID, 'original')
+    let release!: () => void
+    const startup = new Promise<void>(resolve => { release = resolve })
+    const stopping = stopExactPtyFromRuntimeController(
+      { getLocalPtyProviderStartupPromise: () => startup }, PTY_ID, 'original'
+    )
+    ptyIncarnationById.set(PTY_ID, 'replacement')
+    release()
+    await expect(stopping).rejects.toThrow('terminal_incarnation_changed')
+    expect(provider.stopExact).not.toHaveBeenCalled()
+  })
+
+  it.each([true, false])('reports stopped only when fresh inventory is empty: %s', async absent => {
+    const provider = providerWhose(() => {}, absent ? [] : [{ id: PTY_ID }])
+    provider.stopExact = vi.fn(async () => {})
+    setLocalPtyProvider(provider)
+    ptyIncarnationById.set(PTY_ID, 'original')
+    await expect(stopExactPtyFromRuntimeController(
+      { getLocalPtyProviderStartupPromise: () => undefined }, PTY_ID, 'original'
+    )).resolves.toBe(absent)
+    expect(provider.stopExact).toHaveBeenCalledWith(PTY_ID, 'original', undefined)
+  })
 })
 
 describe('a stop whose shutdown lands after a same-id respawn', () => {

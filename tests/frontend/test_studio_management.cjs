@@ -297,12 +297,12 @@ test('project titles stay neutral while archive state remains distinct in both t
 
 test('directory lookup shows full paths without entering a project or exposing markup', async t => {
   const f = await fixture(t);
-  f.projects[0].directories[0].path = 'E:/projects/<shared>&demo';
+  f.projects[0].directories[0].path = 'E:/example/projects/<shared>&demo';
   f.node('[data-action="refresh"]').click(); await tick();
   const trigger = f.node('[data-project-menu="p-a"]'); trigger.click();
   f.node('[data-project-directory]').click();
   const dialog = f.node('dialog.ce-project-settings');
-  assert.ok(dialog.open); assert.equal(dialog.querySelector('p').textContent, 'E:/projects/<shared>&demo');
+  assert.ok(dialog.open); assert.equal(dialog.querySelector('p').textContent, 'E:/example/projects/<shared>&demo');
   assert.equal(dialog.querySelectorAll('shared').length, 0);
   assert.equal(f.w.location.hash, '#home'); assert.equal(f.posts.length, 0);
   dialog.close(); assert.equal(f.w.document.activeElement, trigger);

@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { defineMethod, type RpcContext } from '../runtime/rpc/core'
 import {
-  PlatformProgressAgent, PlatformProgressBinding, PlatformProgressCreate, PlatformProgressObserve,
-  PlatformProgressReceipt, PlatformProgressResume, PlatformProgressSend
+  PlatformProgressAgent, PlatformProgressBinding, PlatformProgressCreate, PlatformProgressCreateRefused, PlatformProgressObserve,
+  PlatformProgressReceipt, PlatformProgressResume, PlatformProgressSend, PlatformProgressStop
 } from '../../shared/platform-task-progress-contract'
 import { CreateAgentSessionParams, EnsureAgentSessionParams } from '../../shared/rpc-contract/agent-session-params'
 import { platformBindingState, platformProgressEnvironmentId } from '../runtime/platform-task-progress-snapshot'
@@ -18,6 +18,18 @@ import { splitWorktreeId } from '../../shared/worktree/id'
 import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import type { TuiAgent } from '../../shared/tui-agent'
 import { agentProviderSessionsEqual } from '../../shared/agent-session-resume'
+import { withTimeout } from '../runtime/runtime-async-boundaries'
+
+// Codex emits SessionStart on the first resumed turn, not when its composer opens.
+// Only a resume created by this owner can bridge that first input; it is not progress evidence.
+const resumeInputs = new WeakMap<OrcaRuntimeService, Map<string, { bindingHash: string; requestId?: string }>>()
+function resumeInput(runtime: OrcaRuntimeService, binding: PlatformProgressBinding, requestId?: string) {
+  const rows = runtime.getAgentStatusSnapshotFn?.()
+  if (!rows || rows.some(row => row.paneKey === binding.paneKey)) return undefined
+  const entry = resumeInputs.get(runtime)?.get(binding.terminalHandle)
+  return entry && entry.bindingHash === hashCanonical(binding) &&
+    (entry.requestId === undefined || entry.requestId === requestId) ? entry : undefined
+}
 
 function requireOwner(context: RpcContext): void {
   if (context.caller?.kind !== 'local-cli' || context.orchestrationCaller)
@@ -108,15 +120,34 @@ export function readPlatformProgressReceipt(params: z.infer<typeof PlatformProgr
 }
 
 export const PLATFORM_TASK_PROGRESS_METHODS = [
+  defineMethod({ name: 'platform.taskProgress.stop', permission: 'workspace', params: PlatformProgressStop,
+    handler: async (params, context) => {
+      requireOwner(context)
+      const stopped = await context.runtime.stopPlatformTaskProgress(params.expectedBinding)
+      return { contractVersion: 1, stopped, binding: params.expectedBinding, readAt: Date.now() }
+    }
+  }),
   defineMethod({ name: 'platform.taskProgress.create', permission: 'workspace', params: PlatformProgressCreate,
     handler: async (params, context) => {
       requireOwner(context)
       const scope = await requireScope(context.runtime, params)
       const cwd = context.runtime.resolveWorkspaceTerminalStartupCwd(scope, params.cwd)
-      const result = await context.runtime.createAgentSession(CreateAgentSessionParams.parse({
+      const request = CreateAgentSessionParams.parse({
         clientOperationId: params.operationId, worktree: `id:${params.worktreeId}`, agent: params.agent,
-        prompt: params.prompt, promptDelivery: 'auto-submit', startupCwd: cwd, presentation: 'background', viewMode: 'terminal'
-      }), { signal: context.signal })
+        prompt: params.prompt, promptDelivery: 'auto-submit', startupCwd: cwd, presentation: 'background', viewMode: 'terminal',
+        ...(params.model === undefined ? {} : { launchPreferences: { model: params.model } }),
+        ...(params.readOnly === true ? { readOnly: true } : {})
+      })
+      let result: Awaited<ReturnType<typeof context.runtime.createAgentSession>>
+      try {
+        result = await context.runtime.createAgentSession(request, { signal: context.signal })
+      } catch (error) {
+        if (params.readOnly === true && error instanceof Error &&
+            (error.message === 'read_only_launch_args_unsupported' || error.message === 'read_only_command_override_unsupported')) {
+          return PlatformProgressCreateRefused.parse({ contractVersion: 1, refused: true, reason: error.message })
+        }
+        throw error
+      }
       return { contractVersion: 1, ...result, binding: captureBinding(context.runtime, result.terminal.handle, params) }
     }
   }),
@@ -128,7 +159,13 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
         kind: 'explicit', worktree: `id:${params.worktreeId}`, agent: params.agent,
         providerSession: params.providerSession, presentation: 'background'
       }), { signal: context.signal })
-      return { contractVersion: 1, ...result, binding: captureBinding(context.runtime, result.terminal.handle, params, params.providerSession) }
+      const binding = captureBinding(context.runtime, result.terminal.handle, params, params.providerSession)
+      if (params.agent === 'codex' && result.disposition === 'created') {
+        let entries = resumeInputs.get(context.runtime)
+        if (!entries) resumeInputs.set(context.runtime, entries = new Map())
+        entries.set(binding.terminalHandle, { bindingHash: hashCanonical(binding) })
+      }
+      return { contractVersion: 1, ...result, binding }
     }
   }),
   defineMethod({ name: 'platform.taskProgress.observe', permission: 'workspace', params: PlatformProgressObserve,
@@ -158,7 +195,21 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
           return { contractVersion: 1, available: false, canSendFeedback: false, reason: 'stale_incarnation', readAt: Date.now() }
       } else binding = params.expectedBinding
       const snapshot = context.runtime.getPlatformTaskProgressSnapshot(binding)
-      if (!snapshot.available) return { ...snapshot, canSendFeedback: false }
+      if (!snapshot.available) {
+        if (snapshot.reason !== 'status_unavailable' || platformBindingState(context.runtime, binding) !== 'current')
+          return { ...snapshot, canSendFeedback: false }
+        // A startup prompt can precede the first hook. It diagnoses the wait, never a completed turn.
+        const interactiveWait = await withTimeout(
+          context.runtime.getTerminalInteractiveWait(binding.terminalHandle).catch(() => undefined), 100, undefined
+        )
+        const resumeReady = interactiveWait === null && resumeInput(context.runtime, binding) &&
+          await withTimeout(context.runtime.isTerminalRunningSettledPromptAgent(binding.terminalHandle, 'codex'), 100, false)
+        if (platformBindingState(context.runtime, binding) !== 'current')
+          return { ...snapshot, reason: 'binding_changed', canSendFeedback: false }
+        return { ...snapshot, canSendFeedback: Boolean(resumeReady && resumeInput(context.runtime, binding)) &&
+          !isTerminalInputLockedForClient(context.runtime, binding.ptyId, { type: 'desktop', id: 'platform-progress' }),
+          ...(interactiveWait === undefined ? {} : { interactiveWait }) }
+      }
       const settled = await context.runtime.isTerminalRunningSettledPromptAgent(binding.terminalHandle)
       const current = context.runtime.getPlatformTaskProgressSnapshot(snapshot.binding)
       const canResume = current.available && EnsureAgentSessionParams.safeParse({ kind: 'explicit',
@@ -188,24 +239,43 @@ export const PLATFORM_TASK_PROGRESS_METHODS = [
           if (isTerminalInputLockedForClient(runtime, params.expectedBinding.ptyId, { type: 'desktop', id: 'platform-progress' }))
             throw new Error('input_locked')
           const snapshot = runtime.getPlatformTaskProgressSnapshot(params.expectedBinding)
-          if (!snapshot.available || !agentProviderSessionsEqual(params.expectedBinding.agent,
-            snapshot.binding.providerSession ?? undefined, params.expectedBinding.providerSession ?? undefined))
+          if (snapshot.available) {
+            if (!agentProviderSessionsEqual(params.expectedBinding.agent,
+              snapshot.binding.providerSession ?? undefined, params.expectedBinding.providerSession ?? undefined))
+              throw new Error('source_only')
+            if (snapshot.status.interactivePrompt || snapshot.status.state === 'blocked') throw new Error('terminal_guard_permission')
+          } else if (snapshot.reason !== 'status_unavailable' || !resumeInput(runtime, params.expectedBinding, mutation.requestId)) {
             throw new Error('source_only')
-          if (snapshot.status.interactivePrompt || snapshot.status.state === 'blocked') throw new Error('terminal_guard_permission')
+          }
         }
         assertWritable()
         if (!(await runtime.isTerminalRunningSettledPromptAgent(params.terminal))) throw new Error('source_only')
         await assertTerminalSendTextWithinLimit(params.text)
         const guard = async () => {
           await assertTerminalAgentSendable({ runtime, handle: params.terminal, assertWritable })
+          if (!runtime.getPlatformTaskProgressSnapshot(params.expectedBinding).available) {
+            if (!(await runtime.isTerminalRunningSettledPromptAgent(params.terminal, 'codex')))
+              throw new Error('source_only')
+            const wait = await withTimeout(runtime.getTerminalInteractiveWait(params.terminal).catch(() => undefined), 100, undefined)
+            if (wait !== null) throw new Error('terminal_guard_permission')
+          }
           assertWritable()
         }
         await guard()
         const send = await runtime.sendTerminalAgentPrompt(params.terminal, params.text, {
           inputKind: 'driving', requestId: mutation.requestId, acceptQueued: true, observationTimeoutMs: 1000,
           signal: context.signal,
-          beforeWrite: async () => { await guard(); effectPossible = true; context.markMutationEffectPossible!() },
-          onInputAccepted: send => context.recordMutationReceipt!({ send })
+          beforeWrite: async () => {
+            await guard()
+            assertWritable()
+            const entry = resumeInput(runtime, params.expectedBinding, mutation.requestId)
+            if (entry) entry.requestId = mutation.requestId
+            effectPossible = true; context.markMutationEffectPossible!()
+          },
+          onInputAccepted: send => {
+            resumeInputs.get(runtime)?.delete(params.terminal)
+            context.recordMutationReceipt!({ send })
+          }
         })
         return { send }
       } catch (error) {

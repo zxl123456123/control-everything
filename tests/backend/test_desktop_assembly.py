@@ -40,6 +40,16 @@ class DesktopAssemblyTests(unittest.TestCase):
             server.serve_forever.assert_called_once_with()
             server.shutdown.assert_called_once_with()
 
+    def test_headless_serves_without_browser_or_window(self):
+        server = Mock(server_port=14401, profile=SimpleNamespace(data_dir=Path('profile')))
+        desktop = Desktop(server, Mock(), window_host=Path('session-panel.exe'))
+        with patch('control_everything.http.desktop.subprocess.run') as run, \
+             patch('control_everything.http.desktop.webbrowser.open') as browser:
+            desktop.serve(headless=True)
+        browser.assert_not_called()
+        run.assert_not_called()
+        server.serve_forever.assert_called_once_with()
+
     def test_saved_endpoints_are_loaded_when_desktop_restarts(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)

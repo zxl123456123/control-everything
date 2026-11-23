@@ -1,0 +1,107 @@
+"""Local identity HTTP parsing; trusted network context is fetched before SQLite writes."""
+import re
+
+from control_everything.http.workbench_remote import local_control_allowed
+from control_everything.integrations.remote_connector import ConnectorError
+from control_everything.input_validation import ProfileError
+from control_everything.workspace.store import WorkspaceError
+from control_everything.workspace.validation import project_id_valid
+
+ROUTE = re.compile(r'/api/workspace/projects/([^/]+)/automation-identities(?:/(contexts|challenges|confirm|revoke|send|acceptor|assignment))?\Z')
+_TRANSPORT_STATES = {'queued', 'sending', 'unknown', 'sent', 'expired'}
+
+
+def handle(handler, path, *, write=False):
+    match = ROUTE.fullmatch(path.path)
+    if not match:
+        return False
+    if not local_control_allowed(handler, write=write):
+        handler.reject(403, 'local_control_required')
+        return True
+    workspace = handler.server.workspace
+    connector = getattr(handler.server, 'remote_connector', None)
+    if workspace is None or handler.profile() is None or connector is None:
+        handler.reject(503, 'workspace_unavailable')
+        return True
+    project_id, action = match.groups()
+    if write == (action in (None, 'contexts')):
+        handler.reject(405, 'method_not_allowed')
+        return True
+    try:
+        if '?' in handler.path or not project_id_valid(project_id):
+            raise ValueError('invalid_request')
+        body = {}
+        if write:
+            # Keep body-budget exceptions outside the ValueError handler below.
+            body = handler.read_json_body(max_bytes=16384, strict=True)
+    except ValueError as error:
+        if str(error) == 'body_too_large':
+            raise
+        handler.reject(400, 'invalid_request')
+        return True
+    try:
+        if getattr(getattr(handler.server, 'desktop', None), 'configuration_changed', False):
+            raise ConnectorError('remote_restart_required', 409)
+        service = workspace.identity_service(connector.current_binding)
+        if action == 'contexts':
+            result = {'contexts':[context for context in connector.list_identity_contexts() if context['project_id'] == project_id]}
+        elif not write:
+            result = {'identities':service.list(project_id)}
+        else:
+            if action == 'assignment':
+                if (type(body) is not dict or set(body) != {'binding_id', 'reviewer_binding_id', 'directory_id', 'enabled'}
+                        or not all(type(body[key]) is str and re.fullmatch('[0-9a-f]{32}', body[key])
+                                   for key in ('binding_id', 'reviewer_binding_id'))
+                        or type(body['directory_id']) is not str or not 1 <= len(body['directory_id']) <= 64
+                        or type(body['enabled']) is not bool):
+                    raise ValueError('invalid_request')
+                result = service.set_assignment_grant(project_id, body['binding_id'], body['reviewer_binding_id'],
+                                                      body['directory_id'], body['enabled'])
+                handler.reply(200, result)
+                return True
+            if action == 'acceptor':
+                if (type(body) is not dict or set(body) != {'task_id', 'binding_id'}
+                        or any(type(body[key]) is not str or not body[key] or len(body[key]) > 256 for key in body)
+                        or not re.fullmatch('[0-9a-f]{32}', body['binding_id'])):
+                    raise ValueError('invalid_request')
+                result = service.designate(project_id, body['task_id'], body['binding_id'])
+                handler.reply(200, result)
+                return True
+            key = {'challenges':'producer_id','send':'producer_id','confirm':'candidate_id','revoke':'binding_id'}[action]
+            if (type(body) is not dict or set(body) != {key} or type(body[key]) is not str or not body[key]
+                    or len(body[key]) > 256 or (action not in ('challenges', 'send') and not re.fullmatch('[0-9a-f]{32}',body[key]))):
+                raise ValueError('invalid_request')
+            if action == 'challenges':
+                context = connector.identity_context(body[key],project_id)
+                result = service.create_challenge(project_id,context)
+            elif action == 'send':
+                context = connector.identity_context(body[key],project_id)
+                created = service.create_challenge(project_id,context)
+                # The nonce exists only until this call returns. Do not retry or include it.
+                try:
+                    reported = connector.register_identity_send(context, created)
+                except ConnectorError as error:
+                    if error.status:
+                        handler.reply(error.status, {'reason': error.code, 'challenge_id': created['challenge_id']})
+                    else:
+                        handler.reply(202, {'challenge_id': created['challenge_id'], 'transport_state': 'unknown'})
+                    return True
+                state = reported.get('state') if type(reported) is dict else None
+                if (type(reported) is not dict or reported.get('challenge_id') != created['challenge_id']
+                        or state not in _TRANSPORT_STATES):
+                    handler.reply(202, {'challenge_id': created['challenge_id'], 'transport_state': 'unknown'})
+                else:
+                    handler.reply(202, {'challenge_id': created['challenge_id'], 'transport_state': state})
+                return True
+            elif action == 'confirm':
+                result = service.confirm(project_id,body[key])
+            else:
+                result = service.revoke(project_id,body[key])
+        handler.reply(201 if action == 'challenges' else 200,result)
+    except ConnectorError as error:
+        handler.reject(error.status or 503,error.code)
+    except (ProfileError,WorkspaceError) as error:
+        handler.profile_error(error)
+    except (ValueError,TypeError,UnicodeError):
+        handler.reject(400,'invalid_request')
+    return True
