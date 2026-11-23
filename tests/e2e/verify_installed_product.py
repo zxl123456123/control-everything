@@ -200,6 +200,32 @@ def verify_desktop_resources(server, opener, web):
     return rows
 
 
+def verify_legacy_resources(legacy, opener, no_redirect_opener, web, legacy_version):
+    from urllib.error import HTTPError
+
+    assets = []
+    for route, relative in ASSETS.items():
+        if route == '/workspace' and not legacy_version:
+            try:
+                no_redirect_opener.open('http://127.0.0.1:%s%s' % (legacy.server_port, route), timeout=5)
+                raise ValueError('workspace_redirect_missing')
+            except HTTPError as response:
+                require(response.code == 302 and response.headers['Location'] == '/studio', 'workspace_redirect')
+                response.close()
+            assets.append({'url': route, 'status': 302, 'location': '/studio'})
+            continue
+        with opener.open('http://127.0.0.1:%s%s' % (legacy.server_port, route), timeout=5) as response:
+            body = response.read()
+            require(body == web.joinpath(relative).read_bytes(), 'resource_bytes:' + route)
+            mime = 'text/html' if relative.endswith('.html') else 'text/css' if relative.endswith('.css') else 'text/javascript'
+            require(response.headers['Content-Type'] == mime + '; charset=utf-8', 'resource_mime:' + route)
+            require(response.headers['X-Content-Type-Options'] == 'nosniff'
+                    and response.headers['Cache-Control'] == 'no-store'
+                    and response.headers['Content-Security-Policy'], 'resource_headers:' + route)
+            assets.append({'url': route, 'sha256': hashlib.sha256(body).hexdigest(), 'mime': mime})
+    return assets
+
+
 def probe(args):
     # Only the explicitly supplied product interpreter can import these packages.
     import importlib.metadata
@@ -247,31 +273,22 @@ def probe(args):
         class NoRedirect(HTTPRedirectHandler):
             def redirect_request(self, *unused):
                 return None
+        no_redirect_opener = build_opener(ProxyHandler({}), NoRedirect())
+        # Published legacy versions predate the Studio redirect contract.
+        legacy_version = result['version'] in {'0.1.0a1', '0.1.0a10', '0.1.0a12', '0.1.0a18', '0.1.0a19'}
         try:
-            build_opener(ProxyHandler({}), NoRedirect()).open(
+            no_redirect_opener.open(
                 'http://127.0.0.1:%s/progress' % server.server_port, timeout=5)
             raise ValueError('profile_redirect_missing')
         except HTTPError as response:
-            # Published legacy versions predate the Studio redirect contract.
-            legacy_versions = {'0.1.0a1', '0.1.0a10', '0.1.0a12', '0.1.0a18', '0.1.0a19'}
-            target = '/workspace#projects' if result['version'] in legacy_versions else '/studio#projects'
+            target = '/workspace#projects' if legacy_version else '/studio#projects'
             require(response.code == 302 and response.headers['Location'] == target, 'profile_redirect')
             response.close()
-        # Legacy resource URLs retain their original bytes outside profile routing.
+        # Check legacy bytes and the versioned retirement redirect without following it.
         legacy = make_server(None, ('127.0.0.1', 0), workspace=server.workspace)
         legacy_thread = threading.Thread(target=legacy.serve_forever)
         legacy_thread.start()
-        assets = []
-        for route, relative in ASSETS.items():
-            with opener.open('http://127.0.0.1:%s%s' % (legacy.server_port, route), timeout=5) as response:
-                body = response.read()
-                require(body == web_root().joinpath(relative).read_bytes(), 'resource_bytes:' + route)
-                mime = 'text/html' if relative.endswith('.html') else 'text/css' if relative.endswith('.css') else 'text/javascript'
-                require(response.headers['Content-Type'] == mime + '; charset=utf-8', 'resource_mime:' + route)
-                require(response.headers['X-Content-Type-Options'] == 'nosniff'
-                        and response.headers['Cache-Control'] == 'no-store'
-                        and response.headers['Content-Security-Policy'], 'resource_headers:' + route)
-                assets.append({'url': route, 'sha256': hashlib.sha256(body).hexdigest(), 'mime': mime})
+        assets = verify_legacy_resources(legacy, opener, no_redirect_opener, web_root(), legacy_version)
         desktop_assets = verify_desktop_resources(server, opener, web_root()) if desktop is not None else []
         require(server.capabilities['execution'] is False, 'paused_execution_enabled')
         store = server.profile.store
