@@ -252,7 +252,10 @@ def probe(args):
                 'http://127.0.0.1:%s/progress' % server.server_port, timeout=5)
             raise ValueError('profile_redirect_missing')
         except HTTPError as response:
-            require(response.code == 302 and response.headers['Location'] == '/workspace#projects', 'profile_redirect')
+            # Published legacy versions predate the Studio redirect contract.
+            legacy_versions = {'0.1.0a1', '0.1.0a10', '0.1.0a12', '0.1.0a18', '0.1.0a19'}
+            target = '/workspace#projects' if result['version'] in legacy_versions else '/studio#projects'
+            require(response.code == 302 and response.headers['Location'] == target, 'profile_redirect')
             response.close()
         # Legacy resource URLs retain their original bytes outside profile routing.
         legacy = make_server(None, ('127.0.0.1', 0), workspace=server.workspace)
