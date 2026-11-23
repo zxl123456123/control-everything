@@ -78,6 +78,85 @@ class InstalledProductAcceptanceTests(unittest.TestCase):
                 self.assertEqual(report['status'], 'failed')
                 self.assertEqual(report['errors'], ['ValueError:fixture_install_stopped'])
 
+    def test_two_versions_migrate_forward_and_rollback_only_compatible_profile(self):
+        candidate, installer, candidate_document = self.candidate('candidate', '0.1.0a20', 'a' * 64)
+        baseline, baseline_installer, baseline_document = self.candidate('baseline', '0.1.0a19', 'b' * 64)
+        evidence = self.root / 'evidence'
+        installed, probes = [], []
+        documents = {str(installer): candidate_document, str(baseline_installer): baseline_document}
+
+        def install(driver, executable, root, label, *, blocked=False):
+            if blocked:
+                self.assertEqual(executable, installer, 'running baseline must block candidate upgrade')
+                return
+            document = documents[str(executable)]
+            installed.append((label, document['version']))
+            version = root / 'versions' / (document['version'] + '-' + document['closure'][:16])
+            version.mkdir(parents=True, exist_ok=True)
+            (version / 'product.json').write_text(json.dumps(document), encoding='utf-8')
+            (root / 'session-panel.cmd').write_bytes(b'fixture launcher')
+            (root / 'unins000.exe').write_bytes(b'fixture uninstaller')
+
+        def run(driver, argv, **options):
+            if 'init' in argv:
+                profile = Path(argv[argv.index('--data-dir') + 1])
+                profile.mkdir()
+                (profile / 'profile.json').write_bytes(b'fixture configuration')
+                (profile / 'workspace-state.sqlite3').write_bytes(b'old schema')
+            if 'preserve-tasks' in argv:
+                profile = Path(argv[argv.index('--data-dir') + 1])
+                backup = profile / 'backups' / 'original.zip'
+                backup.parent.mkdir()
+                backup.write_bytes(b'old schema backup')
+                return json.dumps({'backup': str(backup)})
+            if 'migrate-tasks' in argv:
+                profile = Path(argv[argv.index('--data-dir') + 1])
+                self.assertTrue(str(argv[0]).find('0.1.0a20-') >= 0)
+                (profile / 'workspace-state.sqlite3').write_bytes(b'new schema')
+                return json.dumps({'status': 'ok', 'schema_version': 18})
+            if Path(argv[0]).name == 'unins000.exe':
+                (Path(argv[0]).parent / 'session-panel.cmd').unlink()
+            return ''
+
+        def probe(driver, version, profile, label, *, while_http=None):
+            schema = profile / 'workspace-state.sqlite3'
+            current = version.name.startswith('0.1.0a20-')
+            if not current:
+                self.assertEqual(schema.read_bytes(), b'old schema', 'old runtime received migrated profile')
+            else:
+                self.assertEqual(schema.read_bytes(), b'new schema', 'migration command was skipped')
+            if while_http:
+                while_http()
+            probes.append((label, current, profile.name))
+            return {'label': label}
+
+        with patch.object(acceptance.sys, 'platform', 'win32'), \
+                patch.object(acceptance.platform, 'machine', return_value='AMD64'), \
+                patch.object(acceptance, 'guard_registration'), \
+                patch.object(acceptance, 'isolated_environment', return_value={}), \
+                patch.object(acceptance.Acceptance, 'install', install), \
+                patch.object(acceptance.Acceptance, 'launcher'), \
+                patch.object(acceptance.Acceptance, 'run', run), \
+                patch.object(acceptance.Acceptance, 'probe', probe):
+            self.assertEqual(acceptance.main(['--payload', str(candidate), '--installer', str(installer),
+                             '--second-payload', str(baseline), '--second-installer', str(baseline_installer),
+                             '--evidence', str(evidence)]), 0)
+        self.assertEqual(installed, [('install', '0.1.0a19'), ('upgrade', '0.1.0a20'),
+                         ('rollback', '0.1.0a19'), ('candidate-reselect', '0.1.0a20'),
+                         ('same-version-reinstall', '0.1.0a20')])
+        self.assertEqual(probes[-3:], [('upgraded', True, 'profile-a'),
+                         ('rolled-back', False, 'profile-b'), ('reinstalled', True, 'profile-a')])
+        self.assertEqual((evidence / 'original-profiles/profile-a/workspace-state.sqlite3').read_bytes(), b'old schema')
+        self.assertEqual((evidence / 'profile-a/workspace-state.sqlite3').read_bytes(), b'new schema')
+        self.assertEqual((evidence / 'profile-b/backups/original.zip').read_bytes(), b'old schema backup')
+        report = json.loads((evidence / 'report.json').read_text(encoding='utf-8'))
+        self.assertTrue(report['original_profile_hashes'])
+        self.assertTrue(report['pre_uninstall_profile_hashes'])
+        self.assertTrue(report['original_backup_hashes'])
+        self.assertEqual(report['upgrade_migration']['status'], 'ok')
+        self.assertIn(str(evidence / 'profile-a/workspace-state.sqlite3'), report['pre_uninstall_profile_hashes'])
+        self.assertEqual(report['status'], 'passed')
+
     def test_launcher_matches_each_installed_product_and_rejects_wrong_entry(self):
         version_id = '0.1.0a2-' + 'a' * 16
         version = self.root / 'versions' / version_id

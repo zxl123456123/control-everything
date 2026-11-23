@@ -393,15 +393,11 @@ def main(argv=None):
     profiles = [evidence / 'profile-a', evidence / 'profile-b']
     active = None
     try:
-        acceptance.install(installer, install_root, 'install')
-        acceptance.launcher(install_root, first_id)
-        active = install_root / 'versions' / first_id
-        for module in (('http.desktop' if desktop_product(first) else 'gateway'), 'profile'):
-            acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.' + module, '--help'])
-        acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.native_processes', '--help'], expected=1)
-        acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.mcp_stdio'], stdin=b'')
-        acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8',
-                        active / 'runtime/Lib/site-packages/control_everything/workspace/news_worker.py'], expected=2)
+        baseline_id = second[1] if second else first_id
+        baseline_installer = args.second_installer if second else installer
+        acceptance.install(baseline_installer, install_root, 'install')
+        acceptance.launcher(install_root, baseline_id)
+        active = install_root / 'versions' / baseline_id
         report['probes'] = []
         for index, profile in enumerate(profiles):
             acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.profile', 'init', '--data-dir', profile])
@@ -412,21 +408,48 @@ def main(argv=None):
             backup = json.loads(preserved)['backup']
             acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.profile', 'restore',
                             '--backup', backup, '--data-dir', evidence / ('restored-' + str(index))])
-        saved = {str(path): sha(path) for profile in profiles for path in profile.rglob('*')
-                 if path.is_file() and (path.name in ('profile.json', 'workspace-state.sqlite3') or 'backups' in path.parts)}
+        # Keep immutable pre-upgrade data; an installer rollback cannot downgrade a database.
+        originals = evidence / 'original-profiles'
+        originals.mkdir()
+        for profile in profiles:
+            shutil.copytree(profile, originals / profile.name)
+        original_hashes = {str(path): sha(path) for path in originals.rglob('*') if path.is_file()}
+        report['original_profile_hashes'] = original_hashes
+        backup_hashes = {str(path): sha(path) for profile in profiles for path in profile.rglob('*')
+                         if path.is_file() and 'backups' in path.parts}
+        report['original_backup_hashes'] = backup_hashes
         if second:
-            acceptance.install(args.second_installer, install_root, 'upgrade')
-            acceptance.launcher(install_root, second[1])
-            active = install_root / 'versions' / second[1]
-            require((install_root / 'versions' / first_id).is_dir(), 'old_version_removed')
-            report['probes'].append(acceptance.probe(active, profiles[0], 'upgraded'))
-            # Running the original installer selects its exact preserved payload.
-            acceptance.install(installer, install_root, 'rollback')
+            acceptance.install(installer, install_root, 'upgrade')
             acceptance.launcher(install_root, first_id)
             active = install_root / 'versions' / first_id
+            require((install_root / 'versions' / baseline_id).is_dir(), 'old_version_removed')
+            migration = acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m',
+                                        'control_everything.profile', 'migrate-tasks', '--data-dir', profiles[0]])
+            report['upgrade_migration'] = json.loads(migration)
+            require(report['upgrade_migration']['status'] in ('ok', 'already_current'), 'upgrade_migration_failed')
+            report['probes'].append(acceptance.probe(active, profiles[0], 'upgraded'))
+            # The untouched second profile remains compatible with the baseline runtime.
+            acceptance.install(baseline_installer, install_root, 'rollback')
+            acceptance.launcher(install_root, baseline_id)
+            active = install_root / 'versions' / baseline_id
             report['probes'].append(acceptance.probe(active, profiles[1], 'rolled-back'))
+        if second:
+            acceptance.install(installer, install_root, 'candidate-reselect')
+            acceptance.launcher(install_root, first_id)
+            active = install_root / 'versions' / first_id
         acceptance.install(installer, install_root, 'same-version-reinstall')
         acceptance.launcher(install_root, first_id)
+        active = install_root / 'versions' / first_id
+        for module in (('http.desktop' if desktop_product(first) else 'gateway'), 'profile'):
+            acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.' + module, '--help'])
+        acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.native_processes', '--help'], expected=1)
+        acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8', '-m', 'control_everything.mcp_stdio'], stdin=b'')
+        acceptance.run([active / 'runtime/python.exe', '-I', '-B', '-X', 'utf8',
+                        active / 'runtime/Lib/site-packages/control_everything/workspace/news_worker.py'], expected=2)
+        report['probes'].append(acceptance.probe(active, profiles[0], 'reinstalled'))
+        saved = {str(path): sha(path) for profile in profiles for path in profile.rglob('*')
+                 if path.is_file() and (path.name in ('profile.json', 'workspace-state.sqlite3') or 'backups' in path.parts)}
+        report['pre_uninstall_profile_hashes'] = saved
         sentinel = install_root / 'unknown-user-file.txt'
         sentinel.write_bytes(b'owned acceptance sentinel; installer must preserve unknown files\n')
         uninstaller = install_root / 'unins000.exe'
@@ -437,6 +460,8 @@ def main(argv=None):
         require(sentinel.read_bytes().startswith(b'owned acceptance'), 'unknown_file_deleted')
         require(not (install_root / 'session-panel.cmd').exists(), 'launcher_not_removed')
         require(all(Path(path).is_file() and sha(path) == digest for path, digest in saved.items()), 'profile_or_backup_changed')
+        require(all(Path(path).is_file() and sha(path) == digest for path, digest in original_hashes.items()), 'original_profile_changed')
+        require(all(Path(path).is_file() and sha(path) == digest for path, digest in backup_hashes.items()), 'original_backup_changed')
         guard_registration()
         report['status'] = 'passed'
         report['two_versions'] = bool(second)
