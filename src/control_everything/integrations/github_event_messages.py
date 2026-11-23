@@ -1,4 +1,4 @@
-"""Describe GitHub webhook facts without copying bodies or trusting supplied links."""
+"""Describe GitHub webhook facts with bounded comments and validated links."""
 from datetime import datetime, timedelta, timezone
 import re
 from urllib.parse import unquote, urlsplit
@@ -177,6 +177,11 @@ def render_event(event: str, payload: dict, repository: str, *,
         comment = _mapping(payload.get('comment' if event == 'issue_comment' else 'review'))
         detail += '；原作者：' + _person(comment.get('user'))
         link += '#' + ('issuecomment-' if event == 'issue_comment' else 'pullrequestreview-') + str(_number(comment.get('id')))
+        if event == 'issue_comment' and action in ('created', 'edited'):
+            body = comment.get('body')
+            excerpt = _text(body) if isinstance(body, str) else ''
+            if excerpt:
+                detail += '\n评论内容：' + excerpt[:790] + ('…' if len(excerpt) > 790 else '')
         if event == 'pull_request_review':
             state = _required(comment.get('state')).upper()
             states = {'APPROVED': '已批准', 'CHANGES_REQUESTED': '要求修改', 'COMMENTED': '仅评论', 'DISMISSED': '已撤销', 'PENDING': '尚未提交'}

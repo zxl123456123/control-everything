@@ -155,7 +155,7 @@ class PullRequestEventTests(unittest.TestCase):
 class CommentAndReviewTests(unittest.TestCase):
     def test_issue_and_pr_conversation_comments_have_correct_canonical_anchors(self):
         for action, wording in (('created', '新增评论'), ('edited', '编辑评论'), ('deleted', '删除评论')):
-            data = payload(action, comment={'id': 80, 'body': 'private comment', 'user': {'login': 'commenter'},
+            data = payload(action, comment={'id': 80, 'body': 'current comment', 'user': {'login': 'commenter'},
                                             'html_url': 'https://evil.test/private'})
             for is_pr, path in ((False, '/issues/7'), (True, '/pull/7')):
                 with self.subTest(action=action, is_pr=is_pr):
@@ -167,7 +167,10 @@ class CommentAndReviewTests(unittest.TestCase):
                     self.assertIn('commenter', text)
                     self.assertIn(BASE + path + '#issuecomment-80', text)
                     self.assertNotIn('evil.test', text)
-                    self.assertNotIn('private comment', text)
+                    if action == 'deleted':
+                        self.assertNotIn('current comment', text)
+                    else:
+                        self.assertIn('评论内容：current comment', text)
 
     def test_review_actions_preserve_real_review_state_and_review_author(self):
         for action, wording in (('submitted', '提交评审'), ('edited', '编辑评审'), ('dismissed', '撤销评审')):
@@ -240,6 +243,40 @@ class PushEventTests(unittest.TestCase):
 
 
 class EventCardTests(unittest.TestCase):
+    def test_created_and_edited_comments_show_current_body_as_plain_text(self):
+        from control_everything.integrations.github_event_messages import render_card
+        for action in ('created', 'edited'):
+            with self.subTest(action=action):
+                data = payload(action, comment={'id': 80, 'user': {'login': 'commenter'},
+                    'body': '具体修复内容\n<at id=all>所有人</at> **粗体** [链接](https://evil.test)\x00\u202e'},
+                    changes={'body': {'from': '旧评论不得出现'}})
+                original = deepcopy(data)
+                text = render_event('issue_comment', data, REPO)
+                self.assertIn('评论内容：具体修复内容 ＜at id=all＞所有人＜/at＞ **粗体**', text)
+                self.assertNotIn('旧评论不得出现', text)
+                self.assertNotIn('\x00', text)
+                self.assertNotIn('\u202e', text)
+                card = render_card(text, REPO)
+                excerpt = [e['text'] for e in card['elements'] if e.get('text', {}).get('content', '').startswith('评论内容：')]
+                self.assertEqual(len(excerpt), 1)
+                self.assertEqual(excerpt[0]['tag'], 'plain_text')
+                self.assertIn('[链接](https://evil.test)', excerpt[0]['content'])
+                self.assertEqual(card['elements'][-1]['actions'][0]['url'], BASE + '/issues/7#issuecomment-80')
+                self.assertEqual(data, original)
+
+    def test_comment_excerpt_is_bounded_and_deleted_or_empty_comments_omit_it(self):
+        from control_everything.integrations.github_event_messages import render_card
+        data = payload('created', comment={'id': 80, 'user': {'login': 'commenter'}, 'body': '长' * 5000})
+        text = render_event('issue_comment', data, REPO)
+        self.assertIn('评论内容：' + '长' * 790 + '…', text)
+        self.assertNotIn('长' * 791, text)
+        card = render_card(text, REPO)
+        self.assertEqual(card['elements'][-2]['text']['content'], '评论内容：' + '长' * 790 + '…')
+        for action, body in (('deleted', '删除内容不得出现'), ('created', None), ('edited', ' \n\x00')):
+            with self.subTest(action=action, body=body):
+                data['action'], data['comment']['body'] = action, body
+                self.assertNotIn('评论内容：', render_event('issue_comment', data, REPO))
+
     def test_card_uses_plain_external_text_and_one_primary_view_link(self):
         from control_everything.integrations.github_event_messages import render_card
         body = ('<b>【代码推送】</b>\n仓库：' + REPO +
