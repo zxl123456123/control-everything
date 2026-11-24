@@ -130,6 +130,26 @@ test('refresh disables guarded controls until both local reads finish and restor
   delayed=false; f.click('authorize'); await settle(); assert.equal(f.calls.filter(c=>c.path==='/api/desktop/remote/authorize').length,1); f.dispose();
 });
 
+test('background polling retains controls and refresh feedback while applying new device state',async()=>{
+  for(const mode of ['local','remote']) {
+    let release, delayed=false;
+    const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):delayed?new Promise(resolve=>release=resolve):response(mode==='local'?{state:'online',configured:true}:session({device:{device_id:'test-device',state:'online'}})),{mode});
+    await settle();
+    delayed=true; await f.tick(); await settle();
+    assert.equal(f.get('refresh-controls').disabled,false);
+    assert.equal(f.get('revoke-refresh-controls').disabled,false);
+    assert.equal(f.button('refresh').disabled,false);
+    assert.equal(f.get('refreshing').hidden,true);
+    const reads=f.calls.length; await f.tick(); assert.equal(f.calls.length,reads);
+    delayed=false;
+    release(response(mode==='local'?{state:'offline',configured:true}:session({device:{device_id:'test-device',state:'offline'}})));
+    await settle();
+    assert.equal(f.get('device-state').textContent,'离线');
+    assert.equal(f.get('refreshing').hidden,true);
+    f.dispose();
+  }
+});
+
 test('failed refresh releases controls while retaining explicit error',async()=>{
   let fail=false;const f=fixture(path=>{if(fail)throw new Error('读取失败');return response(path==='/api/bootstrap'?{csrf_token:'local'}:{state:'unbound',configured:true});},{mode:'local'});
   await settle(); fail=true; f.click('refresh'); await settle();
