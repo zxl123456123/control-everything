@@ -301,12 +301,14 @@
       action('authorize').textContent = device?.state === 'authorizing' ? '授权中' : ['online','offline'].includes(device?.state) ? '重新连接电脑' : '连接这台电脑';
       if (admin && (changed || readMembers)) void loadMembers();
     }
-    async function refresh(readMembers = true) {
+    async function refresh(readMembers = true, showFeedback = true) {
       if (disposed || (!remote && busy) || reading) return;
       reading = true; const mine = generation;
-      $('refresh-controls').disabled = $('revoke-refresh-controls').disabled = true;
-      action('refresh').disabled = true;
-      $('refreshing').hidden = false;
+      if (showFeedback) {
+        $('refresh-controls').disabled = $('revoke-refresh-controls').disabled = true;
+        action('refresh').disabled = true;
+        $('refreshing').hidden = false;
+      }
       try {
         if (!remote && !csrf) { const bootstrap = await request('/api/bootstrap'); if (!bootstrap || disposed || mine !== generation) return; csrf = bootstrap.csrf_token; }
         const value = await request(remote ? '/remote/api/session' : '/api/desktop/remote/status');
@@ -320,7 +322,7 @@
       } catch (failure) { if (mine === generation) error(failure); }
       finally {
         reading = false;
-        if (!disposed) { $('refresh-controls').disabled = $('revoke-refresh-controls').disabled = false; action('refresh').disabled = false; $('refreshing').hidden = true; }
+        if (!disposed && showFeedback) { $('refresh-controls').disabled = $('revoke-refresh-controls').disabled = false; action('refresh').disabled = false; $('refreshing').hidden = true; }
         if (recheckPending && !disposed) { recheckPending = false; if (!scope.document.hidden) void refresh(); }
       }
     }
@@ -402,7 +404,7 @@
       if (disposed || (remote && (signedOut || scope.document.hidden))) return;
       timer = scope.setTimeout(() => {
         if (disposed) return;
-        if (!scope.document.hidden && !(remote && busy)) void refresh(false);
+        if (!scope.document.hidden && !(remote && busy)) void refresh(false, false);
         poll();
       }, remote ? 5000 : 2000);
     }
