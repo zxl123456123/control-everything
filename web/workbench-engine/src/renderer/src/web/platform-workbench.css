@@ -1094,3 +1094,28 @@
     outline-offset: -2px;
   }
 }
+
+@media (prefers-reduced-transparency: no-preference) and (forced-colors: none) {
+  :root[data-ce-native-backdrop='true']:has(.platform-project-entry),
+  :root[data-ce-native-backdrop='true'] body,
+  :root[data-ce-native-backdrop='true'] #root,
+  :root[data-ce-native-backdrop='true'] .platform-project-entry {
+    background: transparent;
+  }
+}
+
+/* Native backdrop stays visible through the workspace canvas before a pane is opened. */
+@media (prefers-reduced-transparency: no-preference) and (forced-colors: none) {
+  :root[data-ce-native-backdrop='true'] .platform-project-entry {
+    --ce-workbench-effective-opacity: 0.38;
+    --ce-workbench-editor-opacity: 0.38;
+    --ce-workbench-terminal-opacity: 0.38;
+  }
+  :root[data-ce-native-backdrop='true'] .platform-project-entry [data-workbench-canvas] {
+    background: transparent;
+    backdrop-filter: none;
+  }
+  :root[data-ce-native-backdrop='true'] .platform-project-entry [data-workbench-canvas] [data-terminal-focus-release-surface='true'] {
+    background: transparent;
+  }
+}
