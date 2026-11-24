@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shellapi.h>
+#include <dwmapi.h>
 #include <wrl.h>
 #include <WebView2.h>
 
@@ -95,6 +96,29 @@ private:
         if (SUCCEEDED(webview_->get_Settings(settings.GetAddressOf()))) {
             settings->put_AreHostObjectsAllowed(FALSE);
         }
+        std::wstring backdropScript;
+        HIGHCONTRASTW contrast{sizeof(HIGHCONTRASTW), 0, nullptr};
+        SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0);
+        ComPtr<ICoreWebView2Controller2> transparentController;
+        const DWM_SYSTEMBACKDROP_TYPE backdrop = DWMSBT_TRANSIENTWINDOW;
+        const MARGINS margins{-1, -1, -1, -1};
+        if (!(contrast.dwFlags & HCF_HIGHCONTRASTON) && SUCCEEDED(controller_.As(&transparentController)) &&
+            SUCCEEDED(DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop))) &&
+            SUCCEEDED(DwmExtendFrameIntoClientArea(hwnd_, &margins)) &&
+            SUCCEEDED(transparentController->put_DefaultBackgroundColor(COREWEBVIEW2_COLOR{0, 0, 0, 0}))) {
+            SetClassLongPtrW(hwnd_, GCLP_HBRBACKGROUND, reinterpret_cast<LONG_PTR>(GetStockObject(BLACK_BRUSH)));
+            backdropScript =
+                L"if(window===window.top && location.origin==='" + url_.substr(0, url_.find(L"/studio")) +
+                L"' && location.pathname==='/studio'){"
+                L"const apply=()=>document.documentElement.setAttribute('data-ce-native-backdrop','true');"
+                L"if(document.documentElement)apply();else new MutationObserver((_,o)=>{if(document.documentElement){apply();o.disconnect();}}).observe(document,{childList:true});}";
+
+        } else {
+            const DWM_SYSTEMBACKDROP_TYPE disabled = DWMSBT_NONE;
+            const MARGINS opaque{0, 0, 0, 0};
+            DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE, &disabled, sizeof(disabled));
+            DwmExtendFrameIntoClientArea(hwnd_, &opaque);
+        }
         Resize();
         EventRegistrationToken event{};
         status = webview_->add_NavigationCompleted(
@@ -108,7 +132,40 @@ private:
                     else Fail(L"无法连接本机工作台。", E_FAIL);
                     return S_OK;
                 }).Get(), &event);
-        if (SUCCEEDED(status)) status = webview_->Navigate(url_.c_str());
+        if (FAILED(status)) {
+            Fail(L"无法打开本机工作台。", status);
+            return;
+        }
+        if (!backdropScript.empty()) {
+            status = webview_->AddScriptToExecuteOnDocumentCreated(backdropScript.c_str(),
+                Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
+                    [this](HRESULT result, LPCWSTR) -> HRESULT {
+                        if (!hwnd_ || !webview_) return S_OK;
+                        if (FAILED(result)) RestoreOpaqueBackground();
+                        Navigate();
+                        return S_OK;
+                    }).Get());
+            if (SUCCEEDED(status)) return;
+            RestoreOpaqueBackground();
+        }
+        Navigate();
+    }
+
+    void RestoreOpaqueBackground() {
+        const DWM_SYSTEMBACKDROP_TYPE disabled = DWMSBT_NONE;
+        const MARGINS opaque{0, 0, 0, 0};
+        DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE, &disabled, sizeof(disabled));
+        DwmExtendFrameIntoClientArea(hwnd_, &opaque);
+        SetClassLongPtrW(hwnd_, GCLP_HBRBACKGROUND, reinterpret_cast<LONG_PTR>(GetSysColorBrush(COLOR_WINDOW)));
+        ComPtr<ICoreWebView2Controller2> controller;
+        if (SUCCEEDED(controller_.As(&controller))) {
+            controller->put_DefaultBackgroundColor(COREWEBVIEW2_COLOR{255, 255, 255, 255});
+        }
+        InvalidateRect(hwnd_, nullptr, TRUE);
+    }
+
+    void Navigate() {
+        const HRESULT status = webview_->Navigate(url_.c_str());
         if (FAILED(status)) Fail(L"无法打开本机工作台。", status);
     }
 

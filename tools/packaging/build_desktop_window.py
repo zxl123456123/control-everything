@@ -122,7 +122,7 @@ def build(sdk, output):
                     '/DUNICODE', '/D_UNICODE', '/I' + str(inputs), '/Fo:desktop.obj', '/Fe:' + str(executable),
                     ROOT / SOURCE, 'icon.res', '/link', '/SUBSYSTEM:WINDOWS', '/MACHINE:X64',
                     inputs / 'WebView2LoaderStatic.lib', 'User32.lib', 'Gdi32.lib', 'Shell32.lib', 'Ole32.lib',
-                    'Shlwapi.lib', 'Version.lib', 'Advapi32.lib'], cwd=inputs, env=env, check=True)
+                    'Shlwapi.lib', 'Version.lib', 'Advapi32.lib', 'Dwmapi.lib'], cwd=inputs, env=env, check=True)
     receipt = {'schema': 1, 'sdk_version': SDK_VERSION, 'sdk_sha256': SDK_SHA256,
                'source': {name: sha256(ROOT / name) for name in BUILD_SOURCES},
                'msvc': env.get('VCToolsVersion'),

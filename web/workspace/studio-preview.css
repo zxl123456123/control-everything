@@ -884,3 +884,8 @@ body:has(#ce-studio){margin:0;background:var(--ce-bg,#ffffff)}
  #ce-studio{--ce-bg:Canvas;--ce-panel:Canvas;--ce-text:CanvasText;--ce-sub:CanvasText;--ce-line:CanvasText;--ce-ring:Highlight;--ce-glass:Canvas;--ce-blur:0px}
  #ce-studio .ce-overview-card{background:Canvas;box-shadow:none}
 }
+
+/* Native desktop backdrop reaches the overview through its Shadow DOM host. */
+@media(prefers-reduced-transparency:no-preference) and (forced-colors:none){
+ :host-context(html[data-ce-native-backdrop=true]) #ce-studio[data-unified=true]{background:transparent;backdrop-filter:none}
+}
