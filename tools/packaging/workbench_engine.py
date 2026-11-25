@@ -197,6 +197,10 @@ def build_environment(node, pnpm):
     for key in ('ORCA_PNPM_FORCE_GLOBAL_VIRTUAL_STORE_IN_CI', 'NODE_OPTIONS', 'ORCAD_OUT_DIR',
                 'ORCAD_BUILD_TARGET', 'ORCAD_NODE_RUNTIME_PATH', 'ORCAD_PREBUILDS_DIR', 'ORCA_NODE_RUNTIME_CACHE_DIR'):
         env.pop(key, None)
+    if sys.platform == 'win32':
+        # LINK expands this placeholder itself; keep debug symbols local while
+        # recording only their filename in distributed native addons.
+        env['_LINK_'] = (env.get('_LINK_', '') + ' /PDBALTPATH:%_PDB%').strip()
     env['ORCA_PNPM_GLOBAL_VIRTUAL_STORE'] = '0'
     env['PATH'] = os.pathsep.join((str(node.parent), str(pnpm.parent), env.get('PATH', '')))
     return env

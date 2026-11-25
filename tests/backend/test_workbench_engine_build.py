@@ -299,6 +299,12 @@ class WorkbenchBuildTests(unittest.TestCase):
                                      'ORCA_NODE_RUNTIME_CACHE_DIR': str(self.root / 'outside-provider')}, clear=True):
             env = BUILD.build_environment(self.root / 'node.exe', self.root / 'pnpm.exe')
         self.assertEqual(env['ORCA_PNPM_GLOBAL_VIRTUAL_STORE'], '0')
+        with patch.object(BUILD.sys, 'platform', 'win32'), patch.dict(os.environ, {'_LINK_': '/INCREMENTAL:NO'}):
+            native = BUILD.build_environment(self.root / 'node.exe', self.root / 'pnpm.exe')
+        self.assertEqual(native['_LINK_'], '/INCREMENTAL:NO /PDBALTPATH:%_PDB%')
+        with patch.object(BUILD.sys, 'platform', 'linux'), patch.dict(os.environ, {}, clear=True):
+            other = BUILD.build_environment(self.root / 'node.exe', self.root / 'pnpm.exe')
+        self.assertNotIn('_LINK_', other)
         self.assertNotIn('ORCA_PNPM_FORCE_GLOBAL_VIRTUAL_STORE_IN_CI', env)
         self.assertNotIn('ORCA_NODE_RUNTIME_CACHE_DIR', env)
         cached = BUILD.build_commands('node.exe', 'pnpm.exe', self.unit, self.root / 'run', self.root / 'scratch', self.root / 'shared-downloads')

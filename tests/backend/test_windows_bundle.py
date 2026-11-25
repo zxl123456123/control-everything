@@ -282,9 +282,9 @@ class BuilderTests(PayloadFixture):
         (prepared / 'manifest.json').write_text(json.dumps({'protocol': 2, 'build': 'c' * 64,
             'toolchain': OBSERVER.TOOLCHAIN, 'binary': native.name, 'sha256': MANIFEST.sha256(native)}))
         build_info = {'schema': 1, 'mode': 'release', 'flags': ['--manifest-path', 'native/observer/Cargo.toml', '--locked', '--release'],
-                      'rustflags': '-C target-feature=+crt-static', 'encoded_rustflags': '', 'source_hash': 'c' * 64, 'inputs': []}
+                      'rustflags': '-C target-feature=+crt-static', 'encoded_rustflags': OBSERVER.release_encoded_rustflags(), 'source_hash': 'c' * 64, 'inputs': []}
         (prepared / 'build-info.json').write_text(json.dumps(build_info))
-        producer = SimpleNamespace(source_hash=lambda: 'c' * 64, production_inputs=lambda: [], TOOLCHAIN=OBSERVER.TOOLCHAIN)
+        producer = SimpleNamespace(source_hash=lambda: 'c' * 64, production_inputs=lambda: [], TOOLCHAIN=OBSERVER.TOOLCHAIN, release_encoded_rustflags=OBSERVER.release_encoded_rustflags)
         calls = []
         def runner(command, **kwargs):
             calls.append(command)
@@ -443,13 +443,16 @@ class BuilderTests(PayloadFixture):
         (prepared / 'manifest.json').write_text(json.dumps(native))
         inputs = [{'path': 'native/observer/Cargo.toml', 'sha256': 'b' * 64}]
         provenance = {'schema': 1, 'mode': 'release', 'flags': ['--manifest-path', 'native/observer/Cargo.toml', '--locked', '--release'],
-                      'rustflags': '-C target-feature=+crt-static', 'encoded_rustflags': '', 'source_hash': 'a' * 64, 'inputs': inputs}
+                      'rustflags': '-C target-feature=+crt-static', 'encoded_rustflags': OBSERVER.release_encoded_rustflags(), 'source_hash': 'a' * 64, 'inputs': inputs}
         (prepared / 'build-info.json').write_text(json.dumps(provenance))
-        producer = SimpleNamespace(source_hash=lambda: 'a' * 64, production_inputs=lambda: inputs, TOOLCHAIN=OBSERVER.TOOLCHAIN)
+        producer = SimpleNamespace(source_hash=lambda: 'a' * 64, production_inputs=lambda: inputs, TOOLCHAIN=OBSERVER.TOOLCHAIN, release_encoded_rustflags=OBSERVER.release_encoded_rustflags)
         stage = self.root / 'stage'
         stage.mkdir()
         with patch.object(BUILD, 'observer_builder', return_value=producer):
-            BUILD.add_release_observer(prepared, stage)
+            public = BUILD.add_release_observer(prepared, stage)
+            self.assertNotIn(str(OBSERVER.ROOT), public['encoded_rustflags'])
+            self.assertNotIn(OBSERVER.ROOT.as_posix(), public['encoded_rustflags'])
+            self.assertIn('<checkout>', public['encoded_rustflags'])
             self.assertEqual({path.name for path in (stage / 'native/observer').iterdir()}, {binary.name, 'manifest.json'})
             for change in ({'mode': 'debug'}, {'rustflags': ''},
                            {'encoded_rustflags': '-C\x1ftarget-feature=-crt-static'}):
@@ -640,7 +643,7 @@ class ReleaseBuildTests(unittest.TestCase):
                 self.assertEqual(OBSERVER.main(), 0)
             self.assertIn('--release', run.call_args.args[0])
             self.assertEqual(run.call_args.kwargs['env']['RUSTFLAGS'], '-C target-feature=+crt-static')
-            self.assertNotIn('CARGO_ENCODED_RUSTFLAGS', run.call_args.kwargs['env'])
+            self.assertEqual(run.call_args.kwargs['env']['CARGO_ENCODED_RUSTFLAGS'], '\x1f'.join(['-C', 'target-feature=+crt-static', *(f'--remap-path-prefix={prefix}=/source' for prefix in dict.fromkeys((str(root), root.as_posix())))]))
             release = root / 'work/native-observer/release-install'
             self.assertEqual((release / 'session-panel-observer.exe').read_bytes(), b'MZ release')
             self.assertEqual((install / 'keep.txt').read_bytes(), b'debug sentinel')

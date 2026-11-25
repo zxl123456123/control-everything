@@ -15,6 +15,14 @@ SPEC.loader.exec_module(BUILD)
 
 
 class ObserverBuildTests(unittest.TestCase):
+    def test_release_paths_with_spaces_remain_single_compiler_arguments(self):
+        root = Path('E:/build sources/checkout')
+        with patch.object(BUILD, 'ROOT', root):
+            arguments = BUILD.release_encoded_rustflags().split('\x1f')
+        self.assertEqual(arguments[:2], ['-C', 'target-feature=+crt-static'])
+        self.assertIn(f'--remap-path-prefix={root}=/source', arguments)
+        self.assertIn(f'--remap-path-prefix={root.as_posix()}=/source', arguments)
+
     def test_missing_component_does_not_install_or_fall_back(self):
         with patch.object(BUILD.shutil, "which", return_value="rustup"), \
                 patch.object(BUILD.subprocess, "run", return_value=SimpleNamespace(returncode=1, stdout="")) as run:
