@@ -6,32 +6,45 @@
 
 ## Windows 标准安装
 
-Windows x64 安装器尚未签名。[下载 0.1.0a19 早期测试版](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip)
+### 下载、安装和打开
 
-从源码运行完整工作台，请按[源码构建](../../.github/CONTRIBUTING.md#内置项目工作台源码与构建)准备运行时，再按[开发预览](../../.github/CONTRIBUTING.md#studio-与内置项目工作台开发预览)启动。单独运行管理服务见 [Python 网关启动步骤](usage.md#从源码启动)。
+**0.1.0a19 是 Windows 10/11 x64 的早期测试版。** 安装器尚未签名。这一版测试过从 0.1.0a18 升级，尚未在全新的 Windows 10 和 11 环境中逐一验证安装。[版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19)
 
-`0.1.0a19` 是完整版本号，其中 `a` 表示 alpha（早期测试），`19` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
+1. 下载 [session-panel-0.1.0a19-windows-x64.exe](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/SHA256SUMS.txt)，保存在同一个文件夹。无需另外安装 Python、Node、npm 或 Rust 编译器。
+2. 在资源管理器打开这个文件夹，点地址栏，输入 `powershell` 并按回车。运行下面两行命令。第一行算出你下载的文件的 SHA-256，第二行查出发布者给的值。两串字符应一致，字母大小写可以忽略。如果不同，请重新下载安装器再核对。
 
-此安装包的受测源码为 `1fce4809`。`main` 和 `develop` 的后续源码与文档更新不会改动已发布的安装包；新 EXE 须单独构建、验收并发布。安装版按上述版本说明判断功能与已知限制，源码开发按贡献指南构建和预览。
+   ```powershell
+   (Get-FileHash -Algorithm SHA256 -LiteralPath '.\session-panel-0.1.0a19-windows-x64.exe').Hash
+   Select-String -LiteralPath '.\SHA256SUMS.txt' -SimpleMatch 'session-panel-0.1.0a19-windows-x64.exe'
+   ```
 
-普通用户下载 `session-panel-0.1.0a19-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
+3. 校验一致后，双击 EXE，按安装向导操作。安装仅针对当前 Windows 用户，无需管理员权限，默认目录为 `%LOCALAPPDATA%/Programs/SessionPanel`。目录可以包含中文和空格；若提示路径过长，选择更短的安装目录。安装时可选创建桌面快捷方式。
+4. 从开始菜单打开 **Session Panel**。软件使用 Microsoft Edge WebView2 Runtime 显示独立窗口。首次打开 0.1.0a19，在项目总览点击“进入工作台”，再用“添加项目”选择已有目录、新建项目或克隆仓库。接下来可查看[工作区用法](usage.md#多-agent-工作台)或[浏览器远程访问步骤](usage.md#从浏览器访问自己的电脑)。
 
-安装目录支持中文和空格；当前产品按普通 Windows 路径工作，每个完整交付文件路径须少于260个UTF-16字符。安装器在写入目标前检查整个固定文件清单，超限时提示选择更短目录，不修改系统的长路径策略。
+### 退出与维护前的准备
 
-安装按当前用户运行，无需管理员权限，默认位置为 `%LOCALAPPDATA%/Programs/SessionPanel`。安装后从开始菜单 **Session Panel** 打开独立工作台窗口，安装时可选创建桌面快捷方式。窗口使用 Microsoft Edge WebView2 Runtime，关闭窗口后关闭本次桌面服务。已公开的 0.1.0a10 等较早安装包仍沿用控制台与浏览器入口。端口被占用时明确退出，可从 PowerShell 指定自己的端口和 profile：
+关闭独立窗口会停止本次桌面服务；手动运行 Python 网关时，在它所在的控制台按 Ctrl+C。关闭页面或网关不会停止独立运行的原生观察后台或外部 Agent，也不表示正在运行的任务已经完成。
+
+升级、回退或卸载前，先保存工作，正常结束自己运行的任务并退出软件，停止自己另行启动的全部网关。安装器会核对本安装登记的版本与数据目录，并正常停止属于该安装的观察后台。若提示进程仍在运行或身份无法确认，先查明并正常退出相关实例，再重试；安装器不会按程序名强行结束进程或接管其他安装。
+
+端口被占用时软件会退出，不会自动换端口。需要另选端口或应用数据目录时，可在 PowerShell 中运行下面的命令，将示例数据路径换成自己的绝对路径：
 
 ```powershell
 $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 & $panel --data-dir 'C:/example/SessionPanel/main' --port 14401
 ```
 
-关闭独立窗口即可停止本次桌面服务；手动运行网关时，在所属控制台按 Ctrl+C 正常停止。关闭页面或网关不会终止独立原生观察后台，更不会终止外部 Agent。维护前先停止自己运行的全部网关；安装器会核对本安装登记的全部版本及 profile，并通过每个后台原来的 EXE 正常停止自有观察进程。未知身份、仍运行的 HTTP 或无法证实退出的进程会阻止维护，保留现有入口，不按程序名强杀，不接管其他安装或 profile。
+### 升级、回退和卸载
 
-常规更新无需先卸载：关闭程序后运行新版安装器，选择原安装目录原位升级。升级保留旧版本目录，安装文件核验和登记完成后才切换 `session-panel.cmd`。重新运行可信的原版本安装器可选择该版本的完整闭包；同版本可重新安装。回退前保留 profile 备份，并确认旧程序支持当前配置和管理库格式；安装器不会隐式迁移、降级或搬迁数据。卸载使用 Windows“已安装的应用”中的 **Session Panel**，只处理安装日志和严格核验的自有管理文件；profile、备份和未知用户文件保留。卸载不会替你关闭网关，遇到阻塞先正常退出自己运行的实例，再重试。
+- **升级**时，退出工作台，下载并校验新版安装器，再选择原安装目录。无需先卸载。安装器检查新文件后会切换到新版，并保留旧版目录。
+- **重新安装**时，运行同版本的安装器，选择原安装目录。要**退回旧版**，先备份数据，并确认旧版能读取现在的配置和数据库，再运行对应版本的安装器。安装器会切换程序版本，数据库仍沿用原来的格式。[备份应用数据](usage.md#导入旧记录与恢复)
+- **卸载**时，在 Windows“已安装的应用”中找到 **Session Panel**，点击卸载。卸载程序只清理登记过的程序文件，应用数据、备份和未登记的文件都会保留。如果提示服务仍在运行，请先正常关闭自己启动的服务，再重试。
 
-目标平台为 Windows 10/11 x64；技术预发布的安装器与原生程序目前未签名，上游组件的数字签名不代表组合产品已签名。每次发布说明列出实际验收范围；开发机或托管 Windows runner 的受控 PATH 验收不能替代两种系统的完整干净机器验证。项目源码采用 [MIT 许可证](../../LICENSE)；随产品附带项目许可证及实际依赖的第三方声明与摘要，第三方依赖遵循各自的许可证。
+### 源码与许可证
 
-首次打开 0.1.0a19，在项目总览点击“进入工作台”，再用“添加项目”选择已有目录、新建项目或克隆仓库。查看[工作区用法](usage.md#多-agent-工作台)或[浏览器远程访问步骤](usage.md#从浏览器访问自己的电脑)。
+0.1.0a19 安装包对应的项目源码提交是 `1fce4809`。发布页另提供[第三方依赖的源码 ZIP](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip)。项目采用 [MIT 许可证](../../LICENSE)，各依赖的许可证声明随软件提供。
+
+从源码运行完整工作台，请先按[源码构建](../../.github/CONTRIBUTING.md#内置项目工作台源码与构建)准备运行时，再按[开发预览](../../.github/CONTRIBUTING.md#studio-与内置项目工作台开发预览)启动。单独运行管理服务见 [Python 网关启动步骤](usage.md#从源码启动)。
 
 ## 构建与技术预发布
 
