@@ -1,7 +1,8 @@
-import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { shortDaemonSocketDir } from '../daemon/daemon-socket-endpoint-path'
 import {
   createRuntimeTransportMetadata,
   RUNTIME_SOCKET_NAME_REGEX,
@@ -9,6 +10,15 @@ import {
 } from './runtime-rpc/runtime-rpc-socket-metadata'
 
 describe('sweepOrphanedRuntimeSockets', () => {
+  it.runIf(process.platform !== 'win32')('uses the existing private per-uid socket contract for long macOS profiles', () => {
+    const root = '/Users/example/' + 'long-profile/'.repeat(20)
+    const transport = createRuntimeTransportMetadata(root, process.pid, 'darwin', 'runtime-id')
+    const directory = shortDaemonSocketDir(root, process.getuid!())
+    expect(transport.endpoint).toBe(join(directory, `o-${process.pid}-runt.sock`))
+    expect(Buffer.byteLength(transport.endpoint)).toBeLessThan(104)
+    expect(lstatSync(directory).uid).toBe(process.getuid!())
+    expect(lstatSync(directory).mode & 0o077).toBe(0)
+  })
   // Why: a pid we know is always alive and is never the test runner's own
   // pid — init on POSIX, so process.kill(1, 0) resolves without ESRCH. Using
   // this synthetic pid for ownPid cleanly separates three retention branches

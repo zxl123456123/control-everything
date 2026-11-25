@@ -1,5 +1,6 @@
 import { readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { ensureDaemonSocketDir, resolveDaemonUnixSocketPath } from '../../daemon/daemon-socket-endpoint-path'
 import type { RuntimeTransportMetadata } from '../../../shared/runtime-bootstrap'
 
 /** Why: MUST stay in lockstep with createRuntimeTransportMetadata()'s `o-${pid}-${suffix}.sock` shape (unit-test enforced). */
@@ -55,8 +56,13 @@ export function createRuntimeTransportMetadata(
       endpoint: `\\\\.\\pipe\\orca-${pid}-${endpointSuffix}`
     }
   }
+  const socketName = `o-${pid}-${endpointSuffix}.sock`
+  const endpoint = platform === 'darwin'
+    ? resolveDaemonUnixSocketPath(userDataPath, socketName, platform)
+    : join(userDataPath, socketName)
+  if (platform === 'darwin') ensureDaemonSocketDir(endpoint)
   return {
     kind: 'unix',
-    endpoint: join(userDataPath, `o-${pid}-${endpointSuffix}.sock`)
+    endpoint
   }
 }

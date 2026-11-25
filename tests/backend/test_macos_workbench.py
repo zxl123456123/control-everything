@@ -2,20 +2,39 @@
 
 from dataclasses import replace
 import json
+import hashlib
 import os
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 import sys
 import tempfile
+import stat
 from unittest.mock import Mock, patch
 
 from control_everything.integrations.workbench_runtime import workbench_environment
-from control_everything.platform.darwin_process import DarwinAPI
+from control_everything.platform.darwin_process import DarwinAPI, owned_runtime_socket
+from control_everything.platform.windows_jobs import ProcessError
+from control_everything.http.macos_desktop import news_runtime, smoke_window
 from tests.backend import test_workbench_runtime as fixtures
 
 
 class MacEnvironmentTests(unittest.TestCase):
+    def test_short_socket_matches_profile_hash_user_and_private_directory_ownership(self):
+        state = Path('/profile/' + 'long-directory/' * 20 + 'state')
+        key = hashlib.sha256(str(state).encode()).hexdigest()[:12]
+        endpoint = str(Path('/tmp') / '.orca-daemon-123' / key / 'o-42-runt.sock')
+        directory = SimpleNamespace(st_mode=stat.S_IFDIR | 0o700, st_uid=123)
+        socket = SimpleNamespace(st_mode=stat.S_IFSOCK | 0o600, st_uid=123)
+        with patch('control_everything.platform.darwin_process.os.getuid', return_value=123, create=True), \
+             patch.object(Path, 'resolve', return_value=Path('/private/tmp')), \
+             patch.object(Path, 'lstat', side_effect=[directory, directory, socket]):
+            self.assertEqual(owned_runtime_socket(endpoint, state, 42, 'runtime'), endpoint)
+        with patch('control_everything.platform.darwin_process.os.getuid', return_value=123, create=True), \
+             patch.object(Path, 'resolve', return_value=Path('/private/tmp')), \
+             patch.object(Path, 'lstat', return_value=SimpleNamespace(st_mode=stat.S_IFDIR | 0o700, st_uid=456)):
+            with self.assertRaises(ProcessError):
+                owned_runtime_socket(endpoint, state, 42, 'runtime')
     def test_isolated_environment_has_posix_tools_without_windows_variables(self):
         env = workbench_environment(Path('/profile'), Path('/bundle/node'), Path('/usr/bin/git'),
                                     'http://127.0.0.1:8766', ambient={}, platform='darwin')
@@ -70,12 +89,32 @@ class MacEnvironmentTests(unittest.TestCase):
 class MacArtifactTests(unittest.TestCase):
     setUp = fixtures.WorkbenchRuntimeTests.setUp
     rpc = fixtures.WorkbenchRuntimeTests.rpc
+    def test_window_smoke_requires_studio_load_and_closed_window_report(self):
+        report = self.root / 'window.json'
+        desktop = SimpleNamespace(window_host=self.root / 'session-panel-window',
+                                  server=SimpleNamespace(server_port=12345))
+        def run(command, **options):
+            self.assertEqual(command, [desktop.window_host, '12345', '--smoke-report', report])
+            self.assertEqual(options, {'check': True, 'timeout': 45})
+            report.write_text('{"status":"passed","startupPath":"/studio","windowClosed":true}')
+        with patch('control_everything.http.macos_desktop.subprocess.run', side_effect=run):
+            self.assertTrue(smoke_window(desktop, report)['windowClosed'])
+        with patch('control_everything.http.macos_desktop.subprocess.run'):
+            # A previous successful report cannot validate an invocation that writes nothing.
+            with self.assertRaises(FileNotFoundError):
+                smoke_window(desktop, report)
+        def unclosed(command, **options):
+            report.write_text('{"status":"passed","startupPath":"/studio","windowClosed":false}')
+        with patch('control_everything.http.macos_desktop.subprocess.run', side_effect=unclosed):
+            with self.assertRaisesRegex(ValueError, 'macos_smoke_window_failed'):
+                smoke_window(desktop, report)
     def test_macos_artifact_selects_node_and_system_git(self):
         manifest = self.run / 'output-manifest.json'
         rows = json.loads(manifest.read_text())
         row = next(row for row in rows['files'] if row['path'].endswith('/node.exe'))
         original = self.engine / row['path']
-        row['path'] = row['path'][:-4]
+        row['path'] = row['path'][:-8] + 'bin/node'
+        (self.engine / row['path']).parent.mkdir()
         original.rename(self.engine / row['path'])
         manifest.write_text(json.dumps(rows))
         git = self.root / 'git'
@@ -85,6 +124,31 @@ class MacArtifactTests(unittest.TestCase):
             self.manager._prepare('http://127.0.0.1:12345')
         self.assertEqual(self.manager._node.name, 'node')
         self.assertNotIn('ComSpec', self.manager._env)
+
+    def test_news_uses_verified_bundled_node_and_playwright_and_rejects_changed_bytes(self):
+        root = self.root / 'product'
+        engine, build = root / 'workbench-engine', root / 'build'
+        build.mkdir(parents=True)
+        node = b'fixture macOS node'
+        sha = hashlib.sha256(node).hexdigest()
+        contents = {'out/orcad/.runtime-node': sha.encode(),
+                    f'out/runtimes/node-{sha}/bin/node': node,
+                    'out/node_modules/playwright-core/package.json': b'{"name":"playwright-core","version":"1.64.0"}',
+                    'out/node_modules/playwright-core/index.js': b'fixture browser'}
+        rows = []
+        for name, raw in contents.items():
+            file = engine / name
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_bytes(raw)
+            rows.append({'path': name, 'sha256': hashlib.sha256(raw).hexdigest()})
+        (build / 'build-provenance.json').write_text('{"status":"build_only_verified"}')
+        (build / 'output-manifest.json').write_text(json.dumps({'files': rows}))
+        result = news_runtime(root)
+        self.assertEqual(result['node'], str(engine / f'out/runtimes/node-{sha}/bin/node'))
+        self.assertEqual(result['playwright_core'], str(engine / 'out/node_modules/playwright-core'))
+        (engine / 'out/node_modules/playwright-core/index.js').write_bytes(b'changed')
+        with self.assertRaisesRegex(ValueError, 'news_runtime_build_changed'):
+            news_runtime(root)
 
 
 if __name__ == '__main__':

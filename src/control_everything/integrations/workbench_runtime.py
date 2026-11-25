@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 import uuid
 
 from control_everything.platform.windows_jobs import ProcessError, WindowsAPI
-from control_everything.platform.darwin_process import DarwinAPI
+from control_everything.platform.darwin_process import DarwinAPI, owned_runtime_socket
 from control_everything.integrations.remote_access import public_origin
 
 MAX_MESSAGE = 1024 * 1024
@@ -204,7 +204,7 @@ class WorkbenchRuntime:
         node_sha = marker.read_text(encoding="utf-8").strip() if marker else ""
         if not re.fullmatch("[0-9a-f]{64}", node_sha):
             raise WorkbenchUnavailable("runtime_build_unverified")
-        executable = 'node' if sys.platform == 'darwin' else 'node.exe'
+        executable = 'bin/node' if sys.platform == 'darwin' else 'node.exe'
         required = ["out/orcad/orcad.js", "out/orcad/platform-owner-client.js", f"out/runtimes/node-{node_sha}/{executable}"]
         if any(name not in files for name in required) or digest(files[required[2]]) != node_sha:
             raise WorkbenchUnavailable("runtime_build_unverified")
@@ -327,8 +327,9 @@ class WorkbenchRuntime:
         if len(pipe) != 1 or len(websocket) != 1:
             raise WorkbenchUnavailable("runtime_protocol_error")
         if darwin:
-            endpoint = safe_path(pipe[0])
-            if not endpoint.is_relative_to(safe_path(state)) or not stat.S_ISSOCK(endpoint.stat().st_mode):
+            try:
+                owned_runtime_socket(pipe[0], safe_path(state), self._pid, metadata['runtimeId'])
+            except (ProcessError, OSError):
                 raise WorkbenchUnavailable('runtime_protocol_error')
         elif not pipe[0].startswith("\\\\.\\pipe\\"):
             raise WorkbenchUnavailable('runtime_protocol_error')

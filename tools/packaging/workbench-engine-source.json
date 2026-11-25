@@ -339318,6 +339318,18 @@
       "upstream_sha256": "fc1b40d6c4484d971eb3a6e71399dccb96c0004d2c8736e138dafe1ec3d3b9a9",
       "current_sha256": "e83219666f4427aca0f48b1b84b4956aa77bc3d40b631587d4fd89c56498e27a",
       "reason": "本机任务取消等待执行器启动后复核原实例，并以新鲜存活查询核验停止结果"
+    },
+    {
+      "path": "src/main/runtime/runtime-rpc/runtime-rpc-socket-metadata.ts",
+      "upstream_sha256": "40a204aa1e1a2c66cd4a31a584bf96eb824f98a6624d60672b9510a3477a9d5d",
+      "current_sha256": "cd93342f296869f2ae4fc911993dcbba24bf5a5828986fff5ed6c0ddf5ad19e9",
+      "reason": "macOS 长 profile 的运行时 socket 复用已有同用户私有短路径合同，并验证路径长度与归属。"
+    },
+    {
+      "path": "src/main/runtime/runtime-socket-sweep.test.ts",
+      "upstream_sha256": "9ff55d27e57080bd2ed8b22d68f47a3882d76de6b017a7368742f5f7b223fabb",
+      "current_sha256": "1792833b51426d0838d69749aedb3390db26ce89c69b1bc39f4e59605a38e152",
+      "reason": "macOS 长 profile 的运行时 socket 复用已有同用户私有短路径合同，并验证路径长度与归属。"
     }
   ],
   "reviewed_findings": [

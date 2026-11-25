@@ -1,11 +1,42 @@
 """Owned subprocesses and advisory profile locks for the macOS workbench."""
 
 from datetime import datetime, timezone
+import hashlib
 import os
+from pathlib import Path
 import signal
+import stat
 import subprocess
 
 from control_everything.platform.windows_jobs import ProcessError
+
+
+def owned_runtime_socket(endpoint, state, pid, runtime_id):
+    """Match the engine's existing per-uid short daemon socket contract."""
+    suffix = ''.join(char for char in runtime_id if char.isascii() and (char.isalnum() or char in '_-'))[:4] or 'rt'
+    name = f'o-{pid}-{suffix}.sock'
+    preferred = str(state / name)
+    expected = preferred
+    if len(preferred.encode('utf-8')) > 103:
+        uid = os.getuid()
+        runtime_hash = hashlib.sha256(str(state).encode()).hexdigest()[:12]
+        base = Path('/tmp') / f'.orca-daemon-{uid}'
+        expected = str(base / runtime_hash / name)
+        # Resolve only macOS's system /tmp alias; every private component stays no-follow.
+        base = Path('/tmp').resolve() / base.name
+        for directory in (base, base / runtime_hash):
+            info = directory.lstat()
+            if not stat.S_ISDIR(info.st_mode) or info.st_uid != uid or info.st_mode & 0o077:
+                raise ProcessError('runtime_socket_untrusted')
+        actual = base / runtime_hash / name
+    else:
+        actual = Path(endpoint)
+    if endpoint != expected:
+        raise ProcessError('runtime_socket_untrusted')
+    info = actual.lstat()
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.getuid():
+        raise ProcessError('runtime_socket_untrusted')
+    return endpoint
 
 
 class ProcessGroup(list):

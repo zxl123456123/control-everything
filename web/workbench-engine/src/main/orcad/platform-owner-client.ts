@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { isAbsolute } from 'node:path'
 import { decodePairingOffer } from '../../shared/pairing'
 import { ORCHESTRATION_CONTRACT_VERSION } from '../../shared/protocol-version'
+import { ensureDaemonSocketDir } from '../daemon/daemon-socket-endpoint-path'
 
 const METHODS = new Set(['repo.list', 'repo.add', 'repo.update', 'worktree.list', 'platform.bootstrapDevice', 'platform.revokeDevice'])
 for (const operation of ['create', 'observe', 'resume', 'send', 'receipt', 'stop']) METHODS.add(`platform.taskProgress.${operation}`)
@@ -43,6 +44,7 @@ async function main(): Promise<void> {
   if (!mutation && (request.orchestrationContractVersion !== undefined || request.orchestrationRequestId !== undefined))
     throw new Error('owner_request_invalid')
   const response = await new Promise<{ ok: boolean; result?: unknown }>((resolve, reject) => {
+    if (process.platform === 'darwin') ensureDaemonSocketDir(request.endpoint)
     const socket = createConnection(request.endpoint)
     socket.setEncoding('utf8')
     let pending = ''

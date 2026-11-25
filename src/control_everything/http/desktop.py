@@ -161,7 +161,7 @@ class Desktop:
             raise ConnectorError('remote_worker_cleanup_unverified')
 
 
-def _news_runtime(root, engine_relative, files):
+def _news_runtime(root, engine_relative, files, *, node_executable='node.exe'):
     """Select only browser dependencies covered by the verified product manifest."""
     indexed = {row['path']: row for row in files}
     prefix = engine_relative + '/out/'
@@ -170,7 +170,7 @@ def _news_runtime(root, engine_relative, files):
     if not {marker, core + 'package.json', core + 'index.js'}.issubset(indexed):
         return {}
     node_hash = (root / marker).read_text(encoding='utf-8').strip()
-    node = prefix + 'runtimes/node-' + node_hash + '/node.exe'
+    node = prefix + 'runtimes/node-' + node_hash + '/' + node_executable
     if not re.fullmatch('[a-f0-9]{64}', node_hash) or indexed.get(node, {}).get('sha256') != node_hash:
         raise ValueError('news_runtime_node_identity')
     metadata = manifest.strict_json((root / (core + 'package.json')).read_text(encoding='utf-8'))
