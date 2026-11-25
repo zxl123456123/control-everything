@@ -385,7 +385,8 @@ def release_observer_info(prepared):
     api.exact(info, {'schema', 'mode', 'flags', 'rustflags', 'encoded_rustflags', 'source_hash', 'inputs'}, 'native_build_fields')
     if (type(info['schema']) is not int or info['schema'] != 1 or info['mode'] != 'release'
             or info['flags'] != ['--manifest-path', 'native/observer/Cargo.toml', '--locked', '--release']
-            or info['rustflags'] != '-C target-feature=+crt-static' or info['encoded_rustflags'] != ''
+            or info['rustflags'] != '-C target-feature=+crt-static'
+            or info['encoded_rustflags'] != producer.release_encoded_rustflags()
             or info.get('source_hash') != producer.source_hash() or info.get('inputs') != producer.production_inputs()
             or manifest['build'] != info['source_hash'] or manifest['protocol'] != 2
             or manifest['toolchain'] != producer.TOOLCHAIN or manifest['binary'] != 'session-panel-observer.exe'
@@ -401,7 +402,10 @@ def add_release_observer(prepared, stage):
     target.mkdir(parents=True)
     for name in ('session-panel-observer.exe', 'manifest.json'):
         shutil.copyfile(api.no_links(prepared / name), target / name)
-    return info
+    # Keep exact compiler arguments in the private build receipt, not the payload.
+    public = dict(info)
+    public['encoded_rustflags'] = '-C\x1ftarget-feature=+crt-static\x1f--remap-path-prefix=<checkout>=/source'
+    return public
 
 
 def write_product_manifest(stage, version, source):

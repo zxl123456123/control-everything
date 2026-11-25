@@ -1,7 +1,7 @@
 // node-gyp rebuild of one staged addon against the pinned Node headers, shared by every slot addon.
-import { cpSync, writeFileSync } from 'node:fs'
+import { cpSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { prebuildCompileGypi } from './orcad-prebuild-slot-contents.mjs'
 
 const require = createRequire(import.meta.url)
@@ -25,6 +25,13 @@ export async function nodeGypRebuild({
   staticCxxRuntime,
   runProcess
 }) {
+  if (process.platform === 'win32' && basename(stagedDir) === 'node-pty') {
+    // Keep assertion filenames stable without changing their source line numbers.
+    const sourcePath = join(stagedDir, 'src', 'win', 'conpty.cc')
+    const marker = '#line 1 "/source/node-pty/src/win/conpty.cc"\n'
+    const source = readFileSync(sourcePath, 'utf8')
+    if (!source.startsWith(marker)) writeFileSync(sourcePath, marker + source)
+  }
   const compileGypi = join(workDir, 'prebuild-compile.gypi')
   writeFileSync(compileGypi, prebuildCompileGypi({ staticCxxRuntime }))
   const execute = runProcess ?? (await import('@orca/process-host')).runProcessSync

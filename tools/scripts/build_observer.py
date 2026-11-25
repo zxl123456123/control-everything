@@ -57,6 +57,13 @@ def production_inputs():
             for path in sorted(set(paths))]
 
 
+def release_encoded_rustflags():
+    # Cargo's separator preserves paths containing spaces without shell quoting.
+    prefixes = dict.fromkeys((str(ROOT), ROOT.as_posix()))
+    return '\x1f'.join(['-C', 'target-feature=+crt-static',
+                        *(f'--remap-path-prefix={prefix}=/source' for prefix in prefixes)])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("build", "fmt", "test", "clippy", "lock"))
@@ -80,7 +87,7 @@ def main():
             # The observer runs beside its own manifest, away from Python's CRT DLLs.
             environment = dict(environment)
             environment["RUSTFLAGS"] = "-C target-feature=+crt-static"
-            environment.pop("CARGO_ENCODED_RUSTFLAGS", None)
+            environment["CARGO_ENCODED_RUSTFLAGS"] = release_encoded_rustflags()
         result = subprocess.run([tools["cargo"], *commands[args.command]], cwd=ROOT, env=environment)
         if result.returncode:
             return result.returncode
