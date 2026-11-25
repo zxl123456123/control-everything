@@ -8,18 +8,18 @@
 
 ### 下载、安装和打开
 
-**0.1.0a19 是 Windows 10/11 x64 的早期测试版。** 安装器尚未签名。这一版测试过从 0.1.0a18 升级，尚未在全新的 Windows 10 和 11 环境中逐一验证安装。[版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19)
+**0.1.0a20 是 Windows 10/11 x64 的早期测试版。** 安装器尚未签名。本版已在 GitHub 托管 Windows 的标准用户环境验证从 0.1.0a19 升级、回退到 0.1.0a19、同版重装及卸载；尚未完整覆盖 Windows 10/11 干净机矩阵和个人手机真机登录。[版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a20)
 
-1. 下载 [session-panel-0.1.0a19-windows-x64.exe](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/SHA256SUMS.txt)，保存在同一个文件夹。无需另外安装 Python、Node、npm 或 Rust 编译器。
+1. 下载 [session-panel-0.1.0a20-windows-x64.exe](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a20/session-panel-0.1.0a20-windows-x64.exe) 和同一版本的 [SHA256SUMS.txt](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a20/SHA256SUMS.txt)，保存在同一个文件夹。无需另外安装 Python、Node、npm 或 Rust 编译器。
 2. 在资源管理器打开这个文件夹，点地址栏，输入 `powershell` 并按回车。运行下面两行命令。第一行算出你下载的文件的 SHA-256，第二行查出发布者给的值。两串字符应一致，字母大小写可以忽略。如果不同，请重新下载安装器再核对。
 
    ```powershell
-   (Get-FileHash -Algorithm SHA256 -LiteralPath '.\session-panel-0.1.0a19-windows-x64.exe').Hash
-   Select-String -LiteralPath '.\SHA256SUMS.txt' -SimpleMatch 'session-panel-0.1.0a19-windows-x64.exe'
+   (Get-FileHash -Algorithm SHA256 -LiteralPath '.\session-panel-0.1.0a20-windows-x64.exe').Hash
+   Select-String -LiteralPath '.\SHA256SUMS.txt' -SimpleMatch 'session-panel-0.1.0a20-windows-x64.exe'
    ```
 
 3. 校验一致后，双击 EXE，按安装向导操作。安装仅针对当前 Windows 用户，无需管理员权限，默认目录为 `%LOCALAPPDATA%/Programs/SessionPanel`。目录可以包含中文和空格；若提示路径过长，选择更短的安装目录。安装时可选创建桌面快捷方式。
-4. 从开始菜单打开 **Session Panel**。软件使用 Microsoft Edge WebView2 Runtime 显示独立窗口。首次打开 0.1.0a19，在项目总览点击“进入工作台”，再用“添加项目”选择已有目录、新建项目或克隆仓库。接下来可查看[工作区用法](usage.md#多-agent-工作台)或[浏览器远程访问步骤](usage.md#从浏览器访问自己的电脑)。
+4. 从开始菜单打开 **Session Panel**。软件使用 Microsoft Edge WebView2 Runtime 显示独立窗口。在项目总览点击“打开项目”，选择已有目录、新建项目或克隆仓库。接下来可查看[工作区用法](usage.md#多-agent-工作台)或[浏览器远程访问步骤](usage.md#从浏览器访问自己的电脑)。
 
 ### 退出与维护前的准备
 
@@ -42,7 +42,7 @@ $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 
 ### 源码与许可证
 
-0.1.0a19 安装包对应的项目源码提交是 `1fce4809`。发布页另提供[第三方依赖的源码 ZIP](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip)。项目采用 [MIT 许可证](../../LICENSE)，各依赖的许可证声明随软件提供。
+0.1.0a20 安装包对应的项目源码提交是 [`ee89d667`](https://github.com/zxl123456123/control-everything/commit/ee89d667482c4f5c0dd71919623b8075b6b19204)。发布页另提供[第三方依赖的源码 ZIP](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a20/session-panel-0.1.0a20-sources.zip)。项目采用 [MIT 许可证](../../LICENSE)，各依赖的许可证声明随软件提供。
 
 从源码运行完整工作台，请先按[源码构建](../../.github/CONTRIBUTING.md#内置项目工作台源码与构建)准备运行时，再按[开发预览](../../.github/CONTRIBUTING.md#studio-与内置项目工作台开发预览)启动。单独运行管理服务见 [Python 网关启动步骤](usage.md#从源码启动)。
 
