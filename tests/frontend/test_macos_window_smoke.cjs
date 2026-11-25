@@ -17,27 +17,32 @@ async function page() {
   window.performance.getEntriesByType = () => [];
   window.Element.prototype.getBoundingClientRect = () => ({ width: 100, height: 30, top: 0, left: 0, bottom: 30, right: 100 });
   window.document.body.innerHTML = '<div id="root"></div>';
+  window.eval(fs.readFileSync(path.join(root, 'web/workspace/studio-shell.js'), 'utf8'));
   window.eval(script('smokeDiagnosticsScript'));
   const probe = () => JSON.parse(window.eval(script('smokePageProbe')));
-  const mount = () => {
+  const mount = (projects = [], runtimeAvailable = true) => {
     window.document.getElementById('root').innerHTML = '<section class="platform-studio-surface" style="opacity:1"><div class="platform-studio-host" style="opacity:1"></div></section>';
     const host = window.document.querySelector('.platform-studio-host');
-    host.attachShadow({ mode: 'open' }).innerHTML = '<section id="ce-studio"><input id="studio-project-search" style="opacity:1" type="search"></section>';
+    const overview = window.StudioShell.renderOverview({ projects, runtimeAvailable, query: '', sort: 'updated',
+      viewMode: 'cards', developmentUrl: id => '#project/' + id });
+    host.attachShadow({ mode: 'open' }).innerHTML = '<section id="ce-studio">' + overview + '</section>';
+    for (const element of host.shadowRoot.querySelectorAll('*')) element.style.opacity = '1';
     return host;
   };
   return { window, probe, mount };
 }
 
-test('waits for the real shadow Studio input rather than document body text', async () => {
+test('waits for the actual empty-profile Studio entry rather than document body text', async () => {
   const { window, probe, mount } = await page();
   try {
     assert.equal(probe().ready, false);
     window.document.getElementById('root').textContent = 'Loading';
     assert.equal(probe().ready, false);
-    mount();
+    const host = mount();
+    assert.equal(host.shadowRoot.querySelector('#studio-project-search'), null);
     const loaded = probe();
     assert.equal(loaded.studioMounted, true);
-    assert.equal(loaded.searchFocused, true);
+    assert.equal(loaded.projectEntryFocused, true);
     assert.equal(loaded.ready, true);
   } finally { await window.happyDOM.close(); }
 });
@@ -49,10 +54,23 @@ test('hidden or disabled controls and an error page cannot pass', async () => {
     host.hidden = true;
     assert.equal(probe().ready, false);
     host.hidden = false;
-    host.shadowRoot.querySelector('input').disabled = true;
+    host.shadowRoot.querySelector('[data-action="add-project"]').disabled = true;
     assert.equal(probe().ready, false);
     window.document.getElementById('root').innerHTML = '<div role="alert">Application failed</div>';
     assert.equal(probe().ready, false);
+  } finally { await window.happyDOM.close(); }
+});
+
+test('the same real entry works with projects and absent entry never counts as focused', async () => {
+  const { window, probe, mount } = await page();
+  try {
+    mount([{ id: 'fixture', name: 'Fixture', root: '/fixture' }]);
+    assert.equal(probe().ready, true);
+    mount([], false);
+    const unavailable = probe();
+    assert.equal(unavailable.projectEntryVisible, false);
+    assert.equal(unavailable.projectEntryFocused, false);
+    assert.equal(unavailable.ready, false);
   } finally { await window.happyDOM.close(); }
 });
 

@@ -37,25 +37,22 @@ let smokePageProbe = #"""
   const surface = document.querySelector('.platform-studio-surface');
   const host = surface && surface.querySelector('.platform-studio-host');
   const studio = host && host.shadowRoot && host.shadowRoot.querySelector('#ce-studio');
-  const search = studio && studio.querySelector('#studio-project-search');
+  const entry = studio && studio.querySelector('button[data-action="add-project"]');
   const surfaceVisible = visible(surface) && visible(host);
-  const projectSearchVisible = surfaceVisible && visible(search) && !search.disabled;
-  const filterCount = studio ? [...studio.querySelectorAll('[data-action="active-projects"],[data-action="all-projects"]')]
-    .filter(element => visible(element) && !element.disabled).length : 0;
-  const activeNavigationVisible = surfaceVisible && visible(studio && studio.querySelector('#studio-rail [aria-current="page"]'));
+  const projectEntryVisible = surfaceVisible && visible(entry) && !entry.disabled;
   const alerts = [...document.querySelectorAll('.platform-surface-feedback[role="alert"]'),
     ...(studio ? studio.querySelectorAll('[role="alert"]') : [])].filter(visible).length;
-  if (projectSearchVisible) search.focus();
-  const searchFocused = !!(host && host.shadowRoot && host.shadowRoot.activeElement === search);
+  if (projectEntryVisible) entry.focus();
+  const projectEntryFocused = !!entry && host.shadowRoot.activeElement === entry;
   const diagnostics = window.__ceWindowSmoke || {scriptErrors: 0, unhandledRejections: 0, resourceErrors: 0};
   const sameOriginResources = performance.getEntriesByType('resource').filter(entry => {
     try { return new URL(entry.name, location.href).origin === location.origin; } catch { return false; }
   }).length;
   const ready = location.pathname === '/studio' && document.readyState === 'complete' &&
-    projectSearchVisible && searchFocused;
+    projectEntryVisible && projectEntryFocused;
   return JSON.stringify({ready, pathname: location.pathname, readyState: document.readyState,
     rootChildren: root ? root.childElementCount : 0, studioMounted: !!studio, surfaceVisible,
-    projectSearchVisible, searchFocused, filterCount, activeNavigationVisible, visibleAlerts: alerts,
+    projectEntryVisible, projectEntryFocused, visibleAlerts: alerts,
     scriptCount: document.scripts.length, sameOriginResources, ...diagnostics});
 })();
 """#
