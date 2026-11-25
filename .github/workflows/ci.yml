@@ -1,4 +1,5 @@
 name: repository-checks
+run-name: ${{ inputs.asset_reuse && format('asset-reuse-{0}', inputs.reuse_id) || github.workflow }}
 
 on:
   push:
@@ -18,15 +19,45 @@ on:
       qa_public_key:
         type: string
         description: Ephemeral RSA public key PEM for encrypted evidence
+      asset_reuse:
+        type: boolean
+        default: false
+        description: Copy one verified attachment into an existing draft only
+      reuse_request:
+        type: string
+        default: '{}'
+        description: Fixed repository source and target identities
+      reuse_id:
+        type: string
+        description: Unique client correlation identifier
 
 permissions:
   contents: read
 
 jobs:
+  reuse-release-asset:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.asset_reuse == 'true' && github.event.inputs.installer_qa != 'true' && github.repository == 'zxl123456123/control-everything' && github.ref == 'refs/heads/codex/windows-installer-qa'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Verify and copy one attachment without executing it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REUSE_REQUEST: ${{ inputs.reuse_request }}
+        run: python tools/packaging/reuse_release_asset.py "$RUNNER_TEMP/asset-reuse"
+
   installer-qa:
     permissions:
       contents: write
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.installer_qa == 'true' && github.repository == 'zxl123456123/control-everything' && github.ref == 'refs/heads/codex/windows-installer-qa'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.installer_qa == 'true' && github.event.inputs.asset_reuse != 'true' && github.repository == 'zxl123456123/control-everything' && github.ref == 'refs/heads/codex/windows-installer-qa'
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -63,7 +94,7 @@ jobs:
           retention-days: 3
 
   windows-tests:
-    if: github.event.inputs.installer_qa != 'true'
+    if: github.event.inputs.installer_qa != 'true' && github.event.inputs.asset_reuse != 'true'
     name: windows-tests
     runs-on: windows-latest
     concurrency:
@@ -158,7 +189,7 @@ jobs:
       - run: node --test tests/frontend/test_execution_ui.cjs tests/frontend/test_progress_ui.cjs tests/frontend/test_workspace_history_ui.cjs tests/frontend/test_observation_ui.cjs tests/frontend/test_task_center_ui.cjs tests/frontend/test_observation_build.cjs tests/frontend/test_news_ui.cjs tests/frontend/test_news_build.cjs tests/frontend/test_quota_ui.cjs
 
   architecture-boundaries:
-    if: github.event.inputs.installer_qa != 'true'
+    if: github.event.inputs.installer_qa != 'true' && github.event.inputs.asset_reuse != 'true'
     name: architecture-boundaries
     runs-on: windows-latest
     concurrency:
@@ -178,7 +209,7 @@ jobs:
       - run: python tests/e2e/verify_architecture.py --output work/architecture-ci
 
   new-content-checks:
-    if: github.event.inputs.installer_qa != 'true'
+    if: github.event.inputs.installer_qa != 'true' && github.event.inputs.asset_reuse != 'true'
     name: new-content-checks
     runs-on: windows-latest
     steps:
@@ -199,7 +230,7 @@ jobs:
 
   release-readiness:
     name: release-readiness
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.installer_qa != 'true'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.installer_qa != 'true' && github.event.inputs.asset_reuse != 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
