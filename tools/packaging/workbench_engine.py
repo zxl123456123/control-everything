@@ -13,6 +13,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 UNIT = 'web/workbench-engine'
+DOWNLOAD_STORE = 'work/windows-release/pnpm-store'
 SOURCE_MANIFEST = 'tools/packaging/workbench-engine-source.json'
 UPSTREAM = '32370a5e05a22935adb79f6cbf83a3228fe879ac'
 REPOSITORY = 'https://github.com/stablyai/orca'
@@ -176,7 +177,7 @@ def check_source(root=ROOT):
 
 def build_commands(node, pnpm, unit, run_dir, scratch, store_dir=None):
     install = ['install', '--frozen-lockfile', '--ignore-scripts', '--prefer-offline',
-               '--store-dir', str(store_dir or run_dir / 'store')]
+               '--store-dir', str(store_dir or unit.parent.parent / DOWNLOAD_STORE)]
     return [
         ('install-root', unit, [pnpm, *install]),
         ('install-mobile', unit / 'mobile', [pnpm, *install]),
@@ -411,12 +412,13 @@ def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None, material
     if not Path(node).is_file() or not Path(pnpm).is_file() or pnpm.suffix.lower() != '.exe':
         raise BuildError('explicit_tools_required')
     run_dir = owned_directory(run_dir, root / 'work/workbench-engine-build', fresh=True)
-    if store_dir is not None:
-        if not Path(store_dir).is_absolute():
-            raise BuildError('absolute_store_directory_required')
-        store_dir = unlinked(store_dir)
-        if str(store_dir) == store_dir.anchor or (store_dir.exists() and not store_dir.is_dir()):
-            raise BuildError('invalid_store_directory')
+    if store_dir is None:
+        store_dir = root / DOWNLOAD_STORE
+    if not Path(store_dir).is_absolute():
+        raise BuildError('absolute_store_directory_required')
+    store_dir = unlinked(store_dir)
+    if str(store_dir) == store_dir.anchor or (store_dir.exists() and not store_dir.is_dir()):
+        raise BuildError('invalid_store_directory')
     scratch = owned_directory(scratch_root, root / 'work')
     if scratch != root / 'work/ce-native':
         raise BuildError('fixed_scratch_root_required')
@@ -439,7 +441,7 @@ def build(node, pnpm, scratch_root, run_dir, root=ROOT, store_dir=None, material
     run_dir.mkdir(parents=True)
     scratch.mkdir(parents=True, exist_ok=True)
     provenance = {'schema': 1, **source, 'hostCommit': host, 'dirty': dirty, 'status': 'building',
-                  'downloadStore': str(store_dir or run_dir / 'store'),
+                  'downloadStore': str(store_dir),
                   'tools': {name: {'path': str(path), 'version': version, 'sha256': sha256(path)}
                             for name, path, version in (('node', node, node_version), ('pnpm', pnpm, pnpm_version))}}
     write_json(run_dir / 'build-provenance.json', provenance)

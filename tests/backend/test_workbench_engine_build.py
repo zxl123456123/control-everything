@@ -360,6 +360,60 @@ class WorkbenchBuildTests(unittest.TestCase):
         self.assertEqual(receipt['tools']['pnpm']['sha256'], BUILD.sha256(pnpm))
         self.assertEqual(len(steps.call_args.args[0]), 10)
 
+    def test_build_store_selection_matches_install_commands_and_receipt(self):
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        cached = self.root / 'work/windows-release/pnpm-store'
+        explicit = self.root / 'explicit-store'
+        for name, supplied in (('missing', None), ('cached', None), ('explicit', explicit)):
+            with self.subTest(store=name):
+                if name == 'cached':
+                    cached.mkdir(parents=True)
+                run = self.root / 'work/workbench-engine-build' / name
+                expected = explicit if supplied else cached
+                with patch.object(BUILD, 'checked', side_effect=['v24.19.0', '12.14.0', 'a' * 40, '']), \
+                        patch.object(BUILD, 'check_source', return_value={}), \
+                        patch.object(BUILD, 'run_steps') as steps, \
+                        patch.object(BUILD, 'check_output', return_value={}):
+                    BUILD.build(node, pnpm, self.root / 'work/ce-native', run, self.root, store_dir=supplied)
+                self.assertEqual(BUILD.read_json(run / 'build-provenance.json')['downloadStore'], str(expected))
+                for _, _, command in steps.call_args.args[0][:2]:
+                    self.assertEqual(command[command.index('--store-dir') + 1], str(expected))
+        run = self.root / 'work/workbench-engine-build/helper'
+        commands = BUILD.build_commands(node, pnpm, self.unit, run, self.root / 'work/ce-native')
+        self.assertEqual(commands[0][2][-1], str(cached))
+
+    def test_build_rejects_invalid_default_store_before_install(self):
+        node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
+        node.write_bytes(b'node')
+        pnpm.write_bytes(b'pnpm')
+        cached = self.root / 'work/windows-release/pnpm-store'
+        cached.parent.mkdir(parents=True)
+        target = self.root / 'store-target'
+        target.mkdir()
+        for kind in ('file', 'link', 'dangling-link'):
+            with self.subTest(kind=kind):
+                if kind == 'file':
+                    cached.write_bytes(b'not a directory')
+                else:
+                    self.directory_link(cached, target)
+                    if kind == 'dangling-link':
+                        target.rmdir()
+                try:
+                    run = self.root / 'work/workbench-engine-build' / kind
+                    with patch.object(BUILD, 'check_source', return_value={}), \
+                            patch.object(BUILD, 'run_steps') as steps:
+                        with self.assertRaisesRegex(BUILD.BuildError, 'invalid_store_directory|linked_path'):
+                            BUILD.build(node, pnpm, self.root / 'work/ce-native', run, self.root)
+                    steps.assert_not_called()
+                    self.assertFalse(run.exists())
+                finally:
+                    if os.name == 'nt' and kind != 'file':
+                        cached.rmdir()
+                    else:
+                        cached.unlink()
+
     def test_bad_materials_stop_before_install_or_output_creation(self):
         node, pnpm = self.root / 'node.exe', self.root / 'pnpm.exe'
         node.write_bytes(b'node')
