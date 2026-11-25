@@ -9,7 +9,7 @@ import threading
 from urllib.request import urlopen
 
 from control_everything.http.desktop import Desktop, _news_runtime
-from control_everything.http.gateway import build_profile_server
+from control_everything.http.gateway import APP, build_profile_server
 from control_everything.http.workbench import WorkbenchAssets
 from control_everything.integrations.workbench_runtime import RuntimeConfig, WorkbenchRuntime, safe_path, read_json, digest
 
@@ -87,11 +87,18 @@ def main(argv=None):
             worker.start()
             try:
                 pages = {}
-                for route in ('/workspace', '/workbench'):
+                for route in ('/health', '/studio'):
                     with urlopen(desktop.server.local_origin + route, timeout=10) as response:
                         pages[route] = response.status
-                        if response.status != 200 or not response.read():
+                        body = response.read()
+                        if response.status != 200 or not body:
                             raise ValueError('macos_smoke_page_failed')
+                        if route == '/health':
+                            if json.loads(body) != {'app': APP, 'protocol_version': 1}:
+                                raise ValueError('macos_smoke_health_failed')
+                        elif (response.headers.get_content_type() != 'text/html' or
+                              b'<html' not in body.lower() or b'<script' not in body.lower()):
+                            raise ValueError('macos_smoke_studio_failed')
                 repos = desktop.runtime._rpc('repo.list', {})
                 if not isinstance(repos.get('repos'), list):
                     raise ValueError('macos_smoke_owner_failed')
