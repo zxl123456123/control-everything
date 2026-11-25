@@ -2,6 +2,23 @@
 
 仓库协作约定见 [AGENTS.md](../AGENTS.md)。本指南约束共同交付结果，不要求成员使用同一助手、模型或个人技能。
 
+## macOS 安装候选
+
+macOS 候选沿用 Session Panel 的 Studio、Python 网关和内置项目工作台。窗口宿主在 `native/macos/main.swift`，使用 Cocoa 和 WKWebView。Apple Silicon 和 Intel 各在对应架构上构建 DMG。
+
+在装有 Xcode 命令行工具的 Mac 上，用干净的独立检出和 Python 3.13 虚拟环境，从仓库根目录运行以下命令。Node 使用 24.x，pnpm 使用 12.14.0。Python 须安装项目的 wheel，构建过程会把网页资源装入包内。
+
+```sh
+python -m pip install . PyInstaller==6.22.0
+python tools/packaging/build_macos.py build \
+  --node "$(command -v node)" --pnpm "$(command -v pnpm)" \
+  --run-dir "$PWD/work/macos-installer/candidate"
+```
+
+`candidate.json` 记录磁盘映像路径、架构、SHA-256 和签名状态。打开 DMG，将 Session Panel 拖到「应用程序」，再推出映像。关闭最后一个窗口会触发本机服务退出。默认数据目录为 `~/Library/Application Support/Session Panel`。项目操作使用系统 Git，需要安装 Xcode 命令行工具。
+
+[macOS 安装验证工作流](workflows/macos-installer.yml) 在两种架构上挂载映像、复制应用、推出映像，再通过安装副本打开工作台并执行终端命令。工作流运行记录是该提交的验收依据。候选使用 ad-hoc 签名；Developer ID 签名、公证和面向公众的发行需另行验证。
+
 ## 开发与出包从这里开始
 
 本文是开发工作流总入口；每次构建 EXE 按 [Windows 构建流水线](../docs/guides/windows.md#构建与技术预发布)逐步执行。模块细节继续放在下文，任务过程以本机任务 README 为入口，详细记录与产物按文件管理指南存放，不再另建平行的 workflow、release 或打包说明。

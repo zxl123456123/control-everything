@@ -1,6 +1,7 @@
 /** One bounded owner-pipe request. Auth material arrives on stdin, never argv. */
 import { createConnection } from 'node:net'
 import { randomUUID } from 'node:crypto'
+import { isAbsolute } from 'node:path'
 import { decodePairingOffer } from '../../shared/pairing'
 import { ORCHESTRATION_CONTRACT_VERSION } from '../../shared/protocol-version'
 
@@ -17,7 +18,9 @@ async function main(): Promise<void> {
   }
   const request = JSON.parse(input)
   if (!METHODS.has(request.method) || typeof request.authToken !== 'string' || !request.authToken ||
-      typeof request.endpoint !== 'string' || !request.endpoint.startsWith('\\\\.\\pipe\\') ||
+      typeof request.endpoint !== 'string' || !(process.platform === 'win32'
+        ? request.endpoint.startsWith('\\\\.\\pipe\\')
+        : process.platform === 'darwin' && isAbsolute(request.endpoint) && !request.endpoint.includes('\0')) ||
       typeof request.expectedRuntimeId !== 'string' || !request.expectedRuntimeId) {
     throw new Error('owner_request_invalid')
   }

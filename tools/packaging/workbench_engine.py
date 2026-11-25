@@ -259,8 +259,9 @@ const {readOrcadMobileWebAssetFilenames}=await load('config/scripts/orcad-mobile
 const {computeOrcadFullVersion}=await load('config/scripts/orcad-artifact-version.mjs');
 const {orcadAgentBrowserNativeName}=await load('src/shared/orcad-agent-browser-name.ts');
 const slot=join(root,'out/orcad'), target=readFileSync(join(slot,'.server-target'),'utf8').trim();
-if(target!=='win32-x64') throw Error('unexpected_runtime_target');
-const browser=orcadAgentBrowserNativeName('win32','x64');
+if(target!==(process.argv[1]??'win32-x64')) throw Error('unexpected_runtime_target');
+const [runtimePlatform,runtimeArch]=target.split('-');
+const browser=orcadAgentBrowserNativeName(runtimePlatform,runtimeArch);
 const optional=existsSync(join(slot,browser))?[browser]:[];
 const runtime=[...orcadArtifactFilenames(target,readOrcadMobileWebAssetFilenames(slot)),...optional,'.version'];
 const version=computeOrcadFullVersion(slot,{target,agentBrowserFilename:optional[0]});

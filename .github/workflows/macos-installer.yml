@@ -1,0 +1,113 @@
+name: macos-installer
+
+on:
+  push:
+    paths:
+      - '.github/workflows/macos-installer.yml'
+      - 'native/macos/**'
+      - 'src/control_everything/**'
+      - 'tools/packaging/**'
+      - 'web/**'
+      - 'tests/backend/test_macos*'
+      - 'tests/backend/test_workbench_runtime.py'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'MANIFEST.in'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installation:
+    name: install-${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.runner }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install application and fixed build tools
+        run: |
+          mkdir -p work/macos-installer/logs
+          python -m pip --isolated install . PyInstaller==6.22.0
+          python -m pip check
+          npm install --global pnpm@12.14.0
+          python --version
+          node --version
+          pnpm --version
+          xcrun swiftc --version
+      - name: Run native runtime and packaging tests
+        run: |
+          if python -m unittest -v tests.backend.test_macos_workbench tests.backend.test_macos_packaging >work/macos-installer/logs/native-tests.log 2>&1; then
+            cat work/macos-installer/logs/native-tests.log
+          else
+            code=$?
+            cat work/macos-installer/logs/native-tests.log
+            exit "$code"
+          fi
+      - name: Build native application and disk image
+        run: |
+          if python tools/packaging/build_macos.py build \
+              --node "$(command -v node)" --pnpm "$(command -v pnpm)" \
+              --run-dir "$PWD/work/macos-installer/candidate" >work/macos-installer/logs/build.log 2>&1; then
+            cat work/macos-installer/logs/build.log
+          else
+            code=$?
+            cat work/macos-installer/logs/build.log
+            exit "$code"
+          fi
+      - name: Install from disk image and test the installed copy
+        run: |
+          dmg=$(python -c 'import json; print(json.load(open("work/macos-installer/candidate/candidate.json"))["dmg"])')
+          mount="$PWD/work/macos-installer/mounted"
+          installed="$PWD/work/macos-installer/Installed Applications/Session Panel.app"
+          mkdir -p "$mount" "$(dirname "$installed")"
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount"
+          trap 'hdiutil detach "$mount"' EXIT
+          ditto "$mount/Session Panel.app" "$installed"
+          hdiutil detach "$mount"
+          trap - EXIT
+          codesign --verify --deep --strict "$installed"
+          if python tools/packaging/build_macos.py smoke --app "$installed" \
+              --data-dir "$PWD/work/macos-installer/smoke-profile" \
+              --report "$PWD/work/macos-installer/logs/installed-smoke.json" >work/macos-installer/logs/installed-smoke.log 2>&1; then
+            cat work/macos-installer/logs/installed-smoke.log
+          else
+            code=$?
+            cat work/macos-installer/logs/installed-smoke.log
+            exit "$code"
+          fi
+      # License closure is not verified: publish evidence only, never the candidate payload.
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: macos-evidence-${{ matrix.runner }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            work/macos-installer/logs/
+            work/macos-installer/candidate/*.log
+            work/macos-installer/candidate/steps.json
+            work/macos-installer/candidate/candidate.json
+            work/macos-installer/candidate/build-provenance.json

@@ -8,12 +8,14 @@ from pathlib import Path
 import re
 import secrets
 import stat
+import sys
 import threading
 import time
 from urllib.parse import urlsplit
 import uuid
 
 from control_everything.platform.windows_jobs import ProcessError, WindowsAPI
+from control_everything.platform.darwin_process import DarwinAPI
 from control_everything.integrations.remote_access import public_origin
 
 MAX_MESSAGE = 1024 * 1024
@@ -84,11 +86,13 @@ def loopback_origin(value, scheme="http"):
 
 
 def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_origin=None,
-                          device_proof=None, inherit_host_environment=False, credential_root=None):
+                          device_proof=None, inherit_host_environment=False, credential_root=None, platform=None):
     ambient = os.environ if ambient is None else ambient
+    platform = platform or sys.platform
     system = ambient.get("SystemRoot") or ambient.get("SYSTEMROOT")
-    if not system or not Path(system).is_absolute():
+    if platform != 'darwin' and (not system or not Path(system).is_absolute()):
         raise WorkbenchUnavailable("runtime_system_environment_missing")
+    system = system or '/'
     home = data_root / "home"
     # The pinned node-pty path_util.cc drops the final PATH segment when resolving
     # bare shell names. Keep System32 delimiter-terminated; ordinary Git lookup
@@ -106,6 +110,11 @@ def workbench_environment(data_root, node, git, origin, ambient=None, *, remote_
            "DO_NOT_TRACK": "1", "ORCA_TELEMETRY_DISABLED": "1", "CE_WORKBENCH_ISOLATED": "1",
            "CE_WORKBENCH_ORIGIN": loopback_origin(origin), "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_CONFIG_GLOBAL": str(home / ".gitconfig")}
+    if platform == 'darwin':
+        for key in ('SystemRoot', 'WINDIR', 'ComSpec', 'PATHEXT', 'HOMEDRIVE', 'HOMEPATH'):
+            env.pop(key)
+        env.update(PATH=':'.join((str(node.parent), str(git.parent), '/usr/bin', '/bin', '/usr/sbin', '/sbin')),
+                   LANG=ambient.get('LANG', 'en_US.UTF-8'))
     if inherit_host_environment:
         # Desktop terminals use the user's tools and configuration in place. Only
         # product state and transport ownership belong to the managed runtime.
@@ -195,7 +204,8 @@ class WorkbenchRuntime:
         node_sha = marker.read_text(encoding="utf-8").strip() if marker else ""
         if not re.fullmatch("[0-9a-f]{64}", node_sha):
             raise WorkbenchUnavailable("runtime_build_unverified")
-        required = ["out/orcad/orcad.js", "out/orcad/platform-owner-client.js", f"out/runtimes/node-{node_sha}/node.exe"]
+        executable = 'node' if sys.platform == 'darwin' else 'node.exe'
+        required = ["out/orcad/orcad.js", "out/orcad/platform-owner-client.js", f"out/runtimes/node-{node_sha}/{executable}"]
         if any(name not in files for name in required) or digest(files[required[2]]) != node_sha:
             raise WorkbenchUnavailable("runtime_build_unverified")
         self._entry, self._helper, self._node = (files[name] for name in required)
@@ -206,7 +216,7 @@ class WorkbenchRuntime:
         if not version or len(version) > 255 or any(char.isspace() for char in version):
             raise WorkbenchUnavailable("runtime_build_unverified")
         git = safe_path(self.config.git_executable)
-        if not git.is_file() or git.name.lower() != "git.exe":
+        if not git.is_file() or git.name.lower() != ('git' if sys.platform == 'darwin' else 'git.exe'):
             raise WorkbenchUnavailable("runtime_git_missing")
         marker = data / ".platform-workbench-profile.json"
         if not marker.exists():
@@ -254,6 +264,9 @@ class WorkbenchRuntime:
                              "agentStateRulesLiveUpdates": False, "localWindowsRuntimeDefault": {"kind": "windows-host"}}}), encoding="utf-8")
 
     def _spawn(self, argv):
+        if isinstance(self.api, DarwinAPI):
+            return self.api.launch(self._node, argv, self.config.data_root, self._env, self._job,
+                                   identity='--no-pairing' in argv)
         thread, child = None, ()
         process = stdin = stdout = None
         try:
@@ -308,10 +321,17 @@ class WorkbenchRuntime:
                 or self.api.exit_code(self._process) != 259):
             raise WorkbenchUnavailable("runtime_identity_mismatch")
         transports = metadata.get("transports", [])
-        pipe = [row["endpoint"] for row in transports if row.get("kind") == "named-pipe"]
+        darwin = isinstance(self.api, DarwinAPI)
+        pipe = [row["endpoint"] for row in transports if row.get("kind") == ('unix' if darwin else 'named-pipe')]
         websocket = [row["endpoint"] for row in transports if row.get("kind") == "websocket"]
-        if len(pipe) != 1 or not pipe[0].startswith("\\\\.\\pipe\\") or len(websocket) != 1:
+        if len(pipe) != 1 or len(websocket) != 1:
             raise WorkbenchUnavailable("runtime_protocol_error")
+        if darwin:
+            endpoint = safe_path(pipe[0])
+            if not endpoint.is_relative_to(safe_path(state)) or not stat.S_ISSOCK(endpoint.stat().st_mode):
+                raise WorkbenchUnavailable('runtime_protocol_error')
+        elif not pipe[0].startswith("\\\\.\\pipe\\"):
+            raise WorkbenchUnavailable('runtime_protocol_error')
         ws_origin = loopback_origin(websocket[0], "ws")
         if self._metadata and (metadata["runtimeId"] != self._metadata["runtimeId"] or instance["nonce"] != self._instance["nonce"]):
             raise WorkbenchUnavailable("runtime_identity_mismatch")
@@ -328,7 +348,7 @@ class WorkbenchRuntime:
                 self._release_process()
             self.cleanup_verified = False
             self._prepare(origin)
-            self.api = self.api or WindowsAPI()
+            self.api = self.api or (DarwinAPI() if sys.platform == 'darwin' else WindowsAPI())
             fresh_job = self._job is None
             try:
                 if not self._owner:

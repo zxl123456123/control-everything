@@ -7,10 +7,10 @@ import { tmpdir } from 'node:os'
 import { basename, join, resolve, sep } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-describe.skipIf(process.platform !== 'win32')('platform owner client real pipe transport', () => {
+describe.skipIf(!['win32', 'darwin'].includes(process.platform))('platform owner client real local transport', () => {
   let directory: string, helper: string
   beforeAll(async () => {
-    directory = await mkdtemp(join(tmpdir(), 'ce-owner-client-'))
+    directory = await mkdtemp(join(tmpdir(), 'ce-o-'))
     helper = join(directory, 'owner.cjs')
     await build({
       entryPoints: ['src/main/orcad/platform-owner-client.ts'],
@@ -26,13 +26,15 @@ describe.skipIf(process.platform !== 'win32')('platform owner client real pipe t
     if (
       directory &&
       resolve(directory).startsWith(resolve(tmpdir()) + sep) &&
-      basename(directory).startsWith('ce-owner-client-')
+      basename(directory).startsWith('ce-o-')
     )
       await rm(directory, { recursive: true, force: true })
   })
 
   async function roundTrip(method: string, params: unknown, replyRuntimeId = 'fixture-runtime') {
-    const endpoint = `\\\\.\\pipe\\ce-owner-client-${randomUUID()}`
+    const endpoint = process.platform === 'win32'
+      ? `\\\\.\\pipe\\ce-owner-client-${randomUUID()}`
+      : join(directory, 'o')
     const received: { id: string; method: string; params: unknown; authToken: string }[] = []
     const server = createServer((socket) => {
       let buffer = ''
