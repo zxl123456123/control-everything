@@ -94,6 +94,7 @@
       // Invalidation may synchronously dispose this component; navigation must still happen.
       scope.location.assign(destination);
     }
+    const deviceErrors = {expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'账号尚未开通，请联系管理员后再连接这台电脑。',remote_disconnect_required:'这台电脑仍有原账号的连接，请先撤销旧连接；本地项目继续保留。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已有电脑连接，可能来自这台电脑之前的安装。请打开浏览器账号页核对原连接；确认不再使用后，手动撤销再连接。本地项目继续保留。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。',remote_identity_changed:'账号登录状态已变化，请重新连接电脑并核对账号。',account_login_required:'请先登录账号，再连接这台电脑。'};
     function error(error) {
       if (!disposed && error.name !== 'AbortError') {
         $('status').textContent = error.message; $('status').dataset.tone = 'error';
@@ -124,7 +125,8 @@
         const memberCode = value.reason || value.error;
         const creationError = memberWrite && ({username_exists:'用户名已存在，请刷新成员核对；不会修改原账号或密码。',account_input_rejected:'用户名或密码不符合要求，请检查后重新填写。',account_creation_unknown:'账号创建结果未确认，请先刷新成员核对，勿重复创建；如已存在，可开通该账号。',account_creation_unavailable:'账号创建服务不可用，请联系服务管理员。',account_not_found:'未找到该账号，请刷新成员核对。',account_lookup_unavailable:'无法核对该账号，请刷新后重试开通。'})[memberCode];
         const memberError = (path.startsWith('/remote/api/admin/members?') || path.startsWith('/api/desktop/account/members?')) && ({member_directory_not_configured:'成员目录未配置。',member_directory_unavailable:'成员列表暂时不可用，请刷新重试。'})[value.error];
-        const failure = new Error(creationError || memberError || (memberWrite || remote ? '请求未成功，请刷新状态后重试。' : (value.reason || '本机连接不可用，请重试。')));
+        const deviceError = path.startsWith('/api/desktop/remote/') && deviceErrors[value.reason || value.error];
+        const failure = new Error(creationError || memberError || deviceError || (memberWrite || remote ? '请求未成功，请刷新状态后重试。' : (value.reason || '本机连接不可用，请重试。')));
         failure.status = response.status; throw failure;
       }
       return value;
@@ -262,7 +264,7 @@
       $('device-state').textContent = remoteStates[value.state] || ({unbound:'尚未绑定',authorizing:'授权中',awaiting_local_confirmation:'等待确认'}[value.state] || '未连接');
       $('device-state').dataset.tone = connectionTone(value.state);
       $('device-help').textContent = configured ? '' : configurationSaved ? '服务配置已保存，重新打开软件后连接电脑。' : '请先填写账号和设备服务地址，再连接这台电脑。';
-      $('device-error').textContent = ({expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'账号尚未开通，请联系管理员后再连接这台电脑。',remote_disconnect_required:'这台电脑仍有原账号的连接，请先撤销旧连接；本地项目继续保留。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已绑定另一台电脑，请先在浏览器账号页撤销原连接。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。',remote_identity_changed:'账号登录状态已变化，请重新连接电脑并核对账号。',account_login_required:'请先登录账号，再连接这台电脑。'})[value.code] || '';
+      $('device-error').textContent = deviceErrors[value.code] || '';
       action('authorize').disabled = !configured || value.state === 'authorizing';
       action('authorize').hidden = !configured || value.state === 'awaiting_local_confirmation';
       action('authorize').textContent = value.state === 'authorizing' ? '授权中' : ['online','offline'].includes(value.state) ? '重新连接' : '连接这台电脑';

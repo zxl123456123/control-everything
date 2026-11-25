@@ -365,10 +365,19 @@ test('local authorization links prefer complete URLs and keep confirmation codes
 });
 
 test('computer authorization failures offer recovery without confirming or rebinding',async()=>{
-  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/管理员/],['remote_disconnect_required',/先撤销.*本地项目.*保留/],['device_already_bound',/另一台电脑/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
+  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/管理员/],['remote_disconnect_required',/先撤销.*本地项目.*保留/],['device_already_bound',/之前的安装.*核对.*手动撤销/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:true,state:'unbound',code}),{mode:'local'});await settle();
     assert.match(f.get('device-error').textContent,message);assert.equal(f.calls.some(call=>call.options.method==='POST'),false);f.dispose();
   }
+});
+
+test('a binding conflict on confirmation explains the existing connection without changing it',async()=>{
+  const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):path.endsWith('/status')?response({configured:true,state:'awaiting_local_confirmation',account:{sub:'member'}}):response({reason:'device_already_bound'},409),{mode:'local'});
+  await settle();f.click('confirm');await settle();
+  assert.match(f.get('status').textContent,/已有电脑连接.*之前的安装.*核对.*手动撤销/);
+  assert.doesNotMatch(f.get('status').textContent,/device_already_bound|另一台电脑/);
+  assert.deepEqual(f.calls.filter(call=>call.options.method==='POST').map(call=>call.path),['/api/desktop/remote/confirm']);
+  f.dispose();
 });
 
 const creationPage = items => ({...directoryPage(items || []),account_creation_available:true});

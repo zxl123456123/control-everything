@@ -32,6 +32,26 @@ class RemoteHubServiceTests(unittest.TestCase):
         self.error("device_not_found", self.hub.revoke, B, a["device_id"])
         self.error("device_already_bound", self.hub.begin_enrollment, A, INSTALL, KEY, "Again")
 
+    def test_new_installation_cannot_replace_existing_binding(self):
+        device = bind(self.hub)
+        original = self.hub.store.own_device(A)
+        original_config = self.hub.config(device["control_token"])
+        new_install = "synthetic-installation-reinstalled"
+
+        self.error("device_not_found", self.hub.enrollment_status, A, new_install, KEY_B)
+        error = self.error("device_already_bound", self.hub.begin_enrollment,
+                           A, new_install, KEY_B, "Reinstalled computer")
+        self.assertEqual(error.status, 409)
+        self.assertEqual(self.hub.store.own_device(A), original)
+        self.assertEqual(self.hub.config(device["control_token"]), original_config)
+
+        status = self.hub.enrollment_status(A, INSTALL, KEY)
+        self.assertTrue(status["recoverable"])
+        recovered = complete(self.hub, A, recovery(self.hub, status))
+        self.assertEqual(recovered["device_id"], device["device_id"])
+        self.assertEqual(recovered["generation"], device["generation"])
+        self.assertEqual(recovered["credential_revision"], device["credential_revision"] + 1)
+
     def test_browser_display_name_does_not_change_device_owner(self):
         device = bind(self.hub)
         shown, _ = self.hub.session(replace(A, name="Friendly name"), "")
