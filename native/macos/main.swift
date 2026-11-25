@@ -1,6 +1,65 @@
 import Cocoa
 import WebKit
 
+let smokeDiagnosticsScript = #"""
+(() => {
+  const state = {scriptErrors: 0, errorKinds: [], unhandledRejections: 0, resourceErrors: 0, failedResourcePaths: []};
+  Object.defineProperty(window, '__ceWindowSmoke', {value: state});
+  addEventListener('error', event => {
+    if (event instanceof ErrorEvent) {
+      state.scriptErrors++;
+      const name = event.error && event.error.name;
+      const kind = ['SyntaxError', 'TypeError', 'ReferenceError', 'RangeError', 'Error'].includes(name) ? name : 'UnknownError';
+      if (!state.errorKinds.includes(kind)) state.errorKinds.push(kind);
+    } else if (event.target instanceof HTMLScriptElement || event.target instanceof HTMLLinkElement) {
+      state.resourceErrors++;
+      try {
+        const url = new URL(event.target.src || event.target.href, location.href);
+        if (url.origin === location.origin && state.failedResourcePaths.length < 8)
+          state.failedResourcePaths.push(url.pathname.slice(0, 160));
+      } catch {}
+    }
+  }, true);
+  addEventListener('unhandledrejection', () => { state.unhandledRejections++; });
+})();
+"""#
+
+let smokePageProbe = #"""
+(() => {
+  const visible = element => {
+    if (!element || element.hidden || element.closest('[hidden],[inert]')) return false;
+    const style = getComputedStyle(element), box = element.getBoundingClientRect();
+    return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 &&
+      box.width > 0 && box.height > 0 && box.bottom > 0 && box.right > 0 &&
+      box.top < innerHeight && box.left < innerWidth;
+  };
+  const root = document.getElementById('root');
+  const surface = document.querySelector('.platform-studio-surface');
+  const host = surface && surface.querySelector('.platform-studio-host');
+  const studio = host && host.shadowRoot && host.shadowRoot.querySelector('#ce-studio');
+  const search = studio && studio.querySelector('#studio-project-search');
+  const surfaceVisible = visible(surface) && visible(host);
+  const projectSearchVisible = surfaceVisible && visible(search) && !search.disabled;
+  const filterCount = studio ? [...studio.querySelectorAll('[data-action="active-projects"],[data-action="all-projects"]')]
+    .filter(element => visible(element) && !element.disabled).length : 0;
+  const activeNavigationVisible = surfaceVisible && visible(studio && studio.querySelector('#studio-rail [aria-current="page"]'));
+  const alerts = [...document.querySelectorAll('.platform-surface-feedback[role="alert"]'),
+    ...(studio ? studio.querySelectorAll('[role="alert"]') : [])].filter(visible).length;
+  if (projectSearchVisible) search.focus();
+  const searchFocused = !!(host && host.shadowRoot && host.shadowRoot.activeElement === search);
+  const diagnostics = window.__ceWindowSmoke || {scriptErrors: 0, unhandledRejections: 0, resourceErrors: 0};
+  const sameOriginResources = performance.getEntriesByType('resource').filter(entry => {
+    try { return new URL(entry.name, location.href).origin === location.origin; } catch { return false; }
+  }).length;
+  const ready = location.pathname === '/studio' && document.readyState === 'complete' &&
+    projectSearchVisible && searchFocused;
+  return JSON.stringify({ready, pathname: location.pathname, readyState: document.readyState,
+    rootChildren: root ? root.childElementCount : 0, studioMounted: !!studio, surfaceVisible,
+    projectSearchVisible, searchFocused, filterCount, activeNavigationVisible, visibleAlerts: alerts,
+    scriptCount: document.scripts.length, sameOriginResources, ...diagnostics});
+})();
+"""#
+
 final class WindowHost: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate {
     var window: NSWindow!
     var web: WKWebView!
@@ -8,6 +67,11 @@ final class WindowHost: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNav
     let smokeReport: URL?
     var smokeResult: [String: Any] = ["status": "failed", "reason": "window_not_loaded"]
     var windowClosed = false
+    var smokeDeadline: Date?
+    var smokeTimer: Timer?
+    var probing = false
+    var smokeFinished = false
+    var lastPage: [String: Any] = [:]
 
     init(origin: URL, smokeReport: URL?) {
         self.origin = origin
@@ -32,6 +96,10 @@ final class WindowHost: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNav
         menu.addItem(editItem)
         NSApp.mainMenu = menu
         let config = WKWebViewConfiguration()
+        if smokeReport != nil {
+            config.userContentController.addUserScript(WKUserScript(source: smokeDiagnosticsScript,
+                injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = self
         web.uiDelegate = self
@@ -46,9 +114,9 @@ final class WindowHost: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNav
         NSApp.activate(ignoringOtherApps: true)
         web.load(URLRequest(url: origin.appendingPathComponent("studio")))
         if smokeReport != nil {
-            Timer.scheduledTimer(withTimeInterval: 30, repeats: false) { _ in
-                self.smokeResult = ["status": "failed", "reason": "window_load_timeout"]
-                NSApp.terminate(nil)
+            smokeDeadline = Date().addingTimeInterval(30)
+            smokeTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
+                self.probeStudio()
             }
         }
     }
@@ -59,6 +127,7 @@ final class WindowHost: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNav
 
     func applicationWillTerminate(_ notification: Notification) {
         guard let report = smokeReport else { return }
+        smokeTimer?.invalidate()
         smokeResult["windowClosed"] = windowClosed
         if !windowClosed { smokeResult["status"] = "failed" }
         do {
@@ -70,34 +139,71 @@ final class WindowHost: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNav
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard smokeReport != nil else { return }
-        webView.evaluateJavaScript("JSON.stringify({path:location.pathname,ready:document.readyState,title:document.title,content:document.body.innerText.length})") { value, error in
+        probeStudio()
+    }
+
+    func finishSmoke(reason: String?) {
+        guard !smokeFinished else { return }
+        smokeFinished = true
+        smokeTimer?.invalidate()
+        smokeResult = ["status": reason == nil ? "passed" : "failed", "startupPath": "/studio", "page": lastPage]
+        if let reason = reason { smokeResult["reason"] = reason }
+        window.performClose(nil)
+    }
+
+    func probeStudio() {
+        guard smokeReport != nil && !smokeFinished else { return }
+        if probing {
+            if let deadline = smokeDeadline, Date() >= deadline { finishSmoke(reason: "studio_probe_timeout") }
+            return
+        }
+        probing = true
+        web.evaluateJavaScript(smokePageProbe) { value, error in
+            self.probing = false
             guard error == nil, let text = value as? String, let data = text.data(using: .utf8),
-                  let page = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  page["path"] as? String == "/studio", page["ready"] as? String == "complete",
-                  let content = page["content"] as? Int, content > 0 else {
-                self.smokeResult = ["status": "failed", "reason": "studio_startup_page_invalid"]
-                self.window.performClose(nil)
+                  let page = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                self.lastPage = ["evaluationFailed": true, "errorCode": (error as NSError?)?.code ?? 0]
+                self.finishSmoke(reason: "studio_probe_evaluation_failed")
                 return
             }
-            self.smokeResult = ["status": "passed", "startupPath": "/studio", "title": page["title"] ?? ""]
-            self.window.performClose(nil)
+            self.lastPage = page
+            if page["ready"] as? Bool == true {
+                self.finishSmoke(reason: nil)
+            } else if let deadline = self.smokeDeadline, Date() >= deadline {
+                let scriptError = (page["scriptErrors"] as? Int ?? 0) + (page["unhandledRejections"] as? Int ?? 0)
+                let reason = scriptError > 0 ? "studio_javascript_failed" :
+                    (page["resourceErrors"] as? Int ?? 0) > 0 ? "studio_resource_failed" :
+                    (page["visibleAlerts"] as? Int ?? 0) > 0 ? "studio_application_error" : "studio_mount_timeout"
+                self.finishSmoke(reason: reason)
+            }
         }
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         if smokeReport != nil {
-            smokeResult = ["status": "failed", "reason": "studio_navigation_failed"]
-            window.performClose(nil)
+            lastPage = ["navigationErrorCode": (error as NSError).code]
+            finishSmoke(reason: "studio_navigation_failed")
         }
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        if smokeReport != nil {
+            lastPage = ["navigationErrorCode": (error as NSError).code]
+            finishSmoke(reason: "studio_navigation_failed")
+        }
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        if smokeReport != nil { finishSmoke(reason: "studio_web_process_terminated") }
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor response: WKNavigationResponse,
                  decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         if smokeReport != nil && response.isForMainFrame,
            (response.response as? HTTPURLResponse)?.statusCode != 200 {
-            smokeResult = ["status": "failed", "reason": "studio_http_response_invalid"]
             decisionHandler(.cancel)
-            window.performClose(nil)
+            lastPage = ["httpStatus": (response.response as? HTTPURLResponse)?.statusCode ?? 0]
+            finishSmoke(reason: "studio_http_response_invalid")
             return
         }
         decisionHandler(.allow)
