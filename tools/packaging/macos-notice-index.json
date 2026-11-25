@@ -1,0 +1,222 @@
+{
+  "schema": 1,
+  "basis": "Local reviewed a20 r4 package metadata identities; notice text must match byte-exact public v0.1.0a19 attachment independently per package. This is not a registry source proof.",
+  "reviewed_distribution": {
+    "run": "a20-release-glass-final-r4",
+    "file": "distribution-notices.json",
+    "sha256": "fbf3384912644fe29250fa039379cd820686f5919bce6123a9f8aaddfd37fa9e"
+  },
+  "attachment": {
+    "url": "https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/DESKTOP-NOTICES.json",
+    "sha256": "7dce0c0379a6a707a669c0981ce1de3ef553c440444b5ae6886f7e06563f0f76"
+  },
+  "packages": [
+    {
+      "name": "expo-crypto",
+      "version": "55.0.19",
+      "metadataSha256": "323b5e52084c8ed2c2ffd05f6713b84efa1c3c483279ffa17e81ac530c0ca7c8",
+      "notices": [
+        {
+          "sha256": "fb3ca4a837f5779e83cef89b78253a8949cfb9429c340309f62d0465ec6610b4",
+          "source": "https://raw.githubusercontent.com/expo/expo/856b99321eeb04bd528b33f90c0e7fa2859a1fcb/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "@react-native/assets-registry",
+      "version": "0.83.10",
+      "metadataSha256": "78abb28ff2206c83e3a094ea74fd99d5787270a08f83b182ca218ad925134100",
+      "notices": [
+        {
+          "sha256": "40cf3c65e529ae1716ac09baa397a9626c3bf1bc59eb4d19f12e3ee3d6e39e9f",
+          "source": "https://raw.githubusercontent.com/react/react-native/ff4f96a23b85b30d8de9331dfac2895f385f67b0/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "expo-router",
+      "version": "55.0.18",
+      "metadataSha256": "7db2e2689448c7f50d426050ada464b025932e14f0cba56e110cb0e3c6f9a8ca",
+      "notices": [
+        {
+          "sha256": "fb3ca4a837f5779e83cef89b78253a8949cfb9429c340309f62d0465ec6610b4",
+          "source": "https://raw.githubusercontent.com/expo/expo/764641f87074c1e49d004790c5a5983f4b5bfc6b/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "@react-native/normalize-colors",
+      "version": "0.74.89",
+      "metadataSha256": "236927f50672c4cb51f9eed35ac6753aad3e156735333085786f8ec61dd5325f",
+      "notices": [
+        {
+          "sha256": "40cf3c65e529ae1716ac09baa397a9626c3bf1bc59eb4d19f12e3ee3d6e39e9f",
+          "source": "https://raw.githubusercontent.com/facebook/react-native/a2066d730d933126bbf7055f4e47c575936e62f3/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "expo-modules-core",
+      "version": "55.0.26",
+      "metadataSha256": "c1372bed7de8309aaa4b6f67091626026a846524038b8cd74ee9e7f45673cee3",
+      "notices": [
+        {
+          "sha256": "fb3ca4a837f5779e83cef89b78253a8949cfb9429c340309f62d0465ec6610b4",
+          "source": "https://raw.githubusercontent.com/expo/expo/30a1c5b4871a5a3f0f6545be0c2d1f67521a5e6f/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "expo-constants",
+      "version": "55.0.17",
+      "metadataSha256": "31a793b027d51d38217d9c44f6f0b13a08bf8c48a3fc349f5264923e876f3fb3",
+      "notices": [
+        {
+          "sha256": "fb3ca4a837f5779e83cef89b78253a8949cfb9429c340309f62d0465ec6610b4",
+          "source": "https://raw.githubusercontent.com/expo/expo/c8f16914a2713c37fe446c46d613004626b3e6b3/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "expo-linking",
+      "version": "55.0.17",
+      "metadataSha256": "1eb95e8e9994d99417c0a88d80d2cda9a7ec350b05dd282b9f608e1a495a55b6",
+      "notices": [
+        {
+          "sha256": "fb3ca4a837f5779e83cef89b78253a8949cfb9429c340309f62d0465ec6610b4",
+          "source": "https://raw.githubusercontent.com/expo/expo/764641f87074c1e49d004790c5a5983f4b5bfc6b/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "expo",
+      "version": "55.0.31",
+      "metadataSha256": "6d48fb3c39856713b359dac088005a6cc113e479467e6cf96e1948177431819a",
+      "notices": [
+        {
+          "sha256": "fb3ca4a837f5779e83cef89b78253a8949cfb9429c340309f62d0465ec6610b4",
+          "source": "https://raw.githubusercontent.com/expo/expo/30a1c5b4871a5a3f0f6545be0c2d1f67521a5e6f/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "@radix-ui/react-compose-refs",
+      "version": "1.1.2",
+      "metadataSha256": "4373969b0a688de99b33ed5c24cf91d707f638573f24fbd2dd2ad2c441c9b34c",
+      "notices": [
+        {
+          "sha256": "1f9c8b5f18f386c7f70bf9e513242e43180ff08d587736e40e8a00c93ba06baa",
+          "source": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "expo-glass-effect",
+      "version": "55.0.11",
+      "metadataSha256": "9e92584ccb4bc383f9bec59df9fcff45d89a540ca0d18d6c045dbbc37e73c26c",
+      "notices": [
+        {
+          "sha256": "fb3ca4a837f5779e83cef89b78253a8949cfb9429c340309f62d0465ec6610b4",
+          "source": "https://raw.githubusercontent.com/expo/expo/7c081282cf88968f81732feb67a71840e769a40f/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "@xterm/headless",
+      "version": "6.1.0-beta.303",
+      "metadataSha256": "6105c670cb38c9e6d99c70a24ac5b7cc1cb13ddf6fb7c5d62abcfa21b90cf78e",
+      "notices": [
+        {
+          "sha256": "b569f629d00f2626a8100df2a1798210535621e42164dfd426a6fe5aac7b0ccd",
+          "source": "https://raw.githubusercontent.com/xtermjs/xterm.js/c58ea3637f3968e0e6e79cd92cf9aace7ef89ee2/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "@xterm/addon-serialize",
+      "version": "0.15.0-beta.301",
+      "metadataSha256": "f3770020bd7625152fe3ba924f0b568706f6d887fce1a8110ca1de92e761cab8",
+      "notices": [
+        {
+          "sha256": "b569f629d00f2626a8100df2a1798210535621e42164dfd426a6fe5aac7b0ccd",
+          "source": "https://raw.githubusercontent.com/xtermjs/xterm.js/c58ea3637f3968e0e6e79cd92cf9aace7ef89ee2/LICENSE"
+        }
+      ]
+    },
+    {
+      "name": "rehype-katex",
+      "version": "7.0.1",
+      "metadataSha256": "c8a2a4b5fafa4145ef6c073806608967187be300c523685273fb188bc8d398bc",
+      "notices": [
+        {
+          "sha256": "cb992262f361a5359e6771c28740d33c7041e15332ae8537fae40538992591a9",
+          "source": "https://raw.githubusercontent.com/remarkjs/remark-math/88a9497e1ede93b958237c85edbf5651faeca7af/license"
+        }
+      ]
+    },
+    {
+      "name": "format",
+      "version": "0.2.2",
+      "metadataSha256": "0754698e3180d26da07fa0ca1fbfce331c0e1652db512aee35b443204bdec553",
+      "notices": [
+        {
+          "sha256": "e078ab4217332db9ac446cdf23e932eabd21d6db7c239a6495df4d3802251f20",
+          "source": "https://registry.npmjs.org/format/-/format-0.2.2.tgz!package/Readme.md"
+        },
+        {
+          "sha256": "75bd0d442091ebfb2ab8f7e3a1d507686fc7c9e87a1579558e2537e7b2b447a4",
+          "source": "https://raw.githubusercontent.com/remy/mit-license/73ebb8ca1e2280883e92498e18fcdb1c633c226c/licenses/MIT.ejs"
+        },
+        {
+          "sha256": "a7ebf86c82df7f2c28c1ef515d5a2b8e93713b33d04e93fe2e571c0d3e67982e",
+          "source": "https://raw.githubusercontent.com/remy/mit-license/73ebb8ca1e2280883e92498e18fcdb1c633c226c/users/sjs.json"
+        },
+        {
+          "sha256": "51c43c1fde55cdcd7714c4674bc12a1d25102820d87676eeff57d84bd032c4c2",
+          "source": "https://raw.githubusercontent.com/remy/mit-license/73ebb8ca1e2280883e92498e18fcdb1c633c226c/routes/get.js"
+        },
+        {
+          "sha256": "44ee42b9750a1f9352b94ecc29c13799fd153170b7613c0497c9bf42b5d3192f",
+          "source": "https://raw.githubusercontent.com/remy/mit-license/73ebb8ca1e2280883e92498e18fcdb1c633c226c/lib/load-user.js"
+        }
+      ]
+    },
+    {
+      "name": "remark-math",
+      "version": "6.0.0",
+      "metadataSha256": "936d400d2c2a3f121c4d2b6b84b8a891af02852032b0dcb31f0407d2d6a4364f",
+      "notices": [
+        {
+          "sha256": "cb992262f361a5359e6771c28740d33c7041e15332ae8537fae40538992591a9",
+          "source": "https://raw.githubusercontent.com/remarkjs/remark-math/d5d0660b150810a535bbb07eac6cc96a4510aa24/license"
+        }
+      ]
+    },
+    {
+      "name": "fastdom",
+      "version": "1.0.12",
+      "metadataSha256": "59d7cb811e170491bac1d4bc3c881a2fa3f23f50691ed60e6bd9bb9a1e197858",
+      "notices": [
+        {
+          "sha256": "cc5669ab6f7741bb061c8a7244addc8e3af1f84ec7d2445744b59d0169a87d11",
+          "source": "https://registry.npmjs.org/fastdom/-/fastdom-1.0.12.tgz!package/README.md"
+        }
+      ]
+    },
+    {
+      "name": "react-remove-scroll-bar",
+      "version": "2.3.8",
+      "metadataSha256": "e372f857ce05f266137c65293436b5380fec42ac311e6acb9378ed78b98d75d0",
+      "notices": [
+        {
+          "sha256": "486442209236ffa3893312e508694699a6b8834d30a2f9c083c1f3379983e4f9",
+          "source": "https://registry.npmjs.org/react-remove-scroll-bar/-/react-remove-scroll-bar-2.3.8.tgz!package/README.md"
+        },
+        {
+          "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84",
+          "source": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE"
+        }
+      ]
+    }
+  ]
+}

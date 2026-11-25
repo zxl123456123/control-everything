@@ -17,7 +17,7 @@ python tools/packaging/build_macos.py build \
 
 `candidate.json` 记录磁盘映像路径、架构、SHA-256 和签名状态。打开 DMG，将 Session Panel 拖到「应用程序」，再推出映像。关闭最后一个窗口会触发本机服务退出。默认数据目录为 `~/Library/Application Support/Session Panel`。项目操作使用系统 Git，需要安装 Xcode 命令行工具。
 
-[macOS 安装验证工作流](workflows/macos-installer.yml) 在两种架构上挂载映像、复制应用、推出映像，再通过安装副本打开工作台并执行终端命令。工作流运行记录是该提交的验收依据。候选使用 ad-hoc 签名；Developer ID 签名、公证和面向公众的发行需另行验证。
+[macOS 安装验证工作流](workflows/macos-installer.yml) 在两种架构上挂载映像、复制应用、推出映像，再通过安装副本打开工作台并执行终端命令。工作流运行记录是该提交的验收依据。通过安装、真实窗口、终端和候选许可材料检查后，可在该次运行的 Artifacts 下载对应架构的 DMG 和 SHA-256。候选使用 ad-hoc 签名，尚未获得 Apple 公证。当前 Mac 候选覆盖本地工作台。账号绑定、远程设备接入、Windows 原生进程观察和离线翻译模型仍限于各自已有发行范围。
 
 ## 开发与出包从这里开始
 

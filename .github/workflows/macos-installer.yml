@@ -5,9 +5,12 @@ on:
     paths:
       - '.github/workflows/macos-installer.yml'
       - 'native/macos/**'
-      - 'src/control_everything/**'
-      - 'tools/packaging/**'
-      - 'web/**'
+      - 'src/control_everything/http/macos*.py'
+      - 'src/control_everything/platform/darwin_process.py'
+      - 'src/control_everything/integrations/workbench_runtime.py'
+      - 'tools/packaging/*macos*'
+      - 'tools/packaging/workbench_engine.py'
+      - 'setup.py'
       - 'tests/backend/test_macos*'
       - 'tests/backend/test_workbench_runtime.py'
       - 'pyproject.toml'
@@ -97,7 +100,28 @@ jobs:
             cat work/macos-installer/logs/installed-smoke.log
             exit "$code"
           fi
-      # License closure is not verified: publish evidence only, never the candidate payload.
+      - name: Verify candidate notices and record image checksum
+        working-directory: work/macos-installer/candidate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          candidate = json.loads(Path("candidate.json").read_text())
+          if not candidate["candidate_notices_ready"]:
+              raise SystemExit(f"Missing candidate notices: {candidate['notice_missing']}")
+          image = Path(candidate["dmg"])
+          Path("SHA256SUMS.txt").write_text(f"{candidate['sha256']}  {image.name}\n")
+          PY
+          shasum -a 256 -c SHA256SUMS.txt
+      - name: Upload tested disk image
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Session-Panel-${{ runner.arch }}-macOS
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            work/macos-installer/candidate/*.dmg
+            work/macos-installer/candidate/SHA256SUMS.txt
       - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9

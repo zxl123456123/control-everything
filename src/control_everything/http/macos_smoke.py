@@ -25,8 +25,11 @@ def smoke_terminal(desktop):
     cli = runtime.config.engine_root / 'out/orcad/out/cli/index.js'
 
     def call(*args):
-        result = subprocess.run([str(runtime._node), str(cli), *args, '--pairing-code', pairing, '--json'],
-                                env=runtime._env, cwd=root, capture_output=True, text=True, timeout=40)
+        try:
+            result = subprocess.run([str(runtime._node), str(cli), *args, '--pairing-code', pairing, '--json'],
+                                    env=runtime._env, cwd=root, capture_output=True, text=True, timeout=40)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError('smoke_cli_timeout:' + ':'.join(args[:2])) from None
         if result.returncode:
             raise RuntimeError('smoke_cli_failed:' + ':'.join(args[:2]))
         value = json.loads(result.stdout)
