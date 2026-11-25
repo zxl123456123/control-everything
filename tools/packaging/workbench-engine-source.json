@@ -327308,6 +327308,18 @@
   ],
   "adapted_files": [
     {
+      "path": "config/scripts/orcad-prebuild-node-gyp.mjs",
+      "upstream_sha256": "fb3faf75a1347fafa3f02146ee3407c37819fac533d71692f1bb65c266a85694",
+      "current_sha256": "466fb3037471a2be148e002782f6aa8471941089e6af105a624946ffd533d8a0",
+      "reason": "仅在Windows的node-pty暂存源码规范断言文件名，保留版权、原行号与断言；覆盖重试幂等和非目标插件不变。"
+    },
+    {
+      "path": "config/scripts/orcad-prebuild-node-gyp.test.mjs",
+      "upstream_sha256": "a9016ff688177b12a2742bd262b3b12ebcd2912cbfb243941f9694754505a30c",
+      "current_sha256": "65c2ae002c0a92ca93fcead996dc5e004bb4f62fc22872c3972e77c74d29eae4",
+      "reason": "仅在Windows的node-pty暂存源码规范断言文件名，保留版权、原行号与断言；覆盖重试幂等和非目标插件不变。"
+    },
+    {
       "path": "src/renderer/src/components/right-sidebar/AiVaultPanel.tsx",
       "upstream_sha256": "047e13790d1a8fe8190e302629869fbb63be7d1f6819dbc49b02a7b006b339b9",
       "current_sha256": "a9f9a93b9afc35c1852cb40f41a21c6edb86f779f85eda410673a87072225edb",
