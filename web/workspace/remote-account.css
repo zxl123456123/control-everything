@@ -104,3 +104,23 @@
 @media (prefers-reduced-motion:reduce){.ce-account *,.ce-account-brand button{transition:none!important;animation:none!important}.ce-account :is(button,a[href]),.ce-account-brand button{transform:none!important}}
 .ce-mobile-entry .ce-mobile-guide>summary:focus-visible{outline:2px solid var(--ce-ring,#94a3b8);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){.ce-mobile-entry .ce-mobile-guide>summary::before{transition:none}}
+/* Desktop binding uses the same translucent material as the Studio shell. */
+.ce-desktop-page{background:radial-gradient(ellipse at 12% 0%,#c8d9f566,transparent 55%),radial-gradient(ellipse at 90% 85%,#d7c9ee55,transparent 55%),var(--ce-bg)}
+.ce-desktop-page .ce-account-brand{background:transparent;border:0;padding-top:24px}
+.ce-desktop-page .ce-account-main{max-width:880px;padding-top:32px}
+.ce-desktop-page .ce-account-heading{margin-bottom:28px}
+.ce-desktop-page .ce-account-grid{background:color-mix(in srgb,var(--ce-panel) 65%,transparent);backdrop-filter:blur(24px);border-radius:18px;box-shadow:0 16px 64px #18264008}
+.ce-desktop-page .ce-account-card{padding:24px}
+.ce-desktop-page .ce-account-media{background:transparent;border:0;width:36px;height:36px}
+.ce-desktop-page .ce-account-media svg{width:24px;height:24px}
+.ce-desktop-page .ce-account button,.ce-desktop-page .ce-account input,.ce-desktop-page .ce-account a.ce-account-primary{border-radius:9px;min-height:40px}
+.ce-desktop-page .ce-account-body>p:empty,.ce-desktop-page [data-node=local-help]:empty{display:none}
+.ce-desktop-page .ce-account-body{margin-top:20px}
+
+@media(max-width:600px){.ce-desktop-page .ce-account-main{padding:32px 16px}.ce-desktop-page .ce-account-card{padding:20px}.ce-desktop-page .ce-account-brand small{display:none}}
+@media(prefers-reduced-transparency:reduce){.ce-desktop-page .ce-account-grid{background:var(--ce-panel);backdrop-filter:none}}
+@media(forced-colors:active){.ce-desktop-page{background:Canvas}.ce-desktop-page .ce-account-grid{background:Canvas;backdrop-filter:none}}
+
+.ce-desktop-page .ce-account-members summary{cursor:pointer;padding:16px 0;font-weight:600}
+.ce-desktop-page .ce-account-members .ce-account-card-title{margin-top:12px}
+.ce-desktop-page .ce-account-member-create,.ce-desktop-page .ce-account-members tbody tr{background:color-mix(in srgb,var(--ce-panel) 65%,transparent)}
