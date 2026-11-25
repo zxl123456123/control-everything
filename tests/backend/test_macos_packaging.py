@@ -20,7 +20,7 @@ class MacOSPackagingTests(unittest.TestCase):
 
     def test_payload_preserves_verified_executable_and_build_contract(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             unit = root / 'web/workbench-engine'
             source = unit / 'out/runtimes/node-fixture/node'
             source.parent.mkdir(parents=True)
