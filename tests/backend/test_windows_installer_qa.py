@@ -1,5 +1,6 @@
 """Fixed release inputs reject ambiguous identities before any executable download."""
 from copy import deepcopy
+import json
 import importlib.util
 from pathlib import Path
 import unittest
@@ -48,6 +49,21 @@ class WindowsInstallerQaTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     qa.prepare(Path(temporary) / 'inputs', request(), 'synthetic-token')
                 download.assert_not_called()
+
+    def test_product_source_inventory_hash_is_retained_without_replacing_commit_checks(self):
+        value = request()
+        def release(path, token):
+            item = next(item for item in value.values() if path.endswith('/' + str(item['release_id'])))
+            return {'draft': False, 'tag_name': 'v' + item['version'], 'assets': [
+                {'id': item[key]['id'], 'name': 'product.json' if key == 'product' else 'session-panel-' + item['version'] + '-windows-x64.exe',
+                 'state': 'uploaded', 'digest': 'sha256:' + item[key]['sha256']} for key in ('installer', 'product')]}
+        def download(url, destination, digest, token=None):
+            if destination.name == 'product.json':
+                item = value[destination.parent.name]
+                destination.write_text(json.dumps({'product': 'session-panel', 'version': item['version'],
+                    'source': {'commit': item['source_commit'], 'dirty': False, 'files_hash': 'd' * 64}}), encoding='utf-8')
+        with TemporaryDirectory() as temporary, patch.object(qa, 'read_api', side_effect=release), patch.object(qa, 'download', side_effect=download):
+            qa.prepare(Path(temporary) / 'inputs', value, 'synthetic-token')
 
 
 if __name__ == '__main__':

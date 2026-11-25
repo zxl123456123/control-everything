@@ -82,7 +82,8 @@ def prepare(root, request, token):
                          destination / ('installer.exe' if key == 'installer' else name), item[key]['sha256'], token)
             product = json.loads((destination / 'product.json').read_text(encoding='utf-8'))
             require(product['product'] == 'session-panel' and product['version'] == item['version']
-                    and product['source'] == {'commit': item['source_commit'], 'dirty': False}, 'product_identity')
+                    and product['source']['commit'] == item['source_commit']
+                    and product['source']['dirty'] is False, 'product_identity')
     download('https://raw.githubusercontent.com/' + REPOSITORY + '/' + VERIFIER_COMMIT + '/tests/e2e/verify_installed_product.py',
              root / 'verifier.py', VERIFIER_SHA256)
     (root / 'request.json').write_text(json.dumps(request), encoding='utf-8')
