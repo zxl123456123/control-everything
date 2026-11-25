@@ -24,6 +24,8 @@ permissions:
 
 jobs:
   installer-qa:
+    permissions:
+      contents: write
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.installer_qa == 'true' && github.repository == 'zxl123456123/control-everything' && github.ref == 'refs/heads/codex/windows-installer-qa'
     runs-on: windows-latest
     timeout-minutes: 45

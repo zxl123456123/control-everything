@@ -7,6 +7,7 @@ import re
 import shutil
 import sys
 from urllib.request import Request, build_opener, HTTPRedirectHandler
+from urllib.error import HTTPError
 
 REPOSITORY = 'zxl123456123/control-everything'
 VERIFIER_COMMIT = 'a68b9508121312ff280ce45a635032cf3b0f94a4'
@@ -95,5 +96,6 @@ if __name__ == '__main__':
         print('QA inputs verified')
     except Exception as error:
         # Redirect URLs and private release metadata never enter public workflow logs.
-        print('QA input preparation failed: ' + type(error).__name__, file=sys.stderr)
+        detail = type(error).__name__ + (':' + str(error.code) if isinstance(error, HTTPError) else '')
+        print('QA input preparation failed: ' + detail, file=sys.stderr)
         sys.exit(1)
