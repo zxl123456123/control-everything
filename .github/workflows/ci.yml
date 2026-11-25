@@ -6,12 +6,60 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+    inputs:
+      installer_qa:
+        type: boolean
+        default: false
+        description: Run isolated installer QA only
+      qa_request:
+        type: string
+        default: '{"mode":"smoke"}'
+        description: Fixed repository release asset IDs and SHA256 values
+      qa_public_key:
+        type: string
+        description: Ephemeral RSA public key PEM for encrypted evidence
 
 permissions:
   contents: read
 
 jobs:
+  installer-qa:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.installer_qa == 'true' && github.repository == 'zxl123456123/control-everything' && github.ref == 'refs/heads/codex/windows-installer-qa'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Verify fixed release inputs
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_REQUEST: ${{ inputs.qa_request }}
+        run: |
+          python tools/packaging/windows_installer_qa.py "C:/qa-${{ github.run_id }}-${{ github.run_attempt }}"
+          exit $LASTEXITCODE
+      - name: Run as a new standard user and encrypt evidence
+        shell: pwsh
+        env:
+          QA_PUBLIC_KEY: ${{ inputs.qa_public_key }}
+        run: |
+          & ./tools/packaging/windows_installer_qa.ps1 -Root "C:/qa-${{ github.run_id }}-${{ github.run_attempt }}" -Python (Get-Command python.exe).Source
+          exit $LASTEXITCODE
+      - name: Retain encrypted evidence only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: installer-qa-encrypted
+          path: C:/qa-${{ github.run_id }}-${{ github.run_attempt }}/reports.encrypted.json
+          if-no-files-found: error
+          retention-days: 3
+
   windows-tests:
+    if: github.event.inputs.installer_qa != 'true'
     name: windows-tests
     runs-on: windows-latest
     concurrency:
@@ -106,6 +154,7 @@ jobs:
       - run: node --test tests/frontend/test_execution_ui.cjs tests/frontend/test_progress_ui.cjs tests/frontend/test_workspace_history_ui.cjs tests/frontend/test_observation_ui.cjs tests/frontend/test_task_center_ui.cjs tests/frontend/test_observation_build.cjs tests/frontend/test_news_ui.cjs tests/frontend/test_news_build.cjs tests/frontend/test_quota_ui.cjs
 
   architecture-boundaries:
+    if: github.event.inputs.installer_qa != 'true'
     name: architecture-boundaries
     runs-on: windows-latest
     concurrency:
@@ -125,6 +174,7 @@ jobs:
       - run: python tests/e2e/verify_architecture.py --output work/architecture-ci
 
   new-content-checks:
+    if: github.event.inputs.installer_qa != 'true'
     name: new-content-checks
     runs-on: windows-latest
     steps:
@@ -145,7 +195,7 @@ jobs:
 
   release-readiness:
     name: release-readiness
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.installer_qa != 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
