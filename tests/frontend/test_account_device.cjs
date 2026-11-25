@@ -6,14 +6,14 @@ const source = fs.readFileSync('web/workspace/account-device.js', 'utf8');
 const settle = async () => { for(let i=0;i<30;i++) await Promise.resolve(); };
 const response = (value,status=200) => ({status,ok:status>=200&&status<300,json:async()=>value});
 const session = extra => ({csrf:'synthetic-csrf',account:{sub:'member',name:'测试成员'},membership:'active',admin:false,device:null,...extra});
-function fixture(fetcher, {mode='remote',embedded=false,members=async()=>response({items:[],total:0,limit:25,offset:0}),accountSession=null}={}) {
+function fixture(fetcher, {mode='remote',embedded=false,desktop=false,members=async()=>response({items:[],total:0,limit:25,offset:0}),accountSession=null}={}) {
   const nodes=new Map(),calls=[],navigations=[],notices=[],portals=[],timers=new Map(),inactive=new Set();
   let sequence=0,focused=null,unmounted=false,localConfigured=true;
   function node(name,hidden=false) {
     const events=new Map();let ownText='';
     return {hidden,dataset:{},disabled:false,open:false,children:[],
       get textContent(){return ownText+this.children.map(child=>child.textContent||'').join('');},set textContent(value){ownText=String(value);this.children=[];},
-      append(...children){this.children.push(...children);},replaceChildren(...children){ownText='';this.children=children;},setAttribute(name,value){this[name]=value;},
+      append(...children){this.children.push(...children);},replaceChildren(...children){ownText='';this.children=children;},setAttribute(name,value){this[name]=value;},removeAttribute(name){delete this[name];},
       addEventListener(name,fn){if(!events.has(name))events.set(name,new Set());events.get(name).add(fn);},
       removeEventListener(name,fn){events.get(name)?.delete(fn);},
       emit(name,event={}){for(const fn of [...(events.get(name)||[])])fn({currentTarget:this,preventDefault(){},...event});},
@@ -24,8 +24,9 @@ function fixture(fetcher, {mode='remote',embedded=false,members=async()=>respons
   const context=embedded?{context:'synthetic',active:true,onInactive(fn){inactive.add(fn);return()=>inactive.delete(fn);},invalidate(){this.active=false;for(const fn of [...inactive])fn();inactive.clear();}}:null;
   const document=node('document'),windowEvents=node('window');document.createElement=tag=>node(tag);
   const window={document,CERemoteContext:context,addEventListener:(...args)=>windowEvents.addEventListener(...args),removeEventListener:(...args)=>windowEvents.removeEventListener(...args),localStorage:{setItem:(...args)=>notices.push(args)},location:{assign:url=>navigations.push(url)},setTimeout(fn){timers.set(++sequence,fn);return sequence;},clearTimeout(id){timers.delete(id);},fetch:async(path,options)=>{calls.push({path,options});if(path.startsWith('/remote/api/admin/members?')||path.startsWith('/api/desktop/account/members?'))return members(path,options);if(path==='/api/desktop/account/status')return response(accountSession?accountSession():{configured:localConfigured,state:'signed_out'});const result=await fetcher(path,options);if(path==='/api/desktop/remote/status')localConfigured=(await result.json()).configured!==false;return result;}};
-  vm.runInNewContext(source,{window,AbortController,FormData});
-  const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:'#projects',onPortal:value=>portals.push(value)});
+  container.closest=()=>desktop ? {} : null;
+  vm.runInNewContext(source,{window,AbortController,FormData,URL});
+  const dispose=window.StudioAccountDevice.mount(container,{mode,returnHash:desktop?undefined:'#projects',onPortal:value=>portals.push(value)});
   return {calls,navigations,notices,portals,timers,context,dispose,window,windowEvents,visibility(hidden){document.hidden=hidden;document.emit('visibilitychange');},focusWindow(){windowEvents.emit('focus');},get:name=>nodes.get('node:'+name),button:name=>nodes.get('action:'+name),click(name){nodes.get('action:'+name).emit('click');},get focused(){return focused;},get unmounted(){return unmounted;},async tick(){const [id,fn]=timers.entries().next().value;timers.delete(id);fn();await settle();}};
 }
 test('raw independent 401 never parses JSON and exposes only login',async()=>{
@@ -365,18 +366,45 @@ test('local authorization links prefer complete URLs and keep confirmation codes
 });
 
 test('computer authorization failures offer recovery without confirming or rebinding',async()=>{
-  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/管理员/],['remote_disconnect_required',/先撤销.*本地项目.*保留/],['device_already_bound',/之前的安装.*核对.*手动撤销/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
+  for(const [code,message] of [['expired_token',/过期/],['remote_membership_required',/管理员/],['remote_disconnect_required',/先撤销.*本地项目.*保留/],['device_already_bound',/^账号已绑定电脑。$/],['remote_authorization_required',/重新连接/],['remote_identity_changed',/核对账号/],['account_login_required',/先登录/]]) {
     const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:true,state:'unbound',code}),{mode:'local'});await settle();
     assert.match(f.get('device-error').textContent,message);assert.equal(f.calls.some(call=>call.options.method==='POST'),false);f.dispose();
   }
 });
 
-test('a binding conflict on confirmation explains the existing connection without changing it',async()=>{
-  const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):path.endsWith('/status')?response({configured:true,state:'awaiting_local_confirmation',account:{sub:'member'}}):response({reason:'device_already_bound'},409),{mode:'local'});
+test('confirmation conflict immediately offers the configured binding page without revocation',async()=>{
+  const f=fixture(path=>path==='/api/bootstrap'?response({csrf_token:'local'}):path.endsWith('/status')?response({configured:true,state:'awaiting_local_confirmation',account:{sub:'member'},portal_url:'https://account.example.test/remote'}):response({reason:'device_already_bound'},409),{mode:'local',desktop:true});
   await settle();f.click('confirm');await settle();
-  assert.match(f.get('status').textContent,/已有电脑连接.*之前的安装.*核对.*手动撤销/);
-  assert.doesNotMatch(f.get('status').textContent,/device_already_bound|另一台电脑/);
+  assert.equal(f.get('device-error').textContent,'账号已绑定电脑。');assert.equal(f.get('status').textContent,'');
+  assert.equal(f.get('binding').hidden,false);assert.equal(f.get('binding').href,'https://account.example.test/remote');
+  assert.equal(f.button('authorize').hidden,true);assert.equal(f.button('confirm').hidden,true);assert.equal(f.get('open').hidden,true);
+  assert.equal(f.calls.filter(call=>call.path==='/api/desktop/remote/status').length,1);
   assert.deepEqual(f.calls.filter(call=>call.options.method==='POST').map(call=>call.path),['/api/desktop/remote/confirm']);
+  f.dispose();
+});
+
+test('only a standalone desktop conflict replaces reconnect with a valid public binding link',async()=>{
+  const portal='https://account.example.test/remote';
+  for(const [desktop,code,url,linked] of [[true,'device_already_bound',portal,true],[false,'device_already_bound',portal,false],[true,'',portal,false],...['',undefined,'javascript:alert(1)','https://user:pass@example.test/remote','https://example.test/other','https://example.test/remote?next=bad','https://example.test/remote#bad','http://localhost/remote','http://127.0.0.1/remote','http://[::1]/remote','/remote'].map(url=>[true,'device_already_bound',url,false])]) {
+    const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:{configured:true,state:'unbound',code,portal_url:url}),{mode:'local',desktop});await settle();
+    assert.equal(f.get('binding').hidden,!linked);assert.equal(f.button('authorize').hidden,linked);
+    assert.equal(f.get('open').hidden,!desktop||linked);
+    if(linked)assert.equal(f.get('binding').href,portal);else assert.equal(f.get('binding').href,undefined);
+    assert.equal(f.calls.some(call=>call.options.method==='POST'),false);f.dispose();
+  }
+});
+
+test('refresh retires the binding conflict link and restores navigation and login without stale errors',async()=>{
+  let current={configured:true,state:'unbound',code:'device_already_bound',portal_url:'https://account.example.test/remote'};
+  const f=fixture(path=>response(path==='/api/bootstrap'?{csrf_token:'local'}:current),{mode:'local',desktop:true});await settle();
+  for(const state of ['unbound','authorizing','awaiting_local_confirmation','online','offline','revoked']) {
+    current={configured:true,state};f.click('refresh');await settle();
+    assert.equal(f.get('binding').hidden,true);assert.equal(f.get('binding').href,undefined);assert.equal(f.get('device-error').textContent,'');
+    assert.equal(f.get('open').hidden,false);assert.equal(f.button('account-authorize').hidden,false);
+    assert.equal(f.button('authorize').hidden,state==='awaiting_local_confirmation');
+  }
+  const html=fs.readFileSync('web/workspace/desktop.html','utf8');assert.match(html,/<a href="\/studio" aria-label="返回工作台" title="返回工作台">/);
+  assert.match(source,/data-node="binding" target="_blank" rel="noopener noreferrer"/);
   f.dispose();
 });
 

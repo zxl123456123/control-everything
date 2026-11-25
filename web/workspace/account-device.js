@@ -37,7 +37,7 @@
           <form data-node="activation" hidden><p>账号尚未开通，请联系管理员。自行部署的旧邀请制仍可填写邀请码。</p><label>小组邀请码<input name="invite" required autocomplete="off" placeholder="输入收到的邀请码"></label><button class="ce-account-primary" type="submit">激活小组接入</button></form>
           <button type="button" data-action="logout" hidden>退出账号</button>
         </div></section>
-        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><p data-node="device-error" role="status"></p><div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">连接这台电脑</button><div data-node="grant" hidden><p>电脑授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">打开电脑授权页面 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div><p><a class="${desktop ? 'ce-account-secondary' : 'ce-account-primary'}" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
+        <section class="ce-account-card ce-account-setting"><div class="ce-account-card-title"><span class="ce-account-media">${icon('computer')}</span><h2 data-node="device-name">电脑接入</h2><span class="ce-account-badge" data-node="device-state">读取中</span></div><div class="ce-account-body"><p data-node="device-help"></p><p data-node="device-error" role="status"></p><div data-node="local-actions" hidden><p data-node="local-help"></p><button class="ce-account-primary" type="button" data-action="authorize">连接这台电脑</button><a class="ce-account-primary" data-node="binding" target="_blank" rel="noopener noreferrer" hidden>查看绑定</a><div data-node="grant" hidden><p>电脑授权码</p><output class="ce-account-code" data-node="code"></output><p><a data-node="verification" target="_blank" rel="noopener noreferrer">打开电脑授权页面 ↗</a></p></div><button class="ce-account-primary" type="button" data-action="confirm" hidden>确认绑定这台电脑</button></div><p><a class="${desktop ? 'ce-account-secondary' : 'ce-account-primary'}" data-node="open" href="/studio" hidden>进入工作台 →</a></p><div class="ce-account-danger-zone" data-node="revoke-area" hidden><button class="ce-account-danger" type="button" data-action="revoke">撤销电脑连接</button></div></div></section>
       </div>
       <${desktop ? 'details' : 'section'} class="ce-account-card ce-account-members" data-node="invitations" hidden>${desktop ? '<summary>成员管理</summary>' : ''}
         <div class="ce-account-card-title"><span class="ce-account-media">${icon('members')}</span><h2 data-node="members-title">成员</h2><button type="button" data-action="invitation">邀请成员</button></div>
@@ -83,7 +83,8 @@
       $('device-name').textContent = '电脑接入'; $('device-state').textContent = '未连接';
       $('device-help').textContent = '';
       $('device-error').textContent = '';
-      for (const name of ['activation','invitations','revoke-area','open']) $(name).hidden = true;
+      for (const name of ['activation','invitations','revoke-area','open','binding']) $(name).hidden = true;
+      $('binding').removeAttribute?.('href');
       for (const name of ['invitation','logout','revoke']) action(name).disabled = false;
       action('logout').hidden = true;
       if (dialog.open) dialog.close();
@@ -95,7 +96,7 @@
       // Invalidation may synchronously dispose this component; navigation must still happen.
       scope.location.assign(destination);
     }
-    const deviceErrors = {expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'账号尚未开通，请联系管理员后再连接这台电脑。',remote_disconnect_required:'这台电脑仍有原账号的连接，请先撤销旧连接；本地项目继续保留。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'此账号已有电脑连接，可能来自这台电脑之前的安装。请打开浏览器账号页核对原连接；确认不再使用后，手动撤销再连接。本地项目继续保留。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。',remote_identity_changed:'账号登录状态已变化，请重新连接电脑并核对账号。',account_login_required:'请先登录账号，再连接这台电脑。'};
+    const deviceErrors = {expired_token:'电脑授权已过期，请重新连接这台电脑。',access_denied:'电脑授权已取消，可重新连接。',remote_membership_required:'账号尚未开通，请联系管理员后再连接这台电脑。',remote_disconnect_required:'这台电脑仍有原账号的连接，请先撤销旧连接；本地项目继续保留。',remote_network_unavailable:'暂时无法连接服务，请检查网络后重试。',device_already_bound:'账号已绑定电脑。',remote_authorization_required:'电脑授权已失效，请重新连接并核对账号。',remote_identity_changed:'账号登录状态已变化，请重新连接电脑并核对账号。',account_login_required:'请先登录账号，再连接这台电脑。'};
     function error(error) {
       if (!disposed && error.name !== 'AbortError') {
         $('status').textContent = error.message; $('status').dataset.tone = 'error';
@@ -128,7 +129,7 @@
         const memberError = (path.startsWith('/remote/api/admin/members?') || path.startsWith('/api/desktop/account/members?')) && ({member_directory_not_configured:'成员目录未配置。',member_directory_unavailable:'成员列表暂时不可用，请刷新重试。'})[value.error];
         const deviceError = path.startsWith('/api/desktop/remote/') && deviceErrors[value.reason || value.error];
         const failure = new Error(creationError || memberError || deviceError || (memberWrite || remote ? '请求未成功，请刷新状态后重试。' : (value.reason || '本机连接不可用，请重试。')));
-        failure.status = response.status; throw failure;
+        failure.status = response.status; failure.code = value.reason || value.error; throw failure;
       }
       return value;
     }
@@ -258,6 +259,16 @@
     }
     function renderLocal(value) {
       configured = value.configured !== false; device = value;
+      let bindingPortal = '';
+      if (desktop && configured && value.code === 'device_already_bound') {
+        try {
+          const url = new URL(value.portal_url), host = url.hostname.toLowerCase();
+          if (['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && !url.search && !url.hash && url.pathname === '/remote'
+            && host !== 'localhost' && !host.endsWith('.localhost') && host !== '[::1]' && !/^127(?:\.\d{1,3}){3}$/.test(host)) bindingPortal = url.href;
+        } catch { /* Keep reconnect available when no configured public portal is supplied. */ }
+      }
+      $('binding').hidden = !bindingPortal;
+      if (bindingPortal) $('binding').href = bindingPortal; else $('binding').removeAttribute?.('href');
       onPortal?.(configured && typeof value.portal_url === 'string' ? value.portal_url : '');
       $('local-actions').hidden = !configured || configurationSaved;
       $('status').textContent = configurationSaved ? '服务配置已保存，请先结束正在运行的工作，再重新打开软件。' : value.runtime_restart_required ? '绑定配置已保存，重新打开软件后启用远程连接；正在运行的工作请先正常结束。' : '';
@@ -267,7 +278,7 @@
       $('device-help').textContent = configured ? '' : configurationSaved ? '服务配置已保存，重新打开软件后连接电脑。' : '请先填写账号和设备服务地址，再连接这台电脑。';
       $('device-error').textContent = deviceErrors[value.code] || '';
       action('authorize').disabled = !configured || value.state === 'authorizing';
-      action('authorize').hidden = !configured || value.state === 'awaiting_local_confirmation';
+      action('authorize').hidden = !configured || value.state === 'awaiting_local_confirmation' || !!bindingPortal;
       action('authorize').textContent = value.state === 'authorizing' ? '授权中' : ['online','offline'].includes(value.state) ? '重新连接' : '连接这台电脑';
       action('confirm').hidden = value.state !== 'awaiting_local_confirmation';
       action('confirm').disabled = !configured;
@@ -275,7 +286,7 @@
       $('grant').hidden = !value.verification_uri; $('code').textContent = value.user_code || '';
       if (value.verification_uri) $('verification').href = value.verification_uri_complete || value.verification_uri;
       $('revoke-area').hidden = !configured || ['unbound','revoked'].includes(value.state);
-      $('open').hidden = typeof returnHash === 'string'; $('open').textContent = '返回工作台 →';
+      $('open').hidden = typeof returnHash === 'string' || !!bindingPortal; $('open').textContent = '返回工作台 →';
       if (typeof returnHash === 'string' && /^#[a-zA-Z0-9/_-]*$/.test(returnHash)) $('open').href = '/studio' + returnHash;
     }
     function renderLocalAccount(value, readMembers) {
@@ -352,7 +363,12 @@
           $('invitation-code').textContent = value.invitation; $('invitation-result').hidden = false;
         } else { busy = false; await refresh(); }
         return true;
-      } catch (failure) { if (mine === generation) error(failure); }
+      } catch (failure) {
+        if (mine === generation && !disposed) {
+          if (!remote && ['authorize','confirm'].includes(kind) && failure.code === 'device_already_bound') renderLocal({...device, state:'unbound', code:failure.code});
+          else error(failure);
+        }
+      }
       finally { if (!disposed && mine === generation) { pending.delete(kind); busy = pending.size > 0; if (button) { button.disabled = !remote && (!configured || (kind === 'authorize' && device?.state === 'authorizing') || (kind === 'account-authorize' && localAccountAuthorizing)); button.setAttribute?.('aria-busy', 'false'); } if (kind === 'revoke') { action('cancel-revoke').disabled = false; action('confirm-revoke').disabled = false; } } }
       return false;
     }
