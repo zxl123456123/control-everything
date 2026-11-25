@@ -6,7 +6,9 @@
 
 ## Windows 标准安装
 
-当前提供 [0.1.0a19 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+Windows x64 安装器尚未签名。[下载 0.1.0a19 早期测试版](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) · [版本说明与校验值](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip)
+
+从源码运行完整工作台，请按[源码构建](../../.github/CONTRIBUTING.md#内置项目工作台源码与构建)准备运行时，再按[开发预览](../../.github/CONTRIBUTING.md#studio-与内置项目工作台开发预览)启动。单独运行管理服务见 [Python 网关启动步骤](usage.md#从源码启动)。
 
 `0.1.0a19` 是完整版本号，其中 `a` 表示 alpha（早期测试），`19` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
 
@@ -29,7 +31,7 @@ $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 
 目标平台为 Windows 10/11 x64；技术预发布的安装器与原生程序目前未签名，上游组件的数字签名不代表组合产品已签名。每次发布说明列出实际验收范围；开发机或托管 Windows runner 的受控 PATH 验收不能替代两种系统的完整干净机器验证。项目源码采用 [MIT 许可证](../../LICENSE)；随产品附带项目许可证及实际依赖的第三方声明与摘要，第三方依赖遵循各自的许可证。
 
-新安装先从项目总览点击“进入工作台”，再用“添加项目”添加已有目录、创建目录或克隆仓库；工具来源导入保留在 `/workspace-admin` 兼容管理页，确认来源后只加入自己选择的项目。程序登记和项目来源读取分别确认，不会因发现工具而自动启动 Agent。普通用户使用产品内运行时和原生组件，无需安装 Node、Rust 或配置作者的个人环境。账号与手机远程访问条件、数据备份和兼容管理入口见[使用指南](usage.md)。界面开发先提供 develop 真实预览，确认后合入 main；源码检查不能替代实际安装与浏览器验收。
+首次打开 0.1.0a19，在项目总览点击“进入工作台”，再用“添加项目”选择已有目录、新建项目或克隆仓库。查看[工作区用法](usage.md#多-agent-工作台)或[浏览器远程访问步骤](usage.md#从浏览器访问自己的电脑)。
 
 ## 构建与技术预发布
 
