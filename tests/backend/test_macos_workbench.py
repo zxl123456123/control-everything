@@ -10,12 +10,15 @@ import unittest
 import sys
 import tempfile
 import stat
+import subprocess
+import traceback
 from unittest.mock import Mock, patch
 
 from control_everything.integrations.workbench_runtime import workbench_environment
 from control_everything.platform.darwin_process import DarwinAPI, owned_runtime_socket
 from control_everything.platform.windows_jobs import ProcessError
 from control_everything.http.macos_desktop import news_runtime, smoke_window
+from control_everything.http.macos_smoke import smoke_terminal
 from tests.backend import test_workbench_runtime as fixtures
 
 
@@ -149,6 +152,62 @@ class MacArtifactTests(unittest.TestCase):
         (engine / 'out/node_modules/playwright-core/index.js').write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError, 'news_runtime_build_changed'):
             news_runtime(root)
+
+
+class MacSmokeTerminalTests(unittest.TestCase):
+    def test_cli_timeout_does_not_pair_or_expose_local_command_details(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            runtime = SimpleNamespace(config=SimpleNamespace(data_root=root,
+                engine_root=root, git_executable=root / 'git.exe'), _node=root / 'node.exe',
+                _env={'FIXTURE_PRIVATE_ENV': 'fixture-private-value'},
+                bootstrap_runtime=Mock(), revoke_device=Mock())
+            timeout = subprocess.TimeoutExpired(['node', 'fixture-local-command'], 40,
+                output='fixture-local-output', stderr='fixture-private-value')
+            with patch('control_everything.http.macos_smoke.subprocess.run', side_effect=[
+                    SimpleNamespace(returncode=0), SimpleNamespace(returncode=0), timeout]):
+                with self.assertRaisesRegex(RuntimeError, 'smoke_cli_timeout:repo:add') as caught:
+                    smoke_terminal(SimpleNamespace(runtime=runtime))
+            message = ''.join(traceback.format_exception(caught.exception))
+            for private in ('fixture-local-command', 'fixture-local-output', 'fixture-private-value'):
+                self.assertNotIn(private, message)
+            runtime.bootstrap_runtime.assert_not_called()
+            runtime.revoke_device.assert_not_called()
+
+    def test_terminal_input_echo_cannot_satisfy_nonce_and_cli_stays_on_owned_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            runtime = SimpleNamespace(config=SimpleNamespace(data_root=root,
+                engine_root=root / 'engine', git_executable=root / 'git.exe'),
+                _node=root / 'node.exe', _env={'ZKYQ_PAIRING_CODE': 'fixture', 'ZKYQ_ENVIRONMENT': 'fixture'})
+            sent, calls = [], []
+            def run(command, **options):
+                if command[0] == str(runtime.config.git_executable):
+                    return SimpleNamespace(returncode=0)
+                calls.append(command[2:4])
+                self.assertNotIn('--pairing-code', command)
+                self.assertNotIn('ZKYQ_PAIRING_CODE', options['env'])
+                self.assertNotIn('ZKYQ_ENVIRONMENT', options['env'])
+                self.assertEqual(options['env']['ZKYQ_USER_DATA_PATH'], str(root / 'state'))
+                operation = tuple(command[2:4])
+                result = {}
+                if operation == ('repo', 'add'):
+                    result = {'repo': {'id': 'fixture-repo'}}
+                elif operation == ('worktree', 'create'):
+                    result = {'worktree': {'id': 'fixture-worktree'}}
+                elif operation == ('terminal', 'create'):
+                    result = {'terminal': {'handle': 'fixture-terminal'}}
+                elif operation == ('terminal', 'send'):
+                    sent.append(command[command.index('--text') + 1])
+                elif operation == ('terminal', 'read'):
+                    result = {'terminal': {'tail': sent}}
+                return SimpleNamespace(returncode=0, stdout=json.dumps(result))
+            with patch('control_everything.http.macos_smoke.subprocess.run', side_effect=run), \
+                 patch('control_everything.http.macos_smoke.time.monotonic', side_effect=[0, 1, 21]), \
+                 patch('control_everything.http.macos_smoke.time.sleep'):
+                with self.assertRaisesRegex(RuntimeError, 'smoke_terminal_output_timeout'):
+                    smoke_terminal(SimpleNamespace(runtime=runtime))
+            self.assertIn(['worktree', 'rm'], calls)
 
 
 if __name__ == '__main__':

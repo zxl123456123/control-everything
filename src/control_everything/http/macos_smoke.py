@@ -1,6 +1,5 @@
-"""Exercise the installed workbench through its paired CLI and real PTY."""
+"""Exercise the installed workbench through its local management CLI and real PTY."""
 
-import base64
 import json
 import secrets
 import subprocess
@@ -20,14 +19,16 @@ def smoke_terminal(desktop):
                                 capture_output=True, text=True, timeout=30)
         if result.returncode:
             raise RuntimeError('smoke_git_failed')
-    offer = runtime.bootstrap_runtime()['runtime']['offer']
-    pairing = base64.urlsafe_b64encode(json.dumps(offer).encode()).decode().rstrip('=')
     cli = runtime.config.engine_root / 'out/orcad/out/cli/index.js'
+    environment = {key: value for key, value in runtime._env.items() if key.upper() not in {
+        'ZKYQ_ENVIRONMENT', 'ZKYQ_PAIRING_CODE', 'ZKYQ_REMOTE_PAIRING',
+        'ORCA_ENVIRONMENT', 'ORCA_PAIRING_CODE', 'ORCA_REMOTE_PAIRING'}}
+    environment['ZKYQ_USER_DATA_PATH'] = str(runtime.config.data_root / 'state')
 
     def call(*args):
         try:
-            result = subprocess.run([str(runtime._node), str(cli), *args, '--pairing-code', pairing, '--json'],
-                                    env=runtime._env, cwd=root, capture_output=True, text=True, timeout=40)
+            result = subprocess.run([str(runtime._node), str(cli), *args, '--json'],
+                                    env=environment, cwd=root, capture_output=True, text=True, timeout=40)
         except subprocess.TimeoutExpired:
             raise RuntimeError('smoke_cli_timeout:' + ':'.join(args[:2])) from None
         if result.returncode:
@@ -46,18 +47,15 @@ def smoke_terminal(desktop):
         left, right = 'CE_INSTALL_' + secrets.token_hex(8), secrets.token_hex(8)
         nonce = left + right
         # Split the expected output so PTY input echo alone cannot satisfy the assertion.
-        command = "printf '%s%s\\n' '" + left + "' '" + right + "'"
+        command = 'node -e "console.log(\'' + left + '\'+\'' + right + '\')"'
         call('terminal', 'send', '--terminal', terminal, '--text', command, '--enter')
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             tail = call('terminal', 'read', '--terminal', terminal).get('terminal', {}).get('tail', [])
             if nonce in '\n'.join(map(str, tail)):
-                return {'terminalEcho': True, 'pairedCli': True}
+                return {'terminalEcho': True, 'localManagementCli': True}
             time.sleep(0.2)
         raise RuntimeError('smoke_terminal_output_timeout')
     finally:
-        try:
-            if worktree is not None:
-                call('worktree', 'rm', '--worktree', worktree, '--force')
-        finally:
-            runtime.revoke_device(offer['pairedDeviceId'])
+        if worktree is not None:
+            call('worktree', 'rm', '--worktree', worktree, '--force')
