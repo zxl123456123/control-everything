@@ -6,13 +6,13 @@
 
 ## Windows 标准安装
 
-当前提供 [0.1.0a19 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a19)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a19/session-panel-0.1.0a19-sources.zip)。安装器尚未签名；实际验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+当前提供 [0.1.0a20 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a20)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a20/session-panel-0.1.0a20-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a20/session-panel-0.1.0a20-sources.zip)。安装器尚未签名；本版已在 GitHub 托管 Windows 的标准用户环境验证从 0.1.0a19 升级、回退到 0.1.0a19、同版重装及卸载，未覆盖完整 Windows 10/11 干净机矩阵和个人手机真机登录。其它验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
 
-`0.1.0a19` 是完整版本号，其中 `a` 表示 alpha（早期测试），`19` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
+`0.1.0a20` 是完整版本号，其中 `a` 表示 alpha（早期测试），`20` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
 
-此安装包的受测源码为 `1fce4809`。`main` 和 `develop` 的后续源码与文档更新不会改动已发布的安装包；新 EXE 须单独构建、验收并发布。安装版按上述版本说明判断功能与已知限制，源码开发按贡献指南构建和预览。
+此安装包的受测源码为 `ee89d667`。`main` 和 `develop` 的后续源码与文档更新不会改动已发布的安装包；新 EXE 须单独构建、验收并发布。安装版按上述版本说明判断功能与已知限制，源码开发按贡献指南构建和预览。
 
-普通用户下载 `session-panel-0.1.0a19-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
+普通用户下载 `session-panel-0.1.0a20-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
 
 安装目录支持中文和空格；当前产品按普通 Windows 路径工作，每个完整交付文件路径须少于260个UTF-16字符。安装器在写入目标前检查整个固定文件清单，超限时提示选择更短目录，不修改系统的长路径策略。
 
@@ -29,7 +29,7 @@ $panel = Join-Path $env:LOCALAPPDATA 'Programs/SessionPanel/session-panel.cmd'
 
 目标平台为 Windows 10/11 x64；技术预发布的安装器与原生程序目前未签名，上游组件的数字签名不代表组合产品已签名。每次发布说明列出实际验收范围；开发机或托管 Windows runner 的受控 PATH 验收不能替代两种系统的完整干净机器验证。项目源码采用 [MIT 许可证](../../LICENSE)；随产品附带项目许可证及实际依赖的第三方声明与摘要，第三方依赖遵循各自的许可证。
 
-新安装先从项目总览点击“进入工作台”，再用“添加项目”添加已有目录、创建目录或克隆仓库；工具来源导入保留在 `/workspace-admin` 兼容管理页，确认来源后只加入自己选择的项目。程序登记和项目来源读取分别确认，不会因发现工具而自动启动 Agent。普通用户使用产品内运行时和原生组件，无需安装 Node、Rust 或配置作者的个人环境。账号与手机远程访问条件、数据备份和兼容管理入口见[使用指南](usage.md)。界面开发先提供 develop 真实预览，确认后合入 main；源码检查不能替代实际安装与浏览器验收。
+新安装在项目总览点击“打开项目”，添加已有目录、创建目录或克隆仓库；工具来源导入保留在 `/workspace-admin` 兼容管理页，确认来源后只加入自己选择的项目。程序登记和项目来源读取分别确认，不会因发现工具而自动启动 Agent。普通用户使用产品内运行时和原生组件，无需安装 Node、Rust 或配置作者的个人环境。账号与手机远程访问条件、数据备份和兼容管理入口见[使用指南](usage.md)。界面开发先提供 develop 真实预览，确认后合入 main；源码检查不能替代实际安装与浏览器验收。
 
 ## 构建与技术预发布
 
