@@ -210,7 +210,10 @@ class PanelHandler(BaseHTTPRequestHandler):
         access = remote_context.access_for(self.server)
         has_proof = remote_context.remote_request(self)
         if not has_proof:
-            if self.headers.get_all("Host", []) != [self.server.expected_host] or any(
+            if self.headers.get_all("Host", []) != [self.server.expected_host]:
+                self.reply(403, {"reason": "host_rejected"})
+                return False
+            if any(
                     self.headers.get_all(name, []) for name in
                     ("X-CE-Page-Context", "X-CE-Storage-Scope", "X-CE-Context", "X-CE-Proxy-Token")):
                 self._discard_rejected_post_body()

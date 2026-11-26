@@ -61,7 +61,7 @@ jobs:
           xcrun swiftc --version
       - name: Run native runtime and packaging tests
         run: |
-          if python -m unittest -v tests.backend.test_macos_workbench tests.backend.test_macos_packaging >work/macos-installer/logs/native-tests.log 2>&1; then
+          if python -m unittest -v tests.backend.test_gateway tests.backend.test_macos_workbench tests.backend.test_macos_packaging >work/macos-installer/logs/native-tests.log 2>&1; then
             cat work/macos-installer/logs/native-tests.log
           else
             code=$?
