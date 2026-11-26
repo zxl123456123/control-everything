@@ -6,13 +6,13 @@
 
 ## 多 Agent 工作台
 
-安装 0.1.0a20 后，从 Windows 开始菜单打开 **Session Panel** 即可进入本机工作台。安装版的功能和测试范围见[版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a20)。
+安装 0.1.0a21 后，从 Windows 开始菜单打开 **Session Panel** 即可进入本机工作台。安装版的功能和测试范围见[版本说明](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a21)。
 
 1. 打开项目总览，点击“打开项目”，选择已有目录、新建项目或克隆 Git 仓库。
 2. 选择一个工作区，打开 Agent 会话、终端、文件或 Git。项目行上的加号可创建工作区，项目设置可修改名称与配置。
 3. 回到总览，可按名称搜索、排序，切换卡片或列表，或按归档状态筛选。归档后可恢复项目，原有目录、事项和终端都会保留。
 
-工作台入口是 `/studio`。安装版会将旧 `/workspace` 链接转到这里。仅启动 `main` 的 Python 管理服务时，可从 `/workspace` 进入管理页。
+工作台入口是 `/studio`。安装版和源码网关都会将旧 `/workspace` 链接转到这里；旧 `/progress` 链接转到项目总览。兼容管理页使用 `/workspace-admin`。
 
 ### 从浏览器访问自己的电脑
 
@@ -86,7 +86,7 @@ python -m venv .venv
 & '.venv/Scripts/python.exe' -m control_everything.gateway
 ```
 
-打开 `http://127.0.0.1:8766/workspace`。默认数据目录在 Windows 为 `%LOCALAPPDATA%/SessionPanel`（环境变量缺失时为当前用户 `AppData/Local/SessionPanel`）；目录内的 `profile.json` 保存来源设置，`workspace-state.sqlite3` 保存管理记录。路径优先级为 `--data-dir`、非空 `SESSION_PANEL_DATA_DIR`、当前用户默认目录；显式路径必须绝对。
+打开 `http://127.0.0.1:8766/workspace-admin` 使用兼容管理页。完整内置工作台还需按[贡献指南](../../.github/CONTRIBUTING.md#内置项目工作台源码与构建)准备，再从 `/studio` 进入。默认数据目录在 Windows 为 `%LOCALAPPDATA%/SessionPanel`（环境变量缺失时为当前用户 `AppData/Local/SessionPanel`）；目录内的 `profile.json` 保存来源设置，`workspace-state.sqlite3` 保存管理记录。路径优先级为 `--data-dir`、非空 `SESSION_PANEL_DATA_DIR`、当前用户默认目录；显式路径必须绝对。
 
 标准 Python wheel 包含后端和管理页面资源，可以离开检出目录使用。它不包含内置项目工作台的源码树、Node 运行时或 Rust 原生程序；缺少原生观察程序时显示 `native_missing`，基础管理仍可启动。Windows 标准安装另行组合内置项目工作台、固定运行时和 release 原生程序，并核验完整产品文件。源码模式保留旧根数据位置；安装包的兼容旧记录默认目录为用户默认数据目录下的 `legacy`，不会写入 site-packages，也不会自动搬迁旧记录。
 
@@ -97,7 +97,7 @@ python -m venv .venv
 & './tools/scripts/open-workspace.ps1' -Port 14401
 ```
 
-随后访问 `http://127.0.0.1:14401/workspace` 或 `/progress`。网关只监听 `127.0.0.1`，端口范围为 1024–65535；占用即退出，不自动换端口、终止或接管旧服务。打开页面脚本只打开已经运行的服务。Ctrl+C停止Python网关；已构建的原生观察后台独立运行，显式停止方式见下节。
+随后访问 `http://127.0.0.1:14401/workspace-admin`；已装配完整内置工作台时访问 `/studio`。网关只监听 `127.0.0.1`，端口范围为 1024–65535；占用即退出，不自动换端口、终止或接管旧服务。打开页面脚本只打开已经运行的服务。Ctrl+C停止Python网关；已构建的原生观察后台独立运行，显式停止方式见下节。
 
 ### 兼容项目管理与接口
 
