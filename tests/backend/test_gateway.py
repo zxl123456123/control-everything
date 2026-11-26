@@ -436,12 +436,17 @@ class GatewayRejectionTests(unittest.TestCase):
                 handler.rfile.read1.assert_called_once_with(2)
 
     def test_host_gate_refuses_before_reading_an_untrusted_body(self):
-        handler = self.handler({"Host": "outside", "Origin": "outside"})
-        handler.do_POST()
-        handler.reply.assert_called_once_with(403, {"reason": "host_rejected"})
-        handler.rfile.read1.assert_not_called()
-        handler.rfile.read.assert_not_called()
-        self.assertEqual(handler.server.service.mock_calls, [])
+        for hosts in (['outside'], [], ['expected', 'outside']):
+            with self.subTest(hosts=hosts):
+                handler = self.handler({"Origin": "outside"})
+                del handler.headers['Host']
+                for host in hosts:
+                    handler.headers['Host'] = handler.server.expected_host if host == 'expected' else host
+                handler.do_POST()
+                handler.reply.assert_called_once_with(403, {"reason": "host_rejected"})
+                handler.rfile.read1.assert_not_called()
+                handler.rfile.read.assert_not_called()
+                self.assertEqual(handler.server.service.mock_calls, [])
 
     def test_length_boundary_and_unreliable_framing_never_read(self):
         handler = self.handler({"X-Session-CSRF": "bad", "Content-Length": "4096"}, b"x" * 4096 + b"unread")
