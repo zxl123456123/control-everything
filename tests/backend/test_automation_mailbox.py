@@ -15,6 +15,33 @@ from control_everything.integrations.remote_hub import store as hub_store
 from .test_remote_hub_support import A, B, bind, complete, recovery, service
 
 
+# Historical v3 DDL from f8515195, before mailbox tables existed.
+V3_TABLES = {'identities': 'CREATE TABLE identities(issuer TEXT NOT NULL, sub TEXT NOT NULL, account_id TEXT NOT NULL,\n'
+               '        created_at REAL, PRIMARY KEY(issuer,sub))',
+ 'members': 'CREATE TABLE members(account_id TEXT PRIMARY KEY, status TEXT NOT NULL, last_logout_at REAL)',
+ 'invites': 'CREATE TABLE invites(token_hash TEXT PRIMARY KEY, expires REAL NOT NULL, consumed_by TEXT)',
+ 'devices': 'CREATE TABLE devices(device_id TEXT PRIMARY KEY, account_id TEXT NOT NULL,\n'
+            '        installation_id TEXT NOT NULL, key_fingerprint TEXT NOT NULL,\n'
+            '        public_key TEXT NOT NULL, name TEXT NOT NULL, generation INTEGER NOT NULL,\n'
+            '        state TEXT NOT NULL, http_port INTEGER UNIQUE, ws_port INTEGER UNIQUE,\n'
+            '        control_token_hash TEXT, credential_revision INTEGER NOT NULL DEFAULT 0,\n'
+            '        proxy_secret TEXT NOT NULL, last_heartbeat REAL, cleanup_error TEXT,\n'
+            '        created_at REAL, os_name TEXT, os_version TEXT, app_version TEXT)',
+ 'enrollments': 'CREATE TABLE enrollments(challenge_id TEXT PRIMARY KEY, account_id TEXT NOT NULL,\n'
+                '        installation_id TEXT NOT NULL, public_key TEXT NOT NULL,\n'
+                '        key_fingerprint TEXT NOT NULL, name TEXT NOT NULL, payload BLOB NOT NULL,\n'
+                '        expires REAL NOT NULL, operation TEXT NOT NULL, expected_credential_revision '
+                'INTEGER,\n'
+                '        device_id TEXT, generation INTEGER, consumed INTEGER NOT NULL DEFAULT 0)',
+ 'browser_sessions': 'CREATE TABLE browser_sessions(session_hash TEXT PRIMARY KEY,\n'
+                     '        account_id TEXT NOT NULL, sid TEXT NOT NULL, csrf TEXT NOT NULL,\n'
+                     '        expires REAL NOT NULL, invalidated INTEGER NOT NULL DEFAULT 0)',
+ 'contexts': 'CREATE TABLE contexts(context_id TEXT PRIMARY KEY, session_hash TEXT NOT NULL,\n'
+             '        device_id TEXT NOT NULL, generation INTEGER NOT NULL, scope TEXT NOT NULL)'}
+V3_INDEXES = ('CREATE INDEX identities_account ON identities(account_id)',
+ "CREATE UNIQUE INDEX owner_active ON devices(account_id) WHERE state!='revoked'")
+
+
 class AutomationMailboxTests(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
@@ -155,21 +182,43 @@ class AutomationMailboxTests(unittest.TestCase):
             db.execute('DROP TRIGGER reject_inbox')
         self.assertEqual(self.receive()['state'], 'pending')
 
+    def historical_v3(self):
+        with self.hub.store.transaction() as source:
+            rows = {table: list(source.execute(f'SELECT * FROM {table}')) for table in V3_TABLES}
+        self.path = self.path.with_name('historical-v3.db')
+        with closing(sqlite3.connect(self.path)) as db:
+            db.execute('CREATE TABLE schema_version(version INTEGER NOT NULL)')
+            db.execute('INSERT INTO schema_version VALUES(3)')
+            for table, ddl in V3_TABLES.items():
+                db.execute(ddl)
+                for row in rows[table]:
+                    db.execute(f'INSERT INTO {table} VALUES({",".join("?" for _ in row)})', tuple(row))
+            for ddl in V3_INDEXES:
+                db.execute(ddl)
+            db.commit()
+        return self.database_snapshot(self.path)
+
+    @staticmethod
+    def database_snapshot(path):
+        with closing(sqlite3.connect(path)) as db:
+            return tuple(db.iterdump())
+
     def test_v3_migration_preserves_devices_and_pre_migration_backup(self):
-        with self.hub.store.transaction() as db:
-            db.execute('DROP TABLE automation_inbox')
-            db.execute('UPDATE schema_version SET version=3')
+        snapshot = self.historical_v3()
+        with closing(sqlite3.connect(self.path)) as db:
+            db.row_factory = sqlite3.Row
             before = [dict(row) for row in db.execute('SELECT * FROM devices')]
         migrated = RemoteHubStore(self.path)
         backup = Path(str(self.path) + hub_store.MAILBOX_BACKUP_SUFFIX)
         backup_bytes = backup.read_bytes()
+        self.assertEqual(self.database_snapshot(backup), snapshot)
         with closing(sqlite3.connect(backup)) as db:
             db.row_factory = sqlite3.Row
             self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 3)
             self.assertEqual([dict(row) for row in db.execute('SELECT * FROM devices')], before)
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='automation_inbox'").fetchone())
         with migrated.transaction() as db:
-            self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 4)
+            self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 7)
             self.assertEqual([dict(row) for row in db.execute('SELECT * FROM devices')], before)
         AutomationMailbox(migrated).receive(self.device['device_id'], self.device['generation'],
                                             'feishu:test-app', 'event-a', self.payload)
@@ -182,15 +231,14 @@ class AutomationMailboxTests(unittest.TestCase):
         self.assertEqual(restored.authenticate_control(self.token)['device_id'], self.device['device_id'])
 
     def test_migration_failure_rolls_back_schema_and_keeps_backup(self):
-        with self.hub.store.transaction() as db:
-            db.execute('DROP TABLE automation_inbox')
-            db.execute('UPDATE schema_version SET version=3')
+        snapshot = self.historical_v3()
         with patch.object(hub_store, '_INDEXES', (*hub_store._INDEXES[:2], 'INVALID INDEX SQL')):
             with self.assertRaises(sqlite3.OperationalError):
                 RemoteHubStore(self.path)
         with closing(sqlite3.connect(self.path)) as db:
             self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0], 3)
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='automation_inbox'").fetchone())
-        self.assertTrue(Path(str(self.path) + hub_store.MAILBOX_BACKUP_SUFFIX).is_file())
+        self.assertEqual(self.database_snapshot(self.path), snapshot)
+        self.assertEqual(self.database_snapshot(Path(str(self.path) + hub_store.MAILBOX_BACKUP_SUFFIX)), snapshot)
         migrated = RemoteHubStore(self.path)
         self.assertEqual(migrated.authenticate_control(self.token)['device_id'], self.device['device_id'])
