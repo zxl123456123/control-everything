@@ -31,8 +31,13 @@ class TaskSchemaReferenceTests(unittest.TestCase):
             for statement in schema.OLD_STATEMENTS:
                 connection.execute(statement)
             connection.execute('PRAGMA user_version=1')
-        else:
+        elif version <= 16:
             getattr(schema, f'install_schema{version}')(connection, fresh=True)
+        else:
+            schema.install_schema16(connection, fresh=True)
+            schema.install_schema17(connection)
+            if version == 18:
+                schema.install_schema18(connection)
         return connection
 
     def test_warm_validation_creates_no_reference_ddl_and_rechecks_live_state(self):
