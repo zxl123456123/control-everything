@@ -57,10 +57,10 @@ async function historyOrder(firstId, secondId, firstOffset, secondOffset, firstR
   assert.equal(new URL(f.requests[1].url, 'http://fixture').searchParams.get('offset'), String(secondOffset));
 }
 (async () => {
-  await test('profile progress redirects to the sole workspace manual editor; legacy resources remain mapped', () => {
+  await test('profile progress redirects to Studio projects; legacy resources and manual form remain available', () => {
     const gateway = fs.readFileSync(path.join(root, 'src/control_everything/http/gateway.py'), 'utf8');
     assert.match(gateway, /path\.path == "\/progress"[^\n]*self\.profile\(\) is not None/);
-    assert.ok(gateway.includes('self.send_header("Location", "/workspace#projects")'));
+    assert.ok(gateway.includes('self.send_header("Location", "/studio#projects")'));
     for (const resource of ['/progress.js', '/progress.css']) assert.ok(gateway.includes(`"${resource}"`));
     const html = fs.readFileSync(path.join(root, 'web/workspace/workspace.html'), 'utf8');
     assert.equal((html.match(/id="manual-form"/g) || []).length, 1);
