@@ -6,13 +6,13 @@
 
 ## Windows 标准安装
 
-当前提供 [0.1.0a20 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a20)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a20/session-panel-0.1.0a20-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a20/session-panel-0.1.0a20-sources.zip)。安装器尚未签名；本版已在 GitHub 托管 Windows 的标准用户环境验证从 0.1.0a19 升级、回退到 0.1.0a19、同版重装及卸载，未覆盖完整 Windows 10/11 干净机矩阵和个人手机真机登录。其它验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
+当前提供 [0.1.0a21 Windows x64 早期测试版](https://github.com/zxl123456123/control-everything/releases/tag/v0.1.0a21)：[安装器](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a21/session-panel-0.1.0a21-windows-x64.exe) · [依赖对应源码](https://github.com/zxl123456123/control-everything/releases/download/v0.1.0a21/session-panel-0.1.0a21-sources.zip)。安装器尚未签名；本版已在 GitHub 托管 Windows 的标准用户环境[验证从 0.1.0a20 升级、回退到 0.1.0a20、同版重装及卸载](https://github.com/zxl123456123/control-everything/actions/runs/45755288926)；尚未完整覆盖 Windows 10/11 干净机矩阵和个人手机真机登录。其它验证范围和未覆盖项目见该版本说明。开发者也可按[源码启动指南](usage.md#多-agent-工作台)运行。
 
-`0.1.0a20` 是完整版本号，其中 `a` 表示 alpha（早期测试），`20` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
+`0.1.0a21` 是完整版本号，其中 `a` 表示 alpha（早期测试），`21` 是该阶段的版本序号；含义遵循 [Python 版本规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#pre-releases)。版本序号用于识别安装包，具体功能、测试结果与限制由版本说明分别列出。
 
-此安装包的受测源码为 `ee89d667`。`main` 和 `develop` 的后续源码与文档更新不会改动已发布的安装包；新 EXE 须单独构建、验收并发布。安装版按上述版本说明判断功能与已知限制，源码开发按贡献指南构建和预览。
+此安装包的受测源码为 `b4a804b9`。`main` 和 `develop` 的后续源码与文档更新不会改动已发布的安装包；新 EXE 须单独构建、验收并发布。安装版按上述版本说明判断功能与已知限制，源码开发按贡献指南构建和预览。
 
-普通用户下载 `session-panel-0.1.0a20-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
+普通用户下载 `session-panel-0.1.0a21-windows-x64.exe`，先用 `Get-FileHash -Algorithm SHA256` 与该次发布的 `SHA256SUMS.txt` 核对，再运行安装器。标准产品自带 CPython 3.13.16、固定 Python 依赖、前端资源和 release Rust 原生观察后台，无需另外安装 Python、Node、npm 或 Rust 编译器。依赖源码附件用于对应源码分发，不能代替完整安装器或 GitHub 的项目源码快照。
 
 安装目录支持中文和空格；当前产品按普通 Windows 路径工作，每个完整交付文件路径须少于260个UTF-16字符。安装器在写入目标前检查整个固定文件清单，超限时提示选择更短目录，不修改系统的长路径策略。
 
